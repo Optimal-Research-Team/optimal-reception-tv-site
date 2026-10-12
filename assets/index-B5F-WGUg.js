@@ -1,0 +1,1 @@
+import"./optimal-logo-BEcy5AzM.js";import{o as e}from"./opentv-BStHPJbb.js";const n=document.getElementById("start");n.addEventListener("click",async()=>{if(await e()){location.href="remote.html";return}const t=document.getElementById("blocked");t.hidden=!1});

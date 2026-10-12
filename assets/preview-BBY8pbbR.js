@@ -1,0 +1,1 @@
+import"./optimal-logo-BEcy5AzM.js";/* empty css                     */const o=document.getElementById("tv"),d=document.getElementById("remote");addEventListener("message",t=>{var n;if(!t.data||!t.data.__otv)return;const e=t.source===o.contentWindow?d:t.source===d.contentWindow?o:null;(n=e==null?void 0:e.contentWindow)==null||n.postMessage(t.data,"*")});
