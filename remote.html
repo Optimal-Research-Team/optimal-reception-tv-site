@@ -7,21 +7,23 @@
   <meta name="theme-color" content="#FFFCF7">
   <title>Optimal · TV remote</title>
   <link rel="icon" href="media/favicon.png">
-  <script type="module" crossorigin src="./assets/remote-DguZxsY7.js"></script>
+  <script type="module" crossorigin src="./assets/remote-B58CPp-5.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/optimal-logo-BEcy5AzM.js">
-  <link rel="modulepreload" crossorigin href="./assets/types-pID2hCIC.js">
+  <link rel="modulepreload" crossorigin href="./assets/bus-sMsTJhOw.js">
+  <link rel="modulepreload" crossorigin href="./assets/hours-BUNTiAiC.js">
   <link rel="modulepreload" crossorigin href="./assets/opentv-BStHPJbb.js">
   <link rel="stylesheet" crossorigin href="./assets/optimal-logo-CWjZz7vM.css">
-  <link rel="stylesheet" crossorigin href="./assets/remote-D2P8Jt8z.css">
+  <link rel="stylesheet" crossorigin href="./assets/remote-DYNNVFCO.css">
 </head>
 <body>
   <main class="r">
     <header class="r-top">
       <optimal-logo variant="inline" theme="light" play="manual"></optimal-logo>
-      <span class="r-title">Reception TV</span>
+      <span class="r-title">Reception TV<small id="hours"></small></span>
       <span class="status" id="status" data-s="wait"><i></i><b>Looking for the TV…</b></span>
     </header>
 
+    <div class="r-left">
     <div class="connect" id="connect" hidden>
       <button class="btn primary" id="bOpenTv" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span>Open the TV screen</span></button>
       <p id="connectNote">Opens the TV picture on the waiting-room screen. Then click it once for full screen.</p>
@@ -29,7 +31,7 @@
 
     <div class="connect air" id="airCard" hidden>
       <p id="airText">&nbsp;</p>
-      <button class="btn" id="bAir" type="button"><span>Play anyway</span></button>
+      <button class="btn primary" id="bAir" type="button"><span>Play anyway</span></button>
     </div>
 
     <section class="now" aria-label="Now playing">
@@ -47,10 +49,14 @@
       <button class="btn" id="bSkip" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5.6v12.8a.7.7 0 0 0 1.07.6l9.6-6.4a.7.7 0 0 0 0-1.2L6.07 5a.7.7 0 0 0-1.07.6Z"/><rect x="16.5" y="5" width="2.5" height="14" rx="1"/></svg><span>Skip</span></button>
       <button class="btn" id="bCalm" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9c3-2.6 6-2.6 9 0s6 2.6 9 0M3 15c3-2.6 6-2.6 9 0s6 2.6 9 0"/></svg><span>Calm</span></button>
     </div>
-    <p class="hint">Calm keeps the TV on quiet footage only, for example during a hard conversation at the desk.</p>
+    <p class="hint">Calm keeps the TV on quiet footage only, for example during a hard conversation at the desk. <span class="keys">Keys: <kbd>Space</kbd> pause <kbd>→</kbd> skip <kbd>C</kbd> calm</span></p>
+
+    <div class="note-live" id="noteLive" hidden><i></i><p><b>On the TV now</b><span id="noteLiveText"></span></p><button type="button" class="chip" id="bNoteLiveClear">Clear</button></div>
 
     <section class="next" aria-label="Up next"><h2>Up next</h2><ol id="next"></ol></section>
+    </div>
 
+    <div class="r-right">
     <nav class="tabs" role="tablist">
       <button role="tab" aria-selected="true" data-tab="play">Play now</button>
       <button role="tab" aria-selected="false" data-tab="note">Desk note</button>
@@ -89,6 +95,7 @@
       <p class="lbl">What aired, newest first. The clinic server keeps the full log for the analytics dashboard.</p>
       <ol class="log" id="log"></ol>
     </section>
+    </div>
 
     <footer class="r-foot">Optimal Health · Barrie. This page controls the reception TV over the clinic network only.</footer>
   </main>
