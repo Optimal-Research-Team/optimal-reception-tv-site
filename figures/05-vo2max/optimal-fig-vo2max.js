@@ -2072,9 +2072,9 @@ const MANNEQUIN = (() => {
 const TRUTH = {
   bm: 75, //              kg, the modelled rider
   age: 45, //             years
-  slope: 10.3, //         ml O₂/min per W on a ramp, 10.29 ± 1.01 in healthy men [7] HIGH
+  slope: 10.3, //         mL O₂/min per W on a ramp, 10.29 ± 1.01 in healthy men [7] HIGH
   rest: 3.5, //           mL/kg/min seated at rest, 1 MET [21] (convention) HIGH
-  base: [150, 6], //      unloaded pedalling VO₂ = 150 + 6 × body mass, ml/min [9] MEDIUM
+  base: [150, 6], //      unloaded pedalling VO₂ = 150 + 6 × body mass, mL/min [9] MEDIUM
   rampMin: 10, //         ramp sized to reach the ceiling in about 10 min [1][3] HIGH
   tau: 0.6, //            min, VO₂ lags the ramp as a first-order response (30–45 s) LOW: shape only
   tauOff: 1.0, //         min, recovery fall-off LOW: shape only
@@ -2083,7 +2083,7 @@ const TRUTH = {
   rer: { rest: 0.8, vt1: 0.9, xVT1: 0.55, max: 1.15, bend: 1.6 }, // LOW shape; RER ≥ 1.10 at max is the usual criterion [11] HIGH
   cadence: 60, //         rpm, the usual target (55–70) [6] MEDIUM
   phases: { rest: 3, unloaded: 3, recovery: 3 }, // min [3][5] HIGH
-  plateau: 45, //         ml/min softness of the ceiling (shape only)
+  plateau: 45, //         mL/min softness of the ceiling (shape only)
   hold: 1.0, //           min the plateau runs before the test stops
   breath: { f0: 14, f1: 36, ve: 27, veTop: 10, xRCP: 0.85, exhale: 0.55 }, // breathing, LOW: drives the turbine and the hose only
   hoseArea: 9.6, //       cm², a 35 mm breathing hose

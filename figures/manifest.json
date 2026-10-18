@@ -1,8 +1,16 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "3077669",
+  "commit": "8c98e14",
   "dirty": false,
-  "syncedAt": "2026-10-12T19:04:57.684Z",
+  "syncedAt": "2026-10-18T22:08:17.798Z",
+  "patchedBy": "scripts/patch-figures.mjs",
+  "patchRules": 28,
+  "pinned": {
+    "a4-heart": {
+      "commit": "3077669",
+      "why": "Round 6 (the WebGL heart, c5c99a7) awaits Peter's OK; the TV keeps round 5."
+    }
+  },
   "figures": [
     {
       "folder": "01-menopause-thermostat",
@@ -26,7 +34,7 @@
       "folder": "04-creator-600",
       "element": "optimal-fig-creator-600",
       "script": "figures/04-creator-600/optimal-fig-creator-600.js",
-      "bytes": 215742
+      "bytes": 215745
     },
     {
       "folder": "05-vo2max",
@@ -44,7 +52,7 @@
       "folder": "a1-gut-cell",
       "element": "optimal-fig-gut-cell",
       "script": "figures/a1-gut-cell/optimal-fig-gut-cell.js",
-      "bytes": 166818
+      "bytes": 166815
     },
     {
       "folder": "a2-hypothalamus",
@@ -62,25 +70,26 @@
       "folder": "a4-heart",
       "element": "optimal-fig-heart",
       "script": "figures/a4-heart/optimal-fig-heart.js",
-      "bytes": 121941
+      "bytes": 121941,
+      "pinned": "3077669"
     },
     {
       "folder": "a5-alveolus",
       "element": "optimal-fig-alveolus",
       "script": "figures/a5-alveolus/optimal-fig-alveolus.js",
-      "bytes": 212729
+      "bytes": 212727
     },
     {
       "folder": "a6-red-cell-cycle",
       "element": "optimal-fig-red-cell-cycle",
       "script": "figures/a6-red-cell-cycle/optimal-fig-red-cell-cycle.js",
-      "bytes": 129732
+      "bytes": 129727
     },
     {
       "folder": "a7-knee",
       "element": "optimal-fig-knee",
       "script": "figures/a7-knee/optimal-fig-knee.js",
-      "bytes": 115098
+      "bytes": 115091
     },
     {
       "folder": "a8-muscle-water",
