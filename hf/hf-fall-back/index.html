@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"changeLine","type":"string","label":"Clock-change line (say “forward” for the spring version)","default":"Clocks go back one hour on Sunday, November 1."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>The clocks change. Your wake time doesn’t.</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* One wake time through the clock change (Longevity Protocol §4). A clock rolls through 2:00 a.m. and turns back
+     an hour (or forward, for the spring cut), then a night strip from evening to morning lights one habit per beat.
+     The wake mark never moves, even when a short night pulls lights-out later. */
+  .fb-block { position: absolute; left: 120px; top: 338px; width: 1060px; }
+  .fb-count { position: relative; height: 26px; }
+  .fb-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .fb-slot { position: relative; margin-top: 22px; }
+  .fb-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 62px/1.16 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .fb-end { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: italic 400 82px/1.06 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .fb-end em { color: var(--leaf-300); }
+
+  /* the clock: three odometer windows, each a column of digits that slides by whole digits */
+  .fb-clock { position: absolute; left: 1254px; top: 306px; --d: 216px; }
+  .fb-digits { display: flex; align-items: flex-start; font: 400 var(--d)/1 var(--display); letter-spacing: -0.02em; color: var(--cream); font-variant-numeric: lining-nums tabular-nums; }
+  .fb-win { display: block; height: 1em; overflow: hidden; }
+  .fb-col { display: block; }
+  .fb-col i { display: block; height: 1em; font-style: normal; text-align: center; }
+  .fb-colon { display: block; height: 1em; padding: 0 0.02em; }
+  .fb-ampm { display: block; margin: calc(var(--d) * 0.64) 0 0 calc(var(--d) * 0.06); font: 500 38px/1 var(--sans); letter-spacing: 0; color: var(--fg-muted); }
+  .fb-cap { margin: 22px 0 0 6px; font: 400 30px/1.3 var(--sans); color: var(--fg); opacity: 0; white-space: nowrap; }
+
+  .fb-strip { position: absolute; left: 120px; top: 640px; width: 1680px; height: 280px; overflow: visible; }
+  .fb-strip text { font-family: var(--sans); font-size: 28px; font-weight: 500; letter-spacing: -0.01em; fill: var(--fg-muted); }
+  .fb-strip text.on { fill: var(--cream); }
+  .fb-strip text.lit { fill: var(--leaf-300); }
+
+  .shape-reel .hf-h { font-size: 86px; }
+  .shape-reel .fb-clock { left: 84px; top: 594px; }
+  .shape-reel .fb-clock { --d: 196px; }
+  .shape-reel .fb-ampm { font-size: 36px; }
+  .shape-reel .fb-cap { font-size: 30px; margin-top: 16px; }
+  .shape-reel .fb-strip { left: 90px; top: 880px; width: 840px; height: 220px; }
+  .shape-reel .fb-strip text { font-size: 27px; }
+  .shape-reel .fb-block { left: 90px; top: 1124px; width: 840px; }
+  .shape-reel .fb-st { font-size: 54px; }
+  .shape-reel .fb-end { font-size: 68px; top: -48px; }
+
+  .shape-post .fb-clock { left: 84px; top: 358px; }
+  .shape-post .fb-clock { --d: 150px; }
+  .shape-post .fb-ampm { font-size: 30px; }
+  .shape-post .fb-cap { font-size: 27px; margin-top: 12px; }
+  .shape-post .fb-strip { left: 90px; top: 598px; width: 900px; height: 210px; }
+  .shape-post .fb-strip text { font-size: 24px; }
+  .shape-post .fb-block { left: 90px; top: 846px; width: 900px; }
+  .shape-post .fb-st { font-size: 50px; }
+  .shape-post .fb-end { font-size: 62px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-fall-back" data-start="0" data-width="1920" data-height="1080" data-duration="33">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="fb-strip" id="fb-strip" aria-hidden="true"></svg>
+
+  <div class="fb-clock" id="fb-clock">
+    <div class="fb-digits" id="fb-digits">
+      <span class="fb-win" id="fb-hw"><span class="fb-col" id="fb-h" data-layout-allow-overflow></span></span>
+      <span class="fb-colon">:</span>
+      <span class="fb-win"><span class="fb-col" id="fb-m1" data-layout-allow-overflow><i>5</i><i>0</i></span></span>
+      <span class="fb-win"><span class="fb-col" id="fb-m2" data-layout-allow-overflow><i>7</i><i>8</i><i>9</i><i>0</i></span></span>
+      <span class="fb-ampm">a.m.</span>
+    </div>
+    <p class="fb-cap" id="fb-cap"></p>
+  </div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="fb-eb">Sleep · The clock change</p>
+    <h2 class="hf-h" id="fb-hl">The clocks change. Your <em>wake time</em> doesn’t.</h2>
+    <div class="fb-block">
+      <div class="fb-count" id="fb-count"></div>
+      <div class="fb-slot" id="fb-slot">
+        <p class="fb-end" id="fb-end">Same wake-up time, <em>Sunday</em> included.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="fb-foot">Clock-change rule: National Research Council Canada. From the Optimal Longevity Protocol, v1.0, §4. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="fb-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Beats 2–5 are Longevity Protocol §4 lines, verbatim where they fit; beat 1 is the variable clock-change date.
+  const n = (t) => `<span class="hf-num">${t}</span>`;
+  const V = HF.vars();
+  const CHANGE = String(V.changeLine || 'Clocks go back one hour on Sunday, November 1.');
+  const DIR = /forward|ahead/i.test(CHANGE) ? 1 : -1;   // spring cut: "Clocks go forward one hour on Sunday, March 14."
+  const changeHtml = HF.smart(CHANGE)
+    .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s(\d{1,2})\b/, (m) => n(m))
+    .replace(/\b(one|an|1)\s(hour)\b/i, (m) => n(m));
+  const BEATS = [
+    changeHtml,
+    `Keep one wake-up time, ${n('seven days')} a week.`,
+    'Get morning sunlight in your eyes as early as possible.',
+    'In the evening: dim, warm light, and screens down well before bed.',
+    `A single short night cuts insulin sensitivity by roughly ${n('a fifth')}.`,
+  ];
+  const LEN = [6.0, 4.8, 4.8, 4.8, 5.0];
+  const T0 = 2.6, START = LEN.map((_, k) => T0 + LEN.slice(0, k).reduce((a, b) => a + b, 0));
+  const END = T0 + LEN.reduce((a, b) => a + b, 0), DUR = 33;
+
+  const $ = (id) => document.getElementById(id);
+  // hour column: 1 → 2 at the change, then back to 1 (fall) or on to 3 (spring)
+  $('fb-h').innerHTML = (DIR < 0 ? ['1', '2'] : ['1', '2', '3']).map((d) => `<i>${d}</i>`).join('');
+  document.querySelectorAll('.fb-col i').forEach((d) => d.setAttribute('data-layout-allow-overflow', ''));
+  $('fb-cap').innerHTML = DIR < 0 ? `At ${n('2:00 a.m.')}, clocks turn back to ${n('1:00 a.m.')}` : `At ${n('2:00 a.m.')}, clocks jump ahead to ${n('3:00 a.m.')}`;
+
+  // The night strip, 8 p.m. to 8 a.m., in clock hours (24 = midnight). Positions are schematic; only 2:00 a.m. is labelled.
+  const G = {
+    tv:   { w: 1680, h: 280, y: 144, band: 16, glow: 190, ends: true, r: 9, lift: 96 },
+    reel: { w: 840,  h: 220, y: 112, band: 13, glow: 130, ends: false, r: 8, lift: 62 },
+    post: { w: 900,  h: 210, y: 106, band: 12, glow: 120, ends: false, r: 8, lift: 60 },
+  }[HF.shape];
+  const H0 = 20, H1 = 32, X = (h) => (h - H0) * G.w / (H1 - H0);
+  const H = { dim: 21.5, out: 22.5, outLate: 24.5, wake: 30.5, change: 26 };
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = $('fb-strip');
+  svg.setAttribute('viewBox', `0 0 ${G.w} ${G.h}`);
+  const el = (tag, attrs, parent, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  };
+  const Y = G.y;
+  const defs = el('defs', {});
+  const rg = el('radialGradient', { id: 'fb-sun' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#FFFCF7', 'stop-opacity': 0.34 }, rg);
+  el('stop', { offset: 0.45, 'stop-color': '#CEE0C4', 'stop-opacity': 0.12 }, rg);
+  el('stop', { offset: 1, 'stop-color': '#CEE0C4', 'stop-opacity': 0 }, rg);
+
+  const sun = el('circle', { cx: X(H.wake), cy: Y + 40, r: G.glow, fill: 'url(#fb-sun)', opacity: 0 });
+  // sleep band, lights-out to wake
+  const band = el('rect', { x: X(H.out), y: Y - G.band, width: X(H.wake) - X(H.out), height: 2 * G.band, rx: G.band, fill: 'rgba(255,252,247,.075)', opacity: 0 });
+  const line = el('line', { x1: 0, y1: Y, x2: G.w, y2: Y, stroke: 'rgba(255,252,247,.4)', 'stroke-width': 1.6, 'stroke-dasharray': G.w, 'stroke-dashoffset': G.w });
+  const ticks = [];
+  for (let h = H0; h <= H1; h++) ticks.push(el('line', { x1: X(h), y1: Y - 5, x2: X(h), y2: Y + 5, stroke: 'rgba(255,252,247,.3)', 'stroke-width': 1.4, opacity: 0 }));
+  const wind = el('line', { x1: X(H.dim), y1: Y, x2: X(H.out), y2: Y, stroke: '#A9D49C', 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0 });
+  // the changed hour: a loop back from 2:00 to 1:00 (fall), or the skipped hour 2:00–3:00 (spring)
+  const hA = H.change, hB = H.change + DIR, lift = G.lift;
+  const arcD = `M${X(hA)},${Y - 14} C${X(hA)},${Y - lift} ${X(hB)},${Y - lift} ${X(hB)},${Y - 14}`;
+  const arc = el('path', { d: arcD, fill: 'none', stroke: '#A9D49C', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-dasharray': 400, 'stroke-dashoffset': 400 });
+  const head = el('path', { d: `M${X(hB) - 8},${Y - 25} L${X(hB)},${Y - 14} L${X(hB) + 8},${Y - 25}`, fill: 'none', stroke: '#A9D49C', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0 });
+  const skipped = DIR > 0 ? el('line', { x1: X(hA), y1: Y, x2: X(hB), y2: Y, stroke: '#0f1d0c', 'stroke-width': 4, 'stroke-dasharray': '4 6', opacity: 0 }) : null;
+
+  const mark = (h) => {
+    const g = { halo: el('circle', { cx: X(h), cy: Y, r: G.r, fill: 'none', stroke: '#A9D49C', 'stroke-width': 2, opacity: 0 }) };
+    g.dot = el('circle', { cx: X(h), cy: Y, r: G.r, fill: '#152511', stroke: 'rgba(255,252,247,.55)', 'stroke-width': 2, opacity: 0 });
+    g.lit = el('circle', { cx: X(h), cy: Y, r: G.r, fill: '#A9D49C', opacity: 0 });
+    return g;
+  };
+  const M = { out: mark(H.out), change: mark(H.change), wake: mark(H.wake) };
+  const below = Y + (HF.shape === 'tv' ? 58 : 52), above = Y - (HF.shape === 'tv' ? 40 : 34);
+  const L = {
+    dim: el('text', { x: (X(H.dim) + X(H.out)) / 2, y: above, 'text-anchor': 'middle', opacity: 0 }, null, 'Dim, warm light'),
+    out: el('text', { x: X(H.out), y: below, 'text-anchor': 'middle', opacity: 0 }, null, 'Lights out'),
+    change: el('text', { x: X(H.change), y: below, 'text-anchor': 'middle', opacity: 0 }, null, '2:00 a.m.'),
+    wake: el('text', { x: X(H.wake), y: below, 'text-anchor': 'middle', opacity: 0 }, null, 'Wake'),
+    short: el('text', { x: (X(H.outLate) + X(H.wake)) / 2 + (HF.shape === 'tv' ? 60 : 40), y: above, 'text-anchor': 'middle', opacity: 0, class: 'lit' }, null, 'Short night'),
+  };
+  if (G.ends) {
+    L.eve = el('text', { x: 0, y: below, opacity: 0 }, null, 'Evening');
+    L.morn = el('text', { x: G.w, y: below, 'text-anchor': 'end', opacity: 0 }, null, 'Morning');
+  }
+
+  BEATS.forEach((b, k) => {
+    $('fb-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('fb-slot').insertAdjacentHTML('beforeend', `<p class="fb-st">${b}</p>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.fb-count .hf-count'), sts = document.querySelectorAll('.fb-st');
+    const roll = (id, idx, of, at, dur, ease) => tl.to($(id), { yPercent: -100 * idx / of, duration: dur || 0.4, ease: ease || 'power2.inOut' }, at);
+    const cls = (node, c, at) => tl.set(node, { attr: { class: c } }, at);
+    const nH = DIR < 0 ? 2 : 3;
+
+    HF.rise(tl, $('fb-eb'), 0.15);
+    HF.reveal(tl, $('fb-hl'), 0.3);
+    // the strip draws evening to morning; the clock fades up reading 1:57 and starts to tick
+    tl.to(line, { attr: { 'stroke-dashoffset': 0 }, duration: 1.6, ease: 'power2.inOut' }, 0.6);
+    tl.to(ticks, { attr: { opacity: 1 }, duration: 0.3, stagger: 1.3 / ticks.length }, 0.7);
+    tl.to(band, { attr: { opacity: 1 }, duration: 1.0, ease: 'power2.out' }, 1.3);
+    tl.to([M.out.dot, M.change.dot, M.wake.dot], { attr: { opacity: 1 }, duration: 0.5, stagger: 0.12 }, 1.4);
+    tl.to([L.out, L.change, L.wake, L.eve, L.morn].filter(Boolean), { attr: { opacity: 1 }, duration: 0.6, stagger: 0.1 }, 1.6);
+    tl.fromTo($('fb-clock'), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 1.0, ease: HF.EASE }, 0.8);
+    HF.rise(tl, $('fb-foot'), 1.2);
+    roll('fb-m2', 1, 4, 1.9);                                       // 1:58
+
+    // Beat 1: 1:59, then 2:00 a.m., then the hour turns back (or forward) while the loop draws on the strip
+    const b1 = START[0];
+    roll('fb-m2', 2, 4, b1 + 0.4);                                  // 1:59
+    roll('fb-m2', 3, 4, b1 + 1.3, 0.5);                             // :x0
+    roll('fb-m1', 1, 2, b1 + 1.3, 0.5);                             // :00
+    roll('fb-h', 1, nH, b1 + 1.3, 0.5);                             // 2:00
+    cls(L.change, 'on', b1 + 1.3);
+    tl.to(M.change.lit, { attr: { opacity: 1 }, duration: 0.5 }, b1 + 1.3);
+    roll('fb-h', DIR < 0 ? 0 : 2, nH, b1 + 2.4, 1.0, 'power3.inOut');   // 1:00 (or 3:00)
+    tl.to($('fb-hw'), { color: '#A9D49C', duration: 0.6, ease: 'power2.out' }, b1 + 2.6);
+    tl.to(arc, { attr: { 'stroke-dashoffset': 0 }, duration: 1.0, ease: 'power2.inOut' }, b1 + 2.4);
+    tl.to(head, { attr: { opacity: 1 }, duration: 0.3 }, b1 + 3.3);
+    if (skipped) tl.to(skipped, { attr: { opacity: 1 }, duration: 0.6 }, b1 + 2.6);
+    tl.fromTo($('fb-cap'), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, b1 + 3.0);
+
+    BEATS.forEach((_, k) => {
+      const at = START[k], next = at + LEN[k];
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+    });
+
+    // after beat 1 the clock steps back to a quiet reference; the change loop stays as a faint trace
+    const b2 = START[1], b3 = START[2], b4 = START[3], b5 = START[4];
+    tl.to($('fb-digits'), { color: '#8E9884', duration: 0.8, ease: 'power2.inOut' }, b2 + 0.1);
+    tl.to($('fb-hw'), { color: '#8E9884', duration: 0.8, ease: 'power2.inOut' }, b2 + 0.1);
+    tl.to([arc, head, M.change.lit], { attr: { opacity: 0.35 }, duration: 0.6 }, b2 + 0.1);
+    cls(L.change, '', b2 + 0.1);
+
+    // Beat 2: the wake mark lights and rings once
+    const wakeOn = (at) => {
+      tl.to(M.wake.lit, { attr: { opacity: 1 }, duration: 0.6, ease: 'power2.out' }, at);
+      tl.fromTo(M.wake.halo, { attr: { r: G.r, opacity: 0.9, 'stroke-width': 4 } }, { attr: { r: 34, opacity: 0, 'stroke-width': 1 }, duration: 1.6, ease: 'power2.out', immediateRender: false }, at);
+      cls(L.wake, 'lit', at);
+    };
+    wakeOn(b2 + 0.4);
+    // Beat 3: morning light rises at the wake mark
+    tl.fromTo(sun, { attr: { cy: Y + 46, opacity: 0 } }, { attr: { cy: Y, opacity: 1 }, duration: 1.8, ease: 'power2.out', immediateRender: false }, b3 + 0.3);
+    tl.fromTo(M.wake.halo, { attr: { r: G.r, opacity: 0.7, 'stroke-width': 3 } }, { attr: { r: 30, opacity: 0, 'stroke-width': 1 }, duration: 1.4, ease: 'power2.out', immediateRender: false }, b3 + 0.5);
+    // Beat 4: the hour before lights-out goes dim and warm
+    tl.to(sun, { attr: { opacity: 0.35 }, duration: 0.6 }, b4 + 0.1);
+    tl.to(M.wake.lit, { attr: { opacity: 0.45 }, duration: 0.6 }, b4 + 0.1);
+    cls(L.wake, 'on', b4 + 0.1);
+    tl.to(wind, { attr: { opacity: 1 }, duration: 0.7, ease: 'power2.out' }, b4 + 0.4);
+    tl.to(L.dim, { attr: { opacity: 1 }, duration: 0.6 }, b4 + 0.5);
+    cls(L.dim, 'lit', b4 + 0.4);
+    // Beat 5: a short night. Lights-out slides two hours later; the wake mark stays exactly where it is.
+    tl.to([wind, L.dim], { attr: { opacity: 0 }, duration: 0.5 }, b5 + 0.1);
+    const late = X(H.outLate) - X(H.out);
+    tl.to(band, { attr: { x: X(H.outLate), width: X(H.wake) - X(H.outLate) }, duration: 1.4, ease: 'power3.inOut' }, b5 + 0.3);
+    tl.to([M.out.dot, M.out.lit, M.out.halo, L.out], { x: late, duration: 1.4, ease: 'power3.inOut' }, b5 + 0.3);
+    tl.to(M.out.lit, { attr: { opacity: 1 }, duration: 0.5 }, b5 + 0.3);
+    cls(L.out, 'on', b5 + 0.3);
+    tl.to(L.short, { attr: { opacity: 1 }, duration: 0.6 }, b5 + 1.4);
+    // on the narrow strips the later lights-out lands beside 2:00 a.m., so that label steps aside until the night restores
+    if (HF.shape !== 'tv') tl.to(L.change, { attr: { opacity: 0 }, duration: 0.4 }, b5 + 0.3);
+
+    // Close: the night restores, the wake mark rings again, and the line says why it matters this Sunday.
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.to(L.short, { attr: { opacity: 0 }, duration: 0.4 }, END - 0.45);
+    tl.to(band, { attr: { x: X(H.out), width: X(H.wake) - X(H.out) }, duration: 1.4, ease: 'power3.inOut' }, END);
+    tl.to([M.out.dot, M.out.lit, M.out.halo, L.out], { x: 0, duration: 1.4, ease: 'power3.inOut' }, END);
+    tl.to(M.out.lit, { attr: { opacity: 0 }, duration: 0.6 }, END + 0.4);
+    if (HF.shape !== 'tv') tl.to(L.change, { attr: { opacity: 1 }, duration: 0.6 }, END + 1.2);
+    cls(L.out, '', END + 0.4);
+    tl.to(sun, { attr: { opacity: 1 }, duration: 1.0 }, END + 0.6);
+    tl.to(M.wake.lit, { attr: { opacity: 1 }, duration: 0.6 }, END + 0.6);
+    cls(L.wake, 'lit', END + 0.6);
+    tl.fromTo(M.wake.halo, { attr: { r: G.r, opacity: 0.9, 'stroke-width': 4 } }, { attr: { r: 34, opacity: 0, 'stroke-width': 1 }, duration: 1.6, ease: 'power2.out', immediateRender: false }, END + 0.8);
+    tl.fromTo($('fb-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    if (HF.shape !== 'tv') {
+      tl.to($('fb-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('fb-brand'), END + 1.2);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : START[k], START[k] + LEN[k]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-fall-back"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Grip targets, decade by decade</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Longevity Protocol §1.3 grip-strength table: targets by decade for women and men, one kg scale, and the
+     EWGSOP2 "low" cut-off as a flat floor that stays put while the targets step down. */
+  .gp-block { position: relative; margin-top: 62px; width: 660px; }
+  .gp-count { position: relative; height: 26px; }
+  .gp-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .gp-slot { position: relative; margin-top: 22px; height: 300px; }
+  .gp-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 54px/1.22 var(--sans); letter-spacing: -0.028em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .gp-end { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: italic 400 68px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .gp-end em { color: var(--leaf-300); }
+  .gp-endsub { position: absolute; left: 0; right: 0; top: 246px; margin: 0; font: 400 32px/1.35 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+
+  .gp-chart { position: absolute; left: 840px; top: 300px; width: 960px; height: 600px; overflow: visible; }
+  .gp-chart text { font-family: var(--sans); letter-spacing: -0.01em; }
+  .gp-head { font-size: 32px; font-weight: 600; fill: var(--cream); letter-spacing: -0.02em; }
+  .gp-unit { font-size: 22px; fill: var(--fg-muted); }
+  .gp-dec { font-size: 24px; fill: var(--fg); font-variant-numeric: tabular-nums; }
+  .gp-val { font-size: 34px; font-weight: 500; fill: var(--leaf-300); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+  .gp-lowname { font-size: 22px; font-weight: 600; fill: var(--cream); letter-spacing: 0; }
+  .gp-lowval { font-size: 22px; font-weight: 500; fill: var(--leaf-300); }
+
+  .shape-reel .gp-chart { left: 90px; top: 530px; width: 840px; height: 500px; }
+  .shape-reel .gp-block { position: absolute; left: 90px; top: 1056px; margin: 0; width: 840px; }
+  .shape-reel .gp-slot { height: 230px; margin-top: 18px; }
+  .shape-reel .gp-st { font-size: 52px; }
+  .shape-reel .gp-end { font-size: 60px; }
+  .shape-reel .gp-endsub { top: 146px; font-size: 31px; }
+  .shape-reel .gp-val { font-size: 31px; }
+  .shape-reel .hf-foot { font-size: 21px; }
+
+  .shape-post .gp-chart { left: 90px; top: 350px; width: 900px; height: 418px; }
+  .shape-post .gp-block { position: absolute; left: 90px; top: 792px; margin: 0; width: 900px; }
+  .shape-post .gp-slot { height: 200px; margin-top: 16px; }
+  .shape-post .gp-st { font-size: 46px; }
+  .shape-post .gp-end { font-size: 54px; }
+  .shape-post .gp-endsub { top: 126px; font-size: 28px; }
+  .shape-post .gp-val { font-size: 30px; }
+  .shape-post .gp-head { font-size: 30px; }
+  .shape-post .hf-foot { font-size: 19px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-grip-decades" data-start="0" data-width="1920" data-height="1080" data-duration="27">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="gp-chart" id="gp-chart" aria-hidden="true"></svg>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="gp-eb">Strength · Grip by decade</p>
+    <h2 class="hf-h" id="gp-hl">Grip targets, <em>decade by&nbsp;decade</em></h2>
+    <div class="gp-block" id="gp-block">
+      <div class="gp-count" id="gp-count"></div>
+      <div class="gp-slot" id="gp-slot">
+        <p class="gp-end" id="gp-end">We measure grip in clinic and track it <em>quarterly</em>.</p>
+        <p class="gp-endsub" id="gp-endsub"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="gp-foot">Targets: about the 75th percentile for age and sex in British data (Dodds 2014). Low: EWGSOP2 <span style="white-space: nowrap">cut-offs</span> (Cruz-Jentoft 2019). From the Optimal Longevity Protocol, v1.0, §1.3. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="gp-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // §1.3 "Grip-strength targets (hand dynamometer, best of either hand, kg)", every value as printed.
+  const DECADES = ['30s', '40s', '50s', '60s', '70s'];   // the table's 30–39 … 70–79 rows
+  const PANELS = [
+    { name: 'Women', target: [35, 31, 29, 27, 24], low: 16 },
+    { name: 'Men', target: [55, 50, 47, 43, 38], low: 27 },
+  ];
+  const N = (v) => `<span class="hf-num">${v} kg</span>`;
+  const BEATS = [
+    `Women’s targets ease from ${N(35)} in the 30s to ${N(24)} in the 70s.`,
+    `Men’s targets ease from ${N(55)} in the 30s to ${N(38)} in the 70s.`,
+    `The low cut-off never moves: under ${N(16)} for women, ${N(27)} for men.`,
+    'Targets are ambitious: roughly the top quarter for your age and sex.',
+  ];
+  const ENDSUB = 'Best of either hand, on a hand dynamometer.';
+  const T0 = 2.6, STEP = 4.6, END = T0 + STEP * BEATS.length, DUR = 27;
+  const KG_MAX = 55;
+
+  const $ = (id) => document.getElementById(id);
+  const ns = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+
+  BEATS.forEach((b, k) => {
+    $('gp-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('gp-slot').insertAdjacentHTML('beforeend', `<p class="gp-st">${HF.smart(b)}</p>`);
+  });
+  $('gp-endsub').textContent = HF.smart(ENDSUB);
+
+  // Panel geometry per shape: a gutter for the low label, five columns, decade labels under the baseline.
+  // Both panels share one kg scale, so the men's and women's columns compare honestly.
+  const G = HF.px({
+    tv:   { gap: 64, gut: 84, hdr: 32, top: 122, padB: 70, decY: 34, r: 0.46 },
+    reel: { gap: 44, gut: 80, hdr: 32, top: 112, padB: 62, decY: 34, r: 0.42 },
+    post: { gap: 48, gut: 80, hdr: 30, top: 104, padB: 56, decY: 32, r: 0.44 },
+  });
+
+  document.fonts.ready.then(() => {
+    const svg = $('gp-chart');
+    const box = svg.getBoundingClientRect();
+    const W = box.width, H = box.height;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const pw = (W - G.gap) / 2, base = H - G.padB;
+    const kpx = (base - G.top) / KG_MAX;
+    const area = pw - G.gut, cw = area / (5 + 4 * G.r), cg = cw * G.r;
+
+    const parts = PANELS.map((P, pi) => {
+      const gx = pi * (pw + G.gap), x0 = gx + G.gut, x1 = gx + pw;
+      const g = mk('g', {}, svg);
+      const head = mk('g', { opacity: 0 }, g);
+      mk('text', { class: 'gp-head', x: gx, y: G.hdr }, head, P.name);
+      mk('text', { class: 'gp-unit', x: x1, y: G.hdr, 'text-anchor': 'end' }, head, 'target grip, kg');
+      const axis = mk('line', { x1: x0 - 8, x2: x0 - 8, y1: base, y2: base, stroke: 'rgba(255,252,247,.3)', 'stroke-width': 1.5 }, g);
+      const ly = base - P.low * kpx;
+      const band = mk('rect', { x: x0 - 8, y: ly, width: x1 - x0 + 8, height: P.low * kpx, fill: 'rgba(255,252,247,.045)', opacity: 0 }, g);
+      const decs = [], cols = [], dims = [], vals = [], nums = [];
+      DECADES.forEach((d, i) => {
+        const x = x0 + i * (cw + cg), cx = x + cw / 2;
+        decs.push(mk('text', { class: 'gp-dec', x: cx, y: base + G.decY, 'text-anchor': 'middle', opacity: 0 }, g, d));
+        cols.push(mk('rect', { x, y: base, width: cw, height: 0, fill: '#A9D49C' }, g));
+        dims.push(mk('rect', { x, y: ly, width: cw, height: P.low * kpx, fill: 'rgba(11,22,8,.42)', opacity: 0 }, g));
+        const v = mk('text', { class: 'gp-val', x: cx, y: base - 12, 'text-anchor': 'middle', opacity: 0 }, g, '0');
+        nums.push(v);
+        vals.push(v);
+      });
+      // the floor: one straight cream line across every decade, labelled in the gutter
+      const line = mk('line', { x1: gx, x2: gx, y1: ly, y2: ly, stroke: '#FFFCF7', 'stroke-width': 2.5 }, g);
+      const lowLab = mk('g', { opacity: 0 }, g);
+      mk('text', { class: 'gp-lowname', x: gx, y: ly - 12 }, lowLab, 'Low');
+      mk('text', { class: 'gp-lowval', x: gx, y: ly + 30 }, lowLab, `<\u2009${P.low}\u00a0kg`);
+      return { P, head, axis, band, decs, cols, dims, vals, nums, line, lowLab, x0, x1 };
+    });
+
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.gp-count .hf-count'), sts = document.querySelectorAll('.gp-st');
+    const beatAt = (k) => T0 + STEP * k;
+
+    HF.rise(tl, $('gp-eb'), 0.15);
+    HF.reveal(tl, $('gp-hl'), 0.3);
+    HF.rise(tl, $('gp-foot'), 1.2);
+    parts.forEach((p, pi) => {
+      tl.fromTo(p.head, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 0.9 + pi * 0.15);
+      tl.fromTo(p.axis, { attr: { x2: p.x0 - 8 } }, { attr: { x2: p.x1 }, duration: 1.1, ease: 'power3.inOut' }, 1.0 + pi * 0.15);
+      tl.fromTo(p.decs, { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power2.out', stagger: 0.07 }, 1.3 + pi * 0.15);
+    });
+
+    BEATS.forEach((_, k) => {
+      const at = beatAt(k), next = at + STEP;
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+    });
+
+    // 1 and 2 · each panel's targets rise and count up, one decade after another
+    parts.forEach((p, pi) => {
+      const at = beatAt(pi) + 0.7;
+      p.P.target.forEach((v, i) => {
+        const t = at + i * 0.2, h = v * kpx, c = { v: 0 };
+        tl.fromTo(p.cols[i], { attr: { y: base, height: 0 } }, { attr: { y: base - h, height: h }, duration: 1.6, ease: 'power3.out' }, t);
+        tl.fromTo(p.vals[i], { attr: { y: base - 12 } }, { attr: { y: base - h - 14 }, duration: 1.6, ease: 'power3.out' }, t);
+        tl.fromTo(p.vals[i], { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' }, t);
+        tl.fromTo(c, { v: 0 }, { v, duration: 1.6, ease: 'power3.out', onUpdate: () => { p.nums[i].textContent = String(Math.round(c.v)); } }, t);
+      });
+    });
+    // 3 · the floor draws straight across both panels; under it, each column dims
+    const b3 = beatAt(2);
+    parts.forEach((p, pi) => {
+      const t = b3 + 0.7 + pi * 0.3;
+      tl.fromTo(p.line, { attr: { x2: p.x0 - G.gut } }, { attr: { x2: p.x1 }, duration: 1.5, ease: 'power2.inOut' }, t);
+      tl.fromTo(p.band, { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, t + 0.4);
+      tl.fromTo(p.dims, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out', stagger: 0.08 }, t + 0.4);
+      tl.fromTo(p.lowLab, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, t + 0.2);
+    });
+
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('gp-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo($('gp-endsub'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, END + 1.0);
+    if (HF.shape !== 'tv') {
+      tl.to($('gp-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('gp-brand'), END + 1.4);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : beatAt(k), beatAt(k + 1)]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-grip-decades"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

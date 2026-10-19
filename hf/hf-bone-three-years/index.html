@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>When bone loss speeds up</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Menopause Protocol §3 figure "Bone density around the final period", ported line for line (Greendale 2012):
+     the spine (leaf) and hip (cream) stay level, fall fastest through the shaded three years, then fall more slowly. */
+  .bn-block { position: relative; margin-top: 62px; width: 660px; }
+  .bn-count { position: relative; height: 26px; }
+  .bn-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .bn-slot { position: relative; margin-top: 22px; height: 300px; }
+  .bn-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 54px/1.22 var(--sans); letter-spacing: -0.028em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .bn-end { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: italic 400 68px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .bn-end em { color: var(--leaf-300); }
+  .bn-endsub { position: absolute; left: 0; right: 0; top: 246px; margin: 0; font: 400 32px/1.35 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+
+  .bn-chart { position: absolute; left: 840px; top: 296px; width: 960px; height: 620px; overflow: visible; }
+  .bn-chart text { font-family: var(--sans); letter-spacing: -0.01em; }
+  .bn-tick { font-size: 22px; fill: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  .bn-stage { font-size: 22px; fill: var(--fg); }
+  .bn-ytitle { font-size: 22px; fill: var(--fg-muted); }
+  .bn-bandlab { font-size: 19px; font-weight: 700; letter-spacing: .09em; fill: var(--leaf-300); }
+  .bn-name { font-size: 24px; font-weight: 600; letter-spacing: 0; }
+  .bn-val { font-size: 54px; font-weight: 500; fill: var(--leaf-300); font-variant-numeric: tabular-nums; letter-spacing: -0.035em; }
+
+  .shape-reel .bn-chart { left: 90px; top: 530px; width: 840px; height: 450px; }
+  .shape-reel .bn-block { position: absolute; left: 90px; top: 1016px; margin: 0; width: 840px; }
+  .shape-reel .bn-slot { height: 230px; margin-top: 18px; }
+  .shape-reel .bn-st { font-size: 52px; }
+  .shape-reel .bn-end { font-size: 60px; }
+  .shape-reel .bn-endsub { top: 146px; font-size: 31px; }
+  .shape-reel .hf-foot { font-size: 21px; }
+
+  .shape-post .bn-chart { left: 90px; top: 272px; width: 900px; height: 452px; }
+  .shape-post .bn-block { position: absolute; left: 90px; top: 770px; margin: 0; width: 900px; }
+  .shape-post .bn-slot { height: 200px; margin-top: 16px; }
+  .shape-post .bn-st { font-size: 46px; }
+  .shape-post .bn-end { font-size: 54px; }
+  .shape-post .bn-endsub { top: 128px; font-size: 28px; }
+  .shape-post .hf-foot { font-size: 19px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-bone-three-years" data-start="0" data-width="1920" data-height="1080" data-duration="32">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="bn-chart" id="bn-chart" aria-hidden="true"></svg>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="bn-eb">Menopause · Bone density</p>
+    <h2 class="hf-h" id="bn-hl">When bone&nbsp;loss <em>speeds&nbsp;up</em></h2>
+    <div class="bn-block" id="bn-block">
+      <div class="bn-count" id="bn-count"></div>
+      <div class="bn-slot" id="bn-slot">
+        <p class="bn-end" id="bn-end">The transition is a good time to build <em>strength and balance</em>.</p>
+        <p class="bn-endsub" id="bn-endsub"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="bn-foot">Illustrative averages from one large U.S. study (Greendale 2012); exercise guidance (Osteoporosis Canada 2023). From the Optimal Menopause Protocol, v1.0, §3 and §7. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="bn-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Beats: §3 (figure text and "make no noise"), §7 (the 7% / 6% sentence and its closing line).
+  const BEATS = [
+    'Bone density stays level until about a year before the final period.',
+    'In the three fastest years, the spine loses about <span class="hf-num">7%</span> of its density.',
+    'In the three fastest years, the hip loses about <span class="hf-num">6%</span>.',
+    'From about two years after the final period, bone loss slows.',
+    'Bone loss makes no noise. You can’t feel it.',
+  ];
+  const ENDSUB = 'Canada’s osteoporosis guideline: balance and strength training, at least twice a week.';
+  // §3 figure (menopause.page.html #fig-6), its own path data: x 60→700 is −5→+5 years; y 56 is 0 %, 240 the axis.
+  const SPINE_D = 'M 60 56 C 62.7 56, 70.7 56, 76 56 C 81.3 56, 86.7 56, 92 56 C 97.3 56, 102.7 56, 108 56 C 113.3 56, 118.7 56, 124 56 C 129.3 56, 134.7 56, 140 56 C 145.3 56, 150.7 56, 156 56 C 161.3 56, 166.7 56, 172 56 C 177.3 56, 182.7 56, 188 56 C 193.3 56, 198.7 56, 204 56 C 209.3 56, 214.7 56, 220 56 C 225.3 56, 230.7 56, 236 56 C 241.3 56, 246.7 56, 252 56 C 257.3 56, 262.7 56, 268 56 C 273.3 56, 278.7 56, 284 56 C 289.3 56, 294.7 55.8, 300 56 C 305.3 56.2, 310.7 55.3, 316 56.9 C 321.3 58.6, 326.7 62.7, 332 65.9 C 337.3 69, 342.7 72.5, 348 75.8 C 353.3 79.1, 358.7 82.3, 364 85.6 C 369.3 88.9, 374.7 92.2, 380 95.5 C 385.3 98.8, 390.7 102.1, 396 105.4 C 401.3 108.7, 406.7 112, 412 115.3 C 417.3 118.6, 422.7 121.9, 428 125.2 C 433.3 128.5, 438.7 131.7, 444 135 C 449.3 138.3, 454.7 141.6, 460 144.9 C 465.3 148.2, 470.7 151.5, 476 154.8 C 481.3 158.1, 486.7 161.5, 492 164.7 C 497.3 167.9, 502.7 171.7, 508 174 C 513.3 176.3, 518.7 177.2, 524 178.6 C 529.3 180.1, 534.7 181.3, 540 182.7 C 545.3 184, 550.7 185.4, 556 186.7 C 561.3 188.1, 566.7 189.4, 572 190.8 C 577.3 192.2, 582.7 193.5, 588 194.9 C 593.3 196.2, 598.7 197.6, 604 198.9 C 609.3 200.3, 614.7 201.6, 620 203 C 625.3 204.3, 630.7 205.7, 636 207 C 641.3 208.4, 646.7 209.7, 652 211.1 C 657.3 212.4, 662.7 213.8, 668 215.2 C 673.3 216.5, 678.7 217.9, 684 219.2 C 689.3 220.6, 697.3 222.6, 700 223.3';
+  const HIP_D = 'M 60 56 C 62.7 56, 70.7 56, 76 56 C 81.3 56, 86.7 56, 92 56 C 97.3 56, 102.7 56, 108 56 C 113.3 56, 118.7 56, 124 56 C 129.3 56, 134.7 56, 140 56 C 145.3 56, 150.7 56, 156 56 C 161.3 56, 166.7 56, 172 56 C 177.3 56, 182.7 56, 188 56 C 193.3 56, 198.7 56, 204 56 C 209.3 56, 214.7 56, 220 56 C 225.3 56, 230.7 56, 236 56 C 241.3 56, 246.7 56, 252 56 C 257.3 56, 262.7 56, 268 56 C 273.3 56, 278.7 56, 284 56 C 289.3 56, 294.7 55.9, 300 56 C 305.3 56.1, 310.7 55.4, 316 56.8 C 321.3 58.2, 326.7 61.8, 332 64.5 C 337.3 67.2, 342.7 70.1, 348 72.9 C 353.3 75.7, 358.7 78.6, 364 81.4 C 369.3 84.2, 374.7 87, 380 89.9 C 385.3 92.7, 390.7 95.5, 396 98.3 C 401.3 101.1, 406.7 104, 412 106.8 C 417.3 109.6, 422.7 112.4, 428 115.2 C 433.3 118.1, 438.7 120.9, 444 123.7 C 449.3 126.5, 454.7 129.4, 460 132.2 C 465.3 135, 470.7 137.8, 476 140.6 C 481.3 143.5, 486.7 146.4, 492 149.1 C 497.3 151.9, 502.7 155.1, 508 157.2 C 513.3 159.2, 518.7 160.2, 524 161.6 C 529.3 163, 534.7 164.3, 540 165.7 C 545.3 167, 550.7 168.4, 556 169.7 C 561.3 171.1, 566.7 172.5, 572 173.8 C 577.3 175.2, 582.7 176.5, 588 177.9 C 593.3 179.2, 598.7 180.6, 604 181.9 C 609.3 183.3, 614.7 184.6, 620 186 C 625.3 187.3, 630.7 188.7, 636 190 C 641.3 191.4, 646.7 192.7, 652 194.1 C 657.3 195.5, 662.7 196.8, 668 198.2 C 673.3 199.5, 678.7 200.9, 684 202.2 C 689.3 203.6, 697.3 205.6, 700 206.3';
+  const BAND = [316, 508];             // −1 to +2 years: the fastest loss
+  const T0 = 2.6, STEP = 4.6, END = T0 + STEP * BEATS.length, DUR = 32;
+  const MINUS = '−';
+
+  const $ = (id) => document.getElementById(id);
+  const ns = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+
+  // The TV keeps the beats in a left column beside the chart; the social cuts set them under it (shape CSS).
+  BEATS.forEach((b, k) => {
+    $('bn-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('bn-slot').insertAdjacentHTML('beforeend', `<p class="bn-st">${HF.smart(b)}</p>`);
+  });
+  $('bn-endsub').textContent = HF.smart(ENDSUB);
+
+  // Chart geometry per shape (px inside the chart box). Ticks at every year; labels every other year.
+  const G = HF.px({
+    tv:   { padT: 74, padB: 92, padL: 6, padR: 10, tick: 22, lw: [4.5, 3.2], dot: 8, val: 54, name: 24, off: 16, stageGap: 34 },
+    reel: { padT: 70, padB: 92, padL: 6, padR: 10, tick: 24, lw: [5, 3.6], dot: 8.5, val: 52, name: 24, off: 14, stageGap: 34 },
+    post: { padT: 64, padB: 84, padL: 6, padR: 10, tick: 21, lw: [4.5, 3.2], dot: 7.5, val: 48, name: 22, off: 14, stageGap: 31 },
+  });
+
+  document.fonts.ready.then(() => {
+    const svg = $('bn-chart');
+    const W = svg.getBoundingClientRect().width, H = svg.getBoundingClientRect().height;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const x0 = G.padL, x1 = W - G.padR, yTop = G.padT, yBot = H - G.padB;
+    const X = (fx) => x0 + (fx - 60) / 640 * (x1 - x0);
+    const Y = (fy) => yTop + (fy - 56) / (240 - 56) * (yBot - yTop);
+
+    // band, then the scaffolding
+    const band = mk('g', { opacity: 0 }, svg);
+    mk('rect', { x: X(BAND[0]), y: yTop - 30, width: X(BAND[1]) - X(BAND[0]), height: yBot - yTop + 30, fill: 'rgba(169,212,156,.085)' }, band);
+    mk('line', { x1: X(BAND[0]), x2: X(BAND[0]), y1: yTop - 30, y2: yBot, stroke: 'rgba(169,212,156,.28)', 'stroke-width': 1 }, band);
+    mk('line', { x1: X(BAND[1]), x2: X(BAND[1]), y1: yTop - 30, y2: yBot, stroke: 'rgba(169,212,156,.28)', 'stroke-width': 1 }, band);
+    const bandLab = mk('text', { class: 'bn-bandlab', x: (X(BAND[0]) + X(BAND[1])) / 2, y: yTop - 44, 'text-anchor': 'middle', opacity: 0 }, svg, 'FASTEST LOSS');
+
+    const yTitle = mk('text', { class: 'bn-ytitle', x: x0, y: yTop - 44, opacity: 0 }, svg, 'Change in bone density');
+    const marker = mk('line', { x1: X(380), x2: X(380), y1: yTop - 30, y2: yBot, stroke: 'rgba(255,252,247,.34)', 'stroke-width': 1.5, 'stroke-dasharray': '1 7', 'stroke-linecap': 'round', opacity: 0 }, svg);
+    const axis = mk('line', { x1: x0, x2: x1, y1: yBot, y2: yBot, stroke: 'rgba(255,252,247,.32)', 'stroke-width': 1.5 }, svg);
+    const ticks = mk('g', { opacity: 0 }, svg);
+    for (let k = 0; k <= 10; k++) {
+      const fx = 60 + 64 * k;
+      mk('line', { x1: X(fx), x2: X(fx), y1: yBot, y2: yBot + 9, stroke: 'rgba(255,252,247,.32)', 'stroke-width': 1.5 }, ticks);
+      if (k % 2 === 1) mk('text', { class: 'bn-tick', x: X(fx), y: yBot + 14 + G.tick, 'text-anchor': 'middle' }, ticks, k === 5 ? '0' : (k < 5 ? MINUS : '+') + Math.abs(k - 5));
+    }
+    const ys = yBot + 14 + G.tick + G.stageGap;
+    mk('text', { class: 'bn-stage', x: X(188), y: ys, 'text-anchor': 'middle' }, ticks, 'years before');
+    mk('text', { class: 'bn-stage', x: X(380), y: ys, 'text-anchor': 'middle' }, ticks, 'final period');
+    mk('text', { class: 'bn-stage', x: X(572), y: ys, 'text-anchor': 'middle' }, ticks, 'years after');
+    const fp = mk('circle', { cx: X(380), cy: yBot, r: 0, fill: '#FFFCF7' }, svg);
+
+    // The two lines, split where the band begins and ends so each beat draws its own stretch.
+    function pieces(d) {
+      // the source path overshoots 0 % by a hair just before the band; clamp it so the level stretch reads level
+      const n = d.match(/-?\d+(?:\.\d+)?/g).map(Number).map((v, i) => (i % 2 === 1 ? Math.max(v, 56) : v));
+      const out = [[], [], []];
+      let sx = n[0], sy = n[1], cur = 0, start = [[sx, sy]];
+      for (let i = 2; i + 5 < n.length; i += 6) {
+        const s = n.slice(i, i + 6);
+        out[cur].push(s);
+        if (cur < 2 && s[4] >= BAND[cur] - 0.01) { cur++; start.push([s[4], s[5]]); }
+      }
+      return out.map((segs, k) => `M ${X(start[k][0]).toFixed(2)} ${Y(start[k][1]).toFixed(2)} ` +
+        segs.map((s) => `C ${X(s[0]).toFixed(2)} ${Y(s[1]).toFixed(2)}, ${X(s[2]).toFixed(2)} ${Y(s[3]).toFixed(2)}, ${X(s[4]).toFixed(2)} ${Y(s[5]).toFixed(2)}`).join(' '));
+    }
+    const lineG = mk('g', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+    const draw = (d, color, w) => {
+      const p = mk('path', { d, stroke: color, 'stroke-width': w }, lineG);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = `${len} ${len + w * 2}`;
+      p.style.strokeDashoffset = len + w;
+      return { p, len, w };
+    };
+    const hip = pieces(HIP_D).map((d) => draw(d, 'rgba(255,252,247,.62)', G.lw[1]));
+    const spine = pieces(SPINE_D).map((d) => draw(d, '#A9D49C', G.lw[0]));
+
+    // Readouts at +2 years (the end of the band): the spine's sits below-left, inside the band and under both lines;
+    // the hip's sits above-right, over the slower stretch that follows. Values count down as the lines fall.
+    const pS = [X(508), Y(174)], pH = [X(508), Y(157.2)];
+    const dotS = mk('circle', { cx: pS[0], cy: pS[1], r: 0, fill: '#A9D49C', stroke: '#0B1608', 'stroke-width': 3 }, svg);
+    const dotH = mk('circle', { cx: pH[0], cy: pH[1], r: 0, fill: '#FFFCF7', stroke: '#0B1608', 'stroke-width': 3 }, svg);
+    const roS = mk('g', { opacity: 0 }, svg);
+    mk('text', { class: 'bn-name', x: pS[0] - G.off, y: pS[1] + G.off + G.name + 6, 'text-anchor': 'end', fill: '#A9D49C' }, roS, 'Spine');
+    const valS = mk('text', { class: 'bn-val', x: pS[0] - G.off, y: pS[1] + G.off + G.name + 12 + G.val * 0.86, 'text-anchor': 'end' }, roS, '0%');
+    const roH = mk('g', { opacity: 0 }, svg);
+    mk('text', { class: 'bn-name', x: pH[0] + G.off, y: pH[1] - G.off - G.val * 0.86 - 12, fill: '#FFFCF7' }, roH, 'Hip');
+    const valH = mk('text', { class: 'bn-val', x: pH[0] + G.off, y: pH[1] - G.off - 4 }, roH, '0%');
+    const pct = (v) => { const r = Math.round(v); return r === 0 ? '0%' : MINUS + r + '%'; };
+
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.bn-count .hf-count'), sts = document.querySelectorAll('.bn-st');
+    const beatAt = (k) => T0 + STEP * k;
+    const drawOn = (seg, at, dur, ease) => tl.fromTo(seg.p, { strokeDashoffset: seg.len + seg.w }, { strokeDashoffset: 0, duration: dur, ease }, at);
+
+    // intro: eyebrow, headline wipe, then the chart's frame
+    HF.rise(tl, $('bn-eb'), 0.15);
+    HF.reveal(tl, $('bn-hl'), 0.3);
+    const aLen = x1 - x0;
+    tl.fromTo(axis, { attr: { 'stroke-dasharray': `${aLen} ${aLen}`, 'stroke-dashoffset': aLen } }, { attr: { 'stroke-dashoffset': 0 }, duration: 1.3, ease: 'power3.inOut' }, 0.7);
+    tl.fromTo(ticks, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.3);
+    tl.fromTo(yTitle, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.5);
+    tl.fromTo(marker, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 1.6);
+    tl.fromTo(fp, { attr: { r: 0 } }, { attr: { r: 6 }, duration: 0.6, ease: 'power3.out' }, 1.7);
+    HF.rise(tl, $('bn-foot'), 1.2);
+
+    BEATS.forEach((_, k) => {
+      const at = beatAt(k), next = at + STEP;
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+    });
+
+    // 1 · level: both lines draw across the five years before
+    drawOn(hip[0], beatAt(0) + 0.6, 2.6, 'power2.inOut');
+    drawOn(spine[0], beatAt(0) + 0.6, 2.6, 'power2.inOut');
+    // 2 · the band shades in; the spine falls through it, counting to −7 %
+    const b2 = beatAt(1);
+    tl.fromTo(band, { opacity: 0 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, b2 + 0.2);
+    tl.fromTo(bandLab, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, b2 + 0.4);
+    drawOn(spine[1], b2 + 0.8, 2.6, 'power2.inOut');
+    tl.fromTo(roS, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, b2 + 0.8);
+    const cS = { v: 0 };
+    tl.fromTo(cS, { v: 0 }, { v: 7, duration: 2.6, ease: 'power2.inOut', onUpdate: () => { valS.textContent = pct(cS.v); } }, b2 + 0.8);
+    tl.fromTo(dotS, { attr: { r: 0 } }, { attr: { r: G.dot } , duration: 0.5, ease: 'power3.out' }, b2 + 3.3);
+    // 3 · the hip follows through the same window, counting to −6 %
+    const b3 = beatAt(2);
+    drawOn(hip[1], b3 + 0.6, 2.6, 'power2.inOut');
+    tl.fromTo(roH, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, b3 + 0.6);
+    const cH = { v: 0 };
+    tl.fromTo(cH, { v: 0 }, { v: 6, duration: 2.6, ease: 'power2.inOut', onUpdate: () => { valH.textContent = pct(cH.v); } }, b3 + 0.6);
+    tl.fromTo(dotH, { attr: { r: 0 } }, { attr: { r: G.dot } , duration: 0.5, ease: 'power3.out' }, b3 + 3.1);
+    // 4 · after +2 years both lines keep falling, more slowly
+    const b4 = beatAt(3);
+    drawOn(hip[2], b4 + 0.6, 3.0, 'power2.out');
+    drawOn(spine[2], b4 + 0.6, 3.0, 'power2.out');
+
+    // close: the counter gives way to the protocol's own line, and the guideline under it
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('bn-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo($('bn-endsub'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, END + 1.0);
+    if (HF.shape !== 'tv') {
+      tl.to($('bn-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('bn-brand'), END + 1.4);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : beatAt(k), beatAt(k + 1)]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-bone-three-years"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

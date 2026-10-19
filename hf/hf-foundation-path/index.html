@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Every step, in order</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Menopause Protocol §17: the Foundation Program is a fixed sequence. One leaf line, eight stops, a dot that walks it;
+     under the active stop, who you'll be with. The line is split where the protocol splits it: nothing is paid before
+     you choose to enrol (§0.4, §20). TV: a horizontal line. Reel and post: the same line, stood upright. */
+  .fp-block { position: relative; margin-top: 64px; width: 1180px; }
+  .fp-count { position: relative; height: 26px; }
+  .fp-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .fp-slot { position: relative; margin-top: 22px; height: 150px; }
+  .fp-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 58px/1.18 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .fp-end { position: absolute; left: 0; right: 0; top: 24px; margin: 0; opacity: 0; }
+  .fp-end-h { margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); }
+  .fp-end-h em { color: var(--leaf-300); }
+  .fp-end-s { margin: 22px 0 0; max-width: 1000px; font: 400 36px/1.3 var(--sans); color: var(--fg); text-wrap: balance; }
+
+  .fp-path { position: absolute; left: 120px; top: 640px; width: 1680px; height: 230px; overflow: visible; }
+  .fp-path text { font-family: var(--sans); }
+  .fp-base { stroke: rgba(255, 252, 247, .16); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .fp-prog { stroke: var(--leaf-300); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .fp-stop { fill: var(--night-900); stroke: rgba(255, 252, 247, .42); stroke-width: 2.5; }
+  .fp-dot { fill: var(--leaf-300); }
+  .fp-glow { fill: rgba(169, 212, 156, .16); }
+  .fp-halo { fill: none; stroke: var(--leaf-300); }
+  .fp-name { font-weight: 500; font-size: 30px; letter-spacing: -0.01em; fill: var(--fg-muted); }
+  .fp-role { font-weight: 700; font-size: 23px; letter-spacing: .07em; text-transform: uppercase; fill: var(--leaf-300); }
+  .fp-sec { font-weight: 700; font-size: 20px; letter-spacing: .08em; text-transform: uppercase; fill: var(--fg-muted); }
+  .fp-brk { stroke: rgba(255, 252, 247, .22); stroke-width: 1.5; fill: none; }
+
+  .shape-tv .hf-foot { width: 1000px; }
+
+  .shape-reel .fp-block { margin-top: 44px; width: 840px; }
+  .shape-reel .fp-slot { height: 200px; }
+  .shape-reel .fp-st { font-size: 54px; }
+  .shape-reel .fp-end { top: 0; }
+  .shape-reel .fp-end-h { font-size: 72px; }
+  .shape-reel .fp-end-s { margin-top: 18px; font-size: 34px; }
+  .shape-reel .fp-path { left: 90px; top: 744px; width: 840px; height: 560px; }
+  .shape-reel .fp-name { font-size: 34px; }
+
+  .shape-post .fp-block { margin-top: 40px; width: 900px; }
+  .shape-post .fp-slot { height: 180px; margin-top: 18px; }
+  .shape-post .fp-st { font-size: 50px; }
+  .shape-post .fp-end { top: 0; }
+  .shape-post .fp-end-h { font-size: 64px; }
+  .shape-post .fp-end-s { margin-top: 14px; font-size: 30px; }
+  .shape-post .fp-path { left: 90px; top: 512px; width: 900px; height: 520px; }
+  .shape-post .fp-name { font-size: 30px; }
+  .shape-post .fp-role { font-size: 20px; }
+  .shape-post .fp-sec { font-size: 19px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-foundation-path" data-start="0" data-width="1920" data-height="1080" data-duration="35">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="fp-eb">Menopause care · The Foundation Program</p>
+    <h2 class="hf-h" id="fp-hl">Every step, <em>in order</em></h2>
+    <div class="fp-block">
+      <div class="fp-count" id="fp-count"></div>
+      <div class="fp-slot" id="fp-slot"></div>
+      <div class="fp-end" id="fp-end">
+        <p class="fp-end-h">The order is <em>deliberate</em>.</p>
+        <p class="fp-end-s">Your questionnaire and bloodwork come first, so your NP can prepare before you meet.</p>
+      </div>
+    </div>
+  </div>
+
+  <svg class="fp-path" id="fp-path" aria-hidden="true"></svg>
+
+  <p class="hf-foot" id="fp-foot">Timing is approximate; your care coordinator plans your visits with you at onboarding. From the Optimal Menopause Protocol, v1.0, §17. Educational, not medical advice.</p>
+  <div class="hf-cta tv-only" id="fp-cta">
+    <span class="hf-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h7"/></svg>Talk to the receptionist</span>
+    <span class="hf-cta-sub">about a free intro call</span>
+  </div>
+  <div class="hf-brand social-only" id="fp-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // §17 "The Foundation Program, step by step", in its order: stop name, who you're with (no names), and the beat that
+  // lands there. Beats: §17 step 0 + §0.4; step 1; step 2 + §0.4; step 3; §12 (verbatim) / step 4; steps 5–7.
+  const STOPS = [
+    ['Intro call', 'Care coordinator'], ['Health history', 'You, online'], ['Onboarding', 'Care coordinator'], ['Bloodwork', 'Community lab'],
+    ['NP review', 'Your NP'], ['Consultation', 'Your NP'], ['Follow-up 1', 'Your NP'], ['Follow-up 2', 'Your NP'],
+  ];
+  const BEATS = [
+    ['It starts with a free <span class="hf-num">15-minute</span> call. No payment is taken.', [0]],
+    ['An online health history and symptom questionnaire, before onboarding.', [1]],
+    ['A free <span class="hf-num">30-minute</span> onboarding in clinic, with no obligation.', [2]],
+    ['Bloodwork at a community lab. Tests OHIP covers are billed to OHIP.', [3]],
+    ['Your NP reviews your complete results before your consultation is booked.', [4]],
+    ['A <span class="hf-num">60-minute</span> consultation, then two follow-ups to continue, change or stop.', [5, 6, 7]],
+  ];
+  // the protocol's own split (§0.4, §20): the first three stops come before any payment
+  const SECTIONS = [['No payment before you enrol', 0, 2], ['If you choose to enrol', 3, 7]];
+  const LEN = [4.4, 4.4, 4.4, 4.4, 4.4, 6.0];
+  const T0 = 2.6, AT = LEN.reduce((a, l, k) => (a.push(a[k] + l), a), [T0]), END = AT[LEN.length], DUR = 35;
+
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const a in attrs) n.setAttribute(a, attrs[a]);
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const svg = $('fp-path');
+  const TV = HF.shape === 'tv';
+
+  // Geometry. TV: stops along y = LY, names above, role under the active stop, sections bracketed overhead.
+  // Reel/post: stops down x = LX, names to the right, roles in a column further right, sections as headings.
+  const G = HF.px({
+    tv:   { W: 1680, H: 230, x0: 76, x1: 1604, LY: 134 },
+    reel: { W: 840, H: 560, LX: 16, y0: 64, pitch: 60, gap: 40, nameX: 52 },
+    post: { W: 900, H: 520, LX: 16, y0: 54, pitch: 58, gap: 40, nameX: 50 },
+  });
+  svg.setAttribute('viewBox', `0 0 ${G.W} ${G.H}`);
+  const POS = STOPS.map((_, i) => TV
+    ? [G.x0 + i * (G.x1 - G.x0) / 7, G.LY]
+    : [G.LX, G.y0 + i * G.pitch + (i >= 3 ? G.gap : 0)]);
+  const [first, last] = [POS[0], POS[7]];
+  const frac = (i) => TV ? (POS[i][0] - first[0]) / (last[0] - first[0]) : (POS[i][1] - first[1]) / (last[1] - first[1]);
+
+  // sections
+  const secs = SECTIONS.map(([t, a, b]) => {
+    if (TV) {
+      const xa = POS[a][0] - (a === 0 ? 60 : 92), xb = POS[b][0] + (b === 7 ? 60 : 92);
+      const brk = el('path', { class: 'fp-brk', d: `M${xa} 44V34H${xb}V44` }, svg);
+      const lab = el('text', { class: 'fp-sec', x: (xa + xb) / 2, y: 20, 'text-anchor': 'middle' }, svg, t);
+      return { brk, lab };
+    }
+    return { brk: null, lab: el('text', { class: 'fp-sec', x: G.nameX, y: POS[a][1] - 34 }, svg, t) };
+  });
+
+  const seg = (p, q) => `M${p[0]} ${p[1]}L${q[0]} ${q[1]}`;
+  const base = el('path', { class: 'fp-base', d: seg(first, last) }, svg);
+  const prog = el('path', { class: 'fp-prog', d: seg(first, last), pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, svg);
+  const stops = POS.map(([x, y]) => el('circle', { class: 'fp-stop', cx: x, cy: y, r: TV ? 10 : 9 }, svg));
+  const halos = POS.map(([x, y]) => el('circle', { class: 'fp-halo', cx: x, cy: y, r: 10, opacity: 0 }, svg));
+  const glow = el('circle', { class: 'fp-glow', cx: first[0], cy: first[1], r: TV ? 30 : 24, opacity: 0 }, svg);
+  const dot = el('circle', { class: 'fp-dot', cx: first[0], cy: first[1], r: TV ? 15 : 12, opacity: 0 }, svg);
+  const names = STOPS.map(([n], i) => {
+    const [x, y] = POS[i];
+    return TV ? el('text', { class: 'fp-name', x, y: G.LY - 46, 'text-anchor': 'middle' }, svg, n)
+              : el('text', { class: 'fp-name', x: G.nameX, y: y + 12 }, svg, n);
+  });
+  const roles = STOPS.map(([, r], i) => {
+    const [x, y] = POS[i];
+    if (!TV) return el('text', { class: 'fp-role', x: G.nameX, y: y + 9, opacity: 0 }, svg, r);   // x set once fonts load
+    // centred under the stop, but held inside the frame at the two ends
+    const anchor = i === 0 ? 'start' : i === 7 ? 'end' : 'middle', ax = i === 0 ? x - 30 : i === 7 ? x + 30 : x;
+    return el('text', { class: 'fp-role', x: ax, y: G.LY + 64, 'text-anchor': anchor, opacity: 0 }, svg, r);
+  });
+
+  BEATS.forEach(([t], i) => {
+    $('fp-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(i + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('fp-slot').insertAdjacentHTML('beforeend', `<p class="fp-st">${HF.smart(t)}</p>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.fp-count .hf-count'), sts = document.querySelectorAll('.fp-st');
+    const LEAF = '#A9D49C', MUTED = '#8E9884', FG = '#C9CDBF', CREAM = '#FFFCF7';
+    // upright layouts: the role sits just after its stop's name
+    if (!TV) roles.forEach((r, i) => r.setAttribute('x', (G.nameX + names[i].getComputedTextLength() + 28).toFixed(1)));
+
+    HF.rise(tl, $('fp-eb'), 0.15);
+    HF.reveal(tl, $('fp-hl'), 0.3);
+    HF.rise(tl, $('fp-foot'), 1.2);
+    // the whole route is laid out first, so every step is visible before the walk starts
+    tl.fromTo(base, { opacity: 0 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.6);
+    tl.fromTo(stops, { opacity: 0, scale: 0.4, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', stagger: 0.07 }, 0.8);
+    tl.fromTo(names, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out', stagger: 0.07 }, 0.95);
+    secs.forEach((s, i) => {
+      tl.fromTo([s.lab, s.brk].filter(Boolean), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, 1.3 + i * 0.25);
+    });
+    tl.fromTo([glow, dot], { opacity: 0, scale: 0.3, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out' }, T0 + 0.2);
+
+    let at0 = null, cur = 0;
+    const arrive = (i, at) => {
+      // name brightens, the stop fills, a halo marks the arrival, the role label takes over
+      tl.to(names[i], { fill: CREAM, duration: 0.5, ease: 'power2.out' }, at);
+      tl.to(stops[i], { fill: LEAF, stroke: LEAF, duration: 0.5, ease: 'power2.out' }, at);
+      tl.fromTo(halos[i], { attr: { r: 12, 'stroke-width': 5 }, opacity: 0.85 }, { attr: { r: 40, 'stroke-width': 1 }, opacity: 0, duration: 1.3, ease: 'power2.out', immediateRender: false }, at);
+      tl.fromTo(roles[i], { opacity: 0, y: TV ? 10 : 0, x: TV ? 0 : -10 }, { opacity: 1, y: 0, x: 0, duration: 0.6, ease: HF.EASE }, at + 0.1);
+    };
+    const leave = (i, at) => {
+      tl.to(names[i], { fill: FG, duration: 0.5 }, at);
+      tl.to(roles[i], { opacity: 0, duration: 0.35, ease: 'power2.in' }, at);
+    };
+    const move = (to, at, dur) => {
+      const [x, y] = POS[to];
+      tl.to([dot, glow], { attr: { cx: x, cy: y }, duration: dur, ease: 'power2.inOut' }, at);
+      tl.to(prog, { attr: { 'stroke-dashoffset': 1 - frac(to) }, duration: dur, ease: 'power2.inOut' }, at);
+      leave(cur, at);
+      arrive(to, at + dur - 0.15);
+      // crossing into the enrolled part of the route: the section headings trade emphasis
+      if (cur < 3 && to >= 3) {
+        tl.to(secs[0].lab, { fill: MUTED, duration: 0.5 }, at + dur - 0.2);
+        tl.to(secs[1].lab, { fill: LEAF, duration: 0.5 }, at + dur - 0.2);
+        if (TV) tl.to(secs[1].brk, { stroke: 'rgba(169, 212, 156, .6)', duration: 0.5 }, at + dur - 0.2);
+        if (TV) tl.to(secs[0].brk, { stroke: 'rgba(255, 252, 247, .22)', duration: 0.5 }, at + dur - 0.2);
+      }
+      cur = to;
+    };
+
+    BEATS.forEach(([, path], i) => {
+      const at = AT[i], next = AT[i + 1];
+      tl.set(counts[i], { opacity: 1 }, at);
+      if (i > 0) tl.set(counts[i - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[i], at, next - 0.45);
+      if (i === 0) {
+        arrive(0, at + 0.6);
+        tl.to(secs[0].lab, { fill: LEAF, duration: 0.5 }, at + 0.6);
+        if (TV) tl.to(secs[0].brk, { stroke: 'rgba(169, 212, 156, .6)', duration: 0.5 }, at + 0.6);
+      } else if (path.length === 1) {
+        move(path[0], at + 0.15, 1.15);
+      } else {
+        path.forEach((s, j) => move(s, at + 0.15 + j * 1.6, j === 0 ? 1.15 : 1.0));
+      }
+    });
+
+    // close: the walk is done; the role steps aside, every stop answers once, the closing line lands
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.to(roles[7], { opacity: 0, duration: 0.4, ease: 'power2.in' }, END - 0.2);
+    tl.to(names[7], { fill: FG, duration: 0.5 }, END);
+    tl.to(secs[1].lab, { fill: MUTED, duration: 0.5 }, END);
+    if (TV) tl.to(secs[1].brk, { stroke: 'rgba(255, 252, 247, .22)', duration: 0.5 }, END);
+    tl.to(glow, { opacity: 0, duration: 0.6 }, END);
+    tl.fromTo($('fp-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo(halos, { attr: { r: 12, 'stroke-width': 4 }, opacity: 0.7 }, { attr: { r: 34, 'stroke-width': 1 }, opacity: 0, duration: 1.4, ease: 'power2.out', immediateRender: false, stagger: 0.09 }, END + 0.4);
+    if (TV) HF.rise(tl, $('fp-cta'), END + 0.9);
+    else {
+      tl.to($('fp-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('fp-brand'), END + 0.9);
+      const spans = LEN.map((_, i) => [i === 0 ? 0 : AT[i], AT[i + 1]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-foundation-path"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

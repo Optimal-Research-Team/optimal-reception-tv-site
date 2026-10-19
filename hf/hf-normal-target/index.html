@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>“Normal” is not optimal</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Longevity Protocol §0.1 + §9: a "normal" result can sit outside the lower-risk band. One marker per beat: the lab's
+     reference range is a wide cream band (unnumbered: the protocol states no reference ranges for these markers), then
+     the protocol's working target closes in inside it, in leaf, with the target in large numerals. Cream = "normal",
+     leaf = the working target. */
+  .nt-block { position: relative; margin-top: 64px; width: 1300px; }
+  .nt-count { position: relative; height: 26px; }
+  .nt-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .nt-slot { position: relative; margin-top: 22px; height: 150px; }
+  .nt-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 56px/1.18 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .nt-end { position: absolute; left: 0; right: 0; top: 30px; margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .nt-end em { color: var(--leaf-300); }
+
+  .nt-mk { position: absolute; left: 120px; top: 556px; width: 1680px; height: 200px; }
+  .nt-lab { position: absolute; left: 0; top: 0; margin: 0; font: 500 34px/1.2 var(--sans); letter-spacing: -0.015em; color: var(--cream); opacity: 0; }
+  .nt-lab span { color: var(--fg-muted); }
+  .nt-big { position: absolute; left: -6px; top: 46px; margin: 0; display: flex; align-items: baseline; gap: 22px; white-space: nowrap; opacity: 0; }
+  .nt-big b { font: 400 150px/1 var(--sans); letter-spacing: -0.045em; color: var(--leaf-300); font-variant-numeric: lining-nums tabular-nums; }
+  .nt-big i { font: 500 42px/1 var(--sans); font-style: normal; letter-spacing: -0.01em; color: var(--leaf-200); }
+
+  .nt-bar { position: absolute; left: 120px; top: 800px; width: 1680px; height: 64px; overflow: visible; }
+  .nt-bar text { font-family: var(--sans); }
+  .nt-ref { fill: rgba(255, 252, 247, .12); }
+  .nt-ref-edge { fill: none; stroke: rgba(255, 252, 247, .28); stroke-width: 1.5; }
+  .nt-tgt { fill: var(--leaf-300); }
+  .nt-in { font-weight: 700; font-size: 21px; letter-spacing: .08em; text-transform: uppercase; }
+  .nt-in.ref { fill: rgba(255, 252, 247, .78); }
+  .nt-in.tgt { fill: var(--night-950); }
+  .nt-pop { position: absolute; left: 120px; top: 598px; width: 1680px; height: 202px; overflow: visible; }
+  .nt-pop text { font-family: var(--sans); }
+  .nt-hump { fill: none; stroke: rgba(255, 252, 247, .62); stroke-width: 2.5; stroke-linejoin: round; }
+  .nt-hfill { fill: rgba(255, 252, 247, .06); }
+  .nt-hleaf { fill: rgba(169, 212, 156, .32); }
+  .nt-peak { font-weight: 700; font-size: 21px; letter-spacing: .08em; text-transform: uppercase; fill: var(--fg); }
+  .nt-cap { position: absolute; left: 120px; top: 884px; margin: 0; font: 400 24px/1.3 var(--sans); color: var(--fg-muted); opacity: 0; }
+
+  .shape-reel .nt-block { margin-top: 44px; width: 840px; }
+  .shape-reel .nt-slot { height: 200px; }
+  .shape-reel .nt-st { font-size: 54px; }
+  .shape-reel .nt-end { top: 10px; font-size: 70px; }
+  .shape-reel .nt-mk { left: 90px; top: 880px; width: 840px; }
+  .shape-reel .nt-lab { font-size: 34px; }
+  .shape-reel .nt-big b { font-size: 132px; }
+  .shape-reel .nt-big i { font-size: 38px; }
+  .shape-reel .nt-bar { left: 90px; top: 1120px; width: 840px; height: 80px; }
+  .shape-reel .nt-pop { left: 90px; top: 888px; width: 840px; height: 232px; }
+  .shape-reel .nt-cap { left: 90px; top: 1224px; width: 840px; font-size: 26px; }
+
+  .shape-post .nt-block { margin-top: 40px; width: 900px; }
+  .shape-post .nt-slot { height: 130px; margin-top: 18px; }
+  .shape-post .nt-st { font-size: 50px; }
+  .shape-post .nt-end { top: 10px; font-size: 62px; }
+  .shape-post .nt-mk { left: 90px; top: 620px; width: 900px; }
+  .shape-post .nt-lab { font-size: 32px; }
+  .shape-post .nt-big b { font-size: 140px; }
+  .shape-post .nt-big i { font-size: 40px; }
+  .shape-post .nt-bar { left: 90px; top: 846px; width: 900px; height: 80px; }
+  .shape-post .nt-pop { left: 90px; top: 624px; width: 900px; height: 222px; }
+  .shape-post .nt-cap { left: 90px; top: 950px; width: 900px; font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-normal-target" data-start="0" data-width="1920" data-height="1080" data-duration="28">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="nt-eb">Your lab results · Working targets</p>
+    <h2 class="hf-h" id="nt-hl">“Normal” is not <em>optimal</em></h2>
+    <div class="nt-block">
+      <div class="nt-count" id="nt-count"></div>
+      <div class="nt-slot" id="nt-slot"></div>
+      <p class="nt-end" id="nt-end">“Normal” is the population peak, not the <em>lower-risk band</em>.</p>
+    </div>
+  </div>
+
+  <div class="nt-mk" id="nt-mk"></div>
+  <svg class="nt-pop" id="nt-pop" aria-hidden="true"></svg>
+  <svg class="nt-bar" id="nt-bar" aria-hidden="true"></svg>
+  <p class="nt-cap" id="nt-cap">Lab reference ranges are wider. Bands are illustrative, not to scale.</p>
+
+  <p class="hf-foot" id="nt-foot">Fasting insulin is an uninsured test unless OHIP criteria are met. From the Optimal Longevity Protocol, v1.0, §0.1, §9 and §12. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="nt-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // One marker per beat. Beat text: §0.1 (approved card wording), §0.1, §9 (text), §9 (the table's "why" column). Targets: §9 "Working target" table,
+  // matching the §12 panel (glucose 3.9–4.7 mmol/L; insulin ≤ 28 pmol/L; triglycerides < 0.85 mmol/L).
+  // band: where the leaf target sits inside the (unnumbered) lab band, as fractions of its width. Illustrative only:
+  // one-sided targets start at the band's low end; glucose has a floor as well as a ceiling.
+  const BEATS = [
+    { text: 'Lab reference ranges describe a population average.' },
+    { text: 'A “normal” fasting glucose can still sit where risk rises steadily.', name: 'Fasting glucose', big: '3.9–4.7', unit: 'mmol/L', band: [0.12, 0.44] },
+    { text: 'Fasting insulin can rise years before glucose or HbA1c move.', name: 'Fasting insulin', big: '≤ 28', unit: 'pmol/L', band: [0, 0.2] },
+    { text: 'Triglycerides are a marker of carbohydrate overflow.', name: 'Triglycerides', big: '&lt; 0.85', unit: 'mmol/L', band: [0, 0.46] },
+  ];
+  const LEN = [4.6, 5.0, 5.0, 4.8];
+  const T0 = 2.6, AT = LEN.reduce((a, l, k) => (a.push(a[k] + l), a), [T0]), END = AT[LEN.length], DUR = 28;
+  const CLOSE = [0.08, 0.42];   // the closing frame: "the lower-risk band", unnumbered, inside "normal"
+
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const a in attrs) n.setAttribute(a, attrs[a]);
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const W = HF.px({ tv: 1680, reel: 840, post: 900 }), H = HF.px({ tv: 64, reel: 80, post: 80 }), R = 8;
+  const bar = $('nt-bar');
+  bar.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const ref = el('rect', { class: 'nt-ref', x: 0, y: 0, width: W, height: H, rx: R }, bar);
+  const refEdge = el('rect', { class: 'nt-ref-edge', x: 0.75, y: 0.75, width: W - 1.5, height: H - 1.5, rx: R }, bar);
+  const refIn = el('text', { class: 'nt-in ref', x: W - 24, y: H / 2 + 8, 'text-anchor': 'end' }, bar, 'Lab reference range');
+  const tgt = el('rect', { class: 'nt-tgt', x: 0, y: 0, width: W, height: H, rx: R, opacity: 0 }, bar);
+  const tgtIn = el('text', { class: 'nt-in tgt', x: CLOSE[0] * W + 22, y: H / 2 + 8, opacity: 0 }, bar, 'Lower-risk band');
+
+  // The population, drawn once as an unnumbered hump over the lab band (beat 1 and the close only, never with a marker,
+  // so it implies no particular marker's distribution). "Normal" is the population peak (§0.1).
+  const pop = $('nt-pop'), HH = HF.px({ tv: 202, reel: 232, post: 222 }), PEAK = 0.56, SIG = 0.19;
+  pop.setAttribute('viewBox', `0 0 ${W} ${HH}`);
+  const g = (t) => Math.exp(-0.5 * ((t - PEAK) / SIG) ** 2);
+  const pts = Array.from({ length: Math.ceil(W / 4) + 1 }, (_, i) => Math.min(W, i * 4)).map((x) => [x, HH - (HH - 44) * g(x / W)]);
+  const curve = 'M' + pts.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join('L');
+  const area = curve + `L${W} ${HH}L0 ${HH}Z`;
+  const pdefs = el('defs', {}, pop);
+  const clip = el('clipPath', { id: 'nt-clip' }, pdefs);
+  const clipR = el('rect', { x: 0, y: 0, width: W, height: HH }, clip);
+  const hFill = el('path', { class: 'nt-hfill', d: area, opacity: 0 }, pop);
+  const hLeaf = el('path', { class: 'nt-hleaf', d: area, 'clip-path': 'url(#nt-clip)', opacity: 0 }, pop);
+  const hump = el('path', { class: 'nt-hump', d: curve, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, pop);
+  const peak = el('text', { class: 'nt-peak', x: PEAK * W, y: 30, 'text-anchor': 'middle', opacity: 0 }, pop, 'Population peak');
+
+  const mk = $('nt-mk');
+  BEATS.forEach((b, i) => {
+    $('nt-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(i + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('nt-slot').insertAdjacentHTML('beforeend', `<p class="nt-st">${HF.smart(b.text)}</p>`);
+    mk.insertAdjacentHTML('beforeend', !b.name ? '<p class="nt-lab"></p><p class="nt-big"></p>'
+      : `<p class="nt-lab">${b.name}<span> · working target</span></p><p class="nt-big"><b>${HF.smart(b.big)}</b><i>${b.unit}</i></p>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.nt-count .hf-count'), sts = document.querySelectorAll('.nt-st');
+    const labs = mk.querySelectorAll('.nt-lab'), bigs = mk.querySelectorAll('.nt-big');
+
+    HF.rise(tl, $('nt-eb'), 0.15);
+    HF.reveal(tl, $('nt-hl'), 0.3);
+    HF.rise(tl, $('nt-foot'), 1.2);
+
+    // beat 1: the lab's reference range draws on as a wide cream band
+    tl.fromTo([ref, refEdge], { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 1.4, ease: 'power3.inOut' }, T0 + 0.1);
+    tl.fromTo(refIn, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, T0 + 1.2);
+    HF.rise(tl, $('nt-cap'), AT[1] + 1.9);   // "wider" only once there's a target to be wider than
+    tl.fromTo(hump, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 1.8, ease: 'power2.inOut' }, T0 + 0.7);
+    tl.fromTo(hFill, { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, T0 + 1.6);
+    tl.fromTo(peak, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, T0 + 2.0);
+    // markers take the stage: the population steps back
+    tl.to([hump, hFill, peak], { opacity: 0, duration: 0.45, ease: 'power2.in' }, AT[1] - 0.45);
+
+    BEATS.forEach((b, i) => {
+      const at = AT[i], next = AT[i + 1];
+      tl.set(counts[i], { opacity: 1 }, at);
+      if (i > 0) tl.set(counts[i - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[i], at, next - 0.45);
+      tl.fromTo(labs[i], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 0.5);
+      tl.fromTo(bigs[i], { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, at + 0.6);
+      tl.to([labs[i], bigs[i]], { opacity: 0, y: -14, duration: 0.4, ease: 'power2.in' }, next - 0.45);
+      if (!b.band) return;
+      // the working target closes in from the edges of "normal" to its own band, sharpening as it lands
+      const [a, z] = b.band;
+      tl.fromTo(tgt, { attr: { x: 0, width: W }, opacity: 0 }, { attr: { x: a * W, width: (z - a) * W }, opacity: 1, duration: 1.6, ease: 'power3.inOut', immediateRender: false }, at + 0.35);
+      tl.to(tgt, { opacity: 0, duration: 0.4, ease: 'power2.in' }, next - 0.45);
+    });
+
+    // close: the target band settles as "the lower-risk band" inside "normal", and the protocol's line lands
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('nt-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo(tgt, { attr: { x: 0, width: W }, opacity: 0 }, { attr: { x: CLOSE[0] * W, width: (CLOSE[1] - CLOSE[0]) * W }, opacity: 1, duration: 1.6, ease: 'power3.inOut', immediateRender: false }, END + 0.4);
+    tl.fromTo(tgtIn, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, END + 1.8);
+    tl.to([hump, hFill, peak], { opacity: 1, duration: 0.8, ease: 'power2.out' }, END + 0.1);
+    tl.fromTo(clipR, { attr: { x: 0, width: W } }, { attr: { x: CLOSE[0] * W, width: (CLOSE[1] - CLOSE[0]) * W }, duration: 1.6, ease: 'power3.inOut', immediateRender: false }, END + 0.4);
+    tl.fromTo(hLeaf, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.out' }, END + 1.0);
+    if (HF.shape !== 'tv') {
+      tl.to([$('nt-foot'), $('nt-cap')], { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('nt-brand'), END + 0.9);
+      const spans = LEN.map((_, i) => [i === 0 ? 0 : AT[i], AT[i + 1]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-normal-target"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

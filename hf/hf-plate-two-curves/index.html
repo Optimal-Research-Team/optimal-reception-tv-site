@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>One plate, two curves</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Longevity Protocol §2.4 figure "Same food, different order": the plate in thirds (1 protein, 2 vegetables + fibre,
+     3 carbohydrate), then its two illustrative glucose curves, ported from the figure's own path data. No y values. */
+  .pl-block { position: relative; margin-top: 62px; width: 660px; }
+  .pl-count { position: relative; height: 26px; }
+  .pl-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .pl-slot { position: relative; margin-top: 22px; height: 300px; }
+  .pl-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 54px/1.22 var(--sans); letter-spacing: -0.028em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .pl-end { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: italic 400 76px/1.06 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .pl-end em { color: var(--leaf-300); }
+  .pl-endsub { position: absolute; left: 0; right: 0; top: 182px; margin: 0; font: 400 32px/1.35 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+
+  .pl-chart { position: absolute; left: 840px; top: 300px; width: 960px; height: 600px; overflow: visible; }
+  .pl-chart text { font-family: var(--sans); letter-spacing: -0.01em; }
+  .pl-axislab { font-size: 22px; fill: var(--fg-muted); }
+  .pl-curvelab { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; }
+  .pl-zone { font-size: 27px; font-weight: 500; fill: var(--cream); letter-spacing: -0.015em; }
+  .pl-badge { font-size: 26px; font-weight: 700; fill: var(--leaf-300); }
+
+  .shape-reel .pl-chart { left: 90px; top: 530px; width: 840px; height: 500px; }
+  .shape-reel .pl-block { position: absolute; left: 90px; top: 1056px; margin: 0; width: 840px; }
+  .shape-reel .pl-slot { height: 230px; margin-top: 18px; }
+  .shape-reel .pl-st { font-size: 52px; }
+  .shape-reel .pl-end { font-size: 66px; }
+  .shape-reel .pl-endsub { top: 92px; font-size: 31px; }
+  .shape-reel .hf-foot { font-size: 21px; }
+
+  .shape-post .pl-chart { left: 90px; top: 290px; width: 900px; height: 460px; }
+  .shape-post .pl-block { position: absolute; left: 90px; top: 784px; margin: 0; width: 900px; }
+  .shape-post .pl-slot { height: 200px; margin-top: 16px; }
+  .shape-post .pl-st { font-size: 46px; }
+  .shape-post .pl-end { font-size: 58px; }
+  .shape-post .pl-endsub { top: 80px; font-size: 28px; }
+  .shape-post .pl-curvelab { font-size: 24px; }
+  .shape-post .pl-zone { font-size: 25px; }
+  .shape-post .hf-foot { font-size: 19px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-plate-two-curves" data-start="0" data-width="1920" data-height="1080" data-duration="27">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="pl-chart" id="pl-chart" aria-hidden="true"></svg>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="pl-eb">Nutrition · Blood sugar</p>
+    <h2 class="hf-h" id="pl-hl">One plate, <em>two&nbsp;curves</em></h2>
+    <div class="pl-block" id="pl-block">
+      <div class="pl-count" id="pl-count"></div>
+      <div class="pl-slot" id="pl-slot">
+        <p class="pl-end" id="pl-end">Same food, <em>different order</em>.</p>
+        <p class="pl-endsub" id="pl-endsub"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="pl-foot">Illustrative curves, not measured data. From the Optimal Longevity Protocol, v1.0, §2.4. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="pl-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // §2.4: "Sequence meals: protein and fibre first, carbohydrate last. This alone blunts the post-meal spike."
+  // and "The goal is a low average glucose and small post-meal excursions." The figure labels the two curves.
+  const BEATS = [
+    'Eat protein and fibre first, and save carbohydrate for last.',
+    'With carbohydrate first, glucose spikes after the meal.',
+    'With protein and fibre first, the same food gives a smaller rise.',
+    'The goal is a low average glucose and small rises after meals.',
+  ];
+  const ENDSUB = 'Protein and fibre first, carbohydrate last.';
+  // §2.4 figure (longevity-protocol.page.html FIG-09), viewBox 0 0 360 150: x 20→350 is time, y 120 the axis, 15 the top.
+  const CARB_D = 'M20 100 C 60 100, 80 30, 110 28 C 140 26, 170 80, 220 105 C 260 118, 300 112, 350 105';
+  const PROT_D = 'M20 100 C 70 100, 110 78, 150 72 C 200 66, 250 84, 350 100';
+  // The plate in thirds, clockwise from 12 o'clock, as the figure divides it.
+  const ZONES = [
+    { n: 1, name: 'Protein', a0: -90, a1: 30, fill: 'rgba(169,212,156,.34)', arc: '#A9D49C' },
+    { n: 2, name: 'Vegetables + fibre', a0: 30, a1: 150, fill: 'rgba(169,212,156,.34)', arc: '#A9D49C' },
+    { n: 3, name: 'Carbohydrate', a0: 150, a1: 270, fill: 'rgba(255,252,247,.17)', arc: '#FFFCF7' },
+  ];
+  const T0 = 2.6, STEP = 4.6, END = T0 + STEP * BEATS.length, DUR = 27;
+
+  const $ = (id) => document.getElementById(id);
+  const ns = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(ns, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  };
+
+  BEATS.forEach((b, k) => {
+    $('pl-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('pl-slot').insertAdjacentHTML('beforeend', `<p class="pl-st">${HF.smart(b)}</p>`);
+  });
+  $('pl-endsub').textContent = HF.smart(ENDSUB);
+
+  // Per shape: the plate (beat 1 only) and the plot box it hands over to.
+  const G = HF.px({
+    tv:   { plate: [480, 286, 206], plot: [6, 48, 950, 500], lw: [3.2, 5] },
+    reel: { plate: [420, 234, 184], plot: [6, 44, 832, 420], lw: [3, 4.6] },
+    post: { plate: [450, 204, 166], plot: [6, 44, 892, 380], lw: [3, 4.6] },
+  });
+
+  document.fonts.ready.then(() => {
+    const svg = $('pl-chart');
+    const box = svg.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+
+    // ── the plot: hairline axes, no values
+    const [x0, yTop, x1, yAx] = G.plot;
+    const X = (fx) => x0 + (fx - 20) / 330 * (x1 - x0);
+    const Y = (fy) => yAx - (120 - fy) / 105 * (yAx - yTop);
+    const axes = mk('g', {}, svg);
+    const xAxis = mk('line', { x1: x0, x2: x0, y1: yAx, y2: yAx, stroke: 'rgba(255,252,247,.32)', 'stroke-width': 1.5 }, axes);
+    const yAxis = mk('line', { x1: x0, x2: x0, y1: yAx, y2: yAx, stroke: 'rgba(255,252,247,.32)', 'stroke-width': 1.5 }, axes);
+    const yLab = mk('text', { class: 'pl-axislab', x: x0, y: yTop - 18, opacity: 0 }, svg, 'Glucose');
+    const xLab = mk('text', { class: 'pl-axislab', x: x1, y: yAx + 40, 'text-anchor': 'end', opacity: 0 }, svg, 'Time after the meal →');
+
+    const toPx = (d) => {
+      const n = d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+      let out = `M ${X(n[0]).toFixed(2)} ${Y(n[1]).toFixed(2)}`;
+      for (let i = 2; i + 5 < n.length; i += 6) out += ` C ${X(n[i]).toFixed(2)} ${Y(n[i + 1]).toFixed(2)}, ${X(n[i + 2]).toFixed(2)} ${Y(n[i + 3]).toFixed(2)}, ${X(n[i + 4]).toFixed(2)} ${Y(n[i + 5]).toFixed(2)}`;
+      return out;
+    };
+    // the area under the leaf curve, down to where both curves start (the pre-meal level)
+    const fill = mk('path', { d: `${toPx(PROT_D)} L ${X(20).toFixed(2)} ${Y(100).toFixed(2)} Z`, fill: 'rgba(169,212,156,.13)', opacity: 0 }, svg);
+    const draw = (d, color, w) => {
+      const p = mk('path', { d: toPx(d), stroke: color, 'stroke-width': w, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, svg);
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = `${len} ${len + w * 2}`;
+      p.style.strokeDashoffset = len + w;
+      return { p, len, w };
+    };
+    const carb = draw(CARB_D, 'rgba(255,252,247,.78)', G.lw[0]);
+    const prot = draw(PROT_D, '#A9D49C', G.lw[1]);
+    // direct labels: just right of each curve's hump, clear of the other line
+    const carbLab = mk('text', { class: 'pl-curvelab', x: X(118), y: Y(27) - 20, fill: '#FFFCF7', opacity: 0 }, svg, 'Carbohydrate first');
+    const protLab = mk('text', { class: 'pl-curvelab', x: X(206), y: Y(66) - 18, fill: '#A9D49C', opacity: 0 }, svg, 'Protein and fibre first');
+
+    // ── the plate (beat 1): rim, inner well, the three thirds, numbered in eating order
+    const [cx, cy, R] = G.plate, ri = R * 0.86;
+    const plate = mk('g', { opacity: 0 }, svg);   // one group: fades in, lights in order, then steps aside for the chart
+    const pt = (a, r) => [cx + r * Math.cos(a * Math.PI / 180), cy + r * Math.sin(a * Math.PI / 180)];
+    const sectors = ZONES.map((z) => {
+      const [ax, ay] = pt(z.a0, ri), [bx, by] = pt(z.a1, ri);
+      return mk('path', { d: `M ${cx} ${cy} L ${ax.toFixed(2)} ${ay.toFixed(2)} A ${ri} ${ri} 0 0 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z`, fill: z.fill, opacity: 0 }, plate);
+    });
+    mk('circle', { cx, cy, r: R, fill: 'none', stroke: 'rgba(255,252,247,.42)', 'stroke-width': 1.6, 'vector-effect': 'non-scaling-stroke' }, plate);
+    mk('circle', { cx, cy, r: ri, fill: 'none', stroke: 'rgba(255,252,247,.2)', 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, plate);
+    ZONES.forEach((z) => { const [ex, ey] = pt(z.a0, ri); mk('line', { x1: cx, y1: cy, x2: ex, y2: ey, stroke: 'rgba(255,252,247,.26)', 'stroke-width': 1.2, 'vector-effect': 'non-scaling-stroke' }, plate); });
+    // the eating order, traced clockwise around the rim from 12 o'clock as each zone lights
+    const arcs = ZONES.map((z) => {
+      const [ax, ay] = pt(z.a0 + 2, R), [bx, by] = pt(z.a1 - 2, R);
+      const a = mk('path', { d: `M ${ax.toFixed(2)} ${ay.toFixed(2)} A ${R} ${R} 0 0 1 ${bx.toFixed(2)} ${by.toFixed(2)}`, fill: 'none', stroke: z.arc, 'stroke-width': 4, 'stroke-linecap': 'round' }, plate);
+      const len = a.getTotalLength();
+      a.style.strokeDasharray = `${len} ${len + 8}`;
+      a.style.strokeDashoffset = len + 4;
+      return { a, len };
+    });
+    const badges = [], zoneLabs = [];
+    const bR = HF.px({ tv: 25, reel: 23, post: 21 });
+    ZONES.forEach((z) => {
+      const mid = (z.a0 + z.a1) / 2;
+      const [bx, by] = pt(mid, ri * 0.52);
+      const b = mk('g', { opacity: 0 }, plate);
+      mk('circle', { cx: bx, cy: by, r: bR, fill: '#0B1608', stroke: '#A9D49C', 'stroke-width': 1.6 }, b);
+      mk('text', { class: 'pl-badge', x: bx, y: by + bR * 0.37, 'text-anchor': 'middle' }, b, String(z.n));
+      badges.push(b);
+      const c = Math.cos(mid * Math.PI / 180), s = Math.sin(mid * Math.PI / 180);
+      const [lx, ly] = pt(mid, R + 26);
+      const anchor = Math.abs(c) < 0.2 ? 'middle' : c > 0 ? 'start' : 'end';
+      zoneLabs.push(mk('text', { class: 'pl-zone', x: lx, y: ly + (s > 0.8 ? 26 : 9), 'text-anchor': anchor, opacity: 0 }, plate, z.name));
+    });
+
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.pl-count .hf-count'), sts = document.querySelectorAll('.pl-st');
+    const beatAt = (k) => T0 + STEP * k;
+
+    HF.rise(tl, $('pl-eb'), 0.15);
+    HF.reveal(tl, $('pl-hl'), 0.3);
+    HF.rise(tl, $('pl-foot'), 1.2);
+    tl.fromTo(plate, { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0.9);
+    tl.fromTo(plate, { scale: 0.96, svgOrigin: `${cx} ${cy}` }, { scale: 1, svgOrigin: `${cx} ${cy}`, duration: 1.4, ease: HF.EASE }, 0.9);
+
+    BEATS.forEach((_, k) => {
+      const at = beatAt(k), next = at + STEP;
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+    });
+
+    // 1 · the zones light in eating order: the rim traces 1 → 2 → 3, and each zone settles as the next one lights
+    ZONES.forEach((z, i) => {
+      const t = beatAt(0) + 0.7 + i * 1.0;
+      tl.fromTo(arcs[i].a, { strokeDashoffset: arcs[i].len + 4 }, { strokeDashoffset: 0, duration: 1.0, ease: 'power2.inOut' }, t);
+      tl.fromTo(sectors[i], { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, t + 0.2);
+      if (i > 0) tl.to(sectors[i - 1], { opacity: 0.55, duration: 0.8, ease: 'power2.inOut' }, t + 0.2);
+      tl.fromTo(badges[i], { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, t + 0.2);
+      tl.fromTo(zoneLabs[i], { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power2.out' }, t + 0.3);
+    });
+    // 2 · the plate steps aside; the axes draw; the carbohydrate-first curve spikes
+    const b2 = beatAt(1);
+    tl.to(plate, { opacity: 0, duration: 0.5, ease: 'power2.in' }, b2 - 0.1);
+    tl.to(plate, { scale: 0.94, svgOrigin: `${cx} ${cy}`, duration: 0.5, ease: 'power2.in' }, b2 - 0.1);
+    tl.fromTo(xAxis, { attr: { x2: x0 } }, { attr: { x2: x1 }, duration: 1.1, ease: 'power3.inOut' }, b2 + 0.2);
+    tl.fromTo(yAxis, { attr: { y1: yAx } }, { attr: { y1: yTop - 4 }, duration: 0.8, ease: 'power3.inOut' }, b2 + 0.2);
+    tl.fromTo([yLab, xLab], { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power2.out' }, b2 + 0.6);
+    tl.fromTo(carb.p, { strokeDashoffset: carb.len + carb.w }, { strokeDashoffset: 0, duration: 2.4, ease: 'power2.inOut' }, b2 + 0.7);
+    tl.fromTo(carbLab, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, b2 + 1.6);
+    // 3 · the same food, protein and fibre first: a lower, gentler hump
+    const b3 = beatAt(2);
+    tl.fromTo(prot.p, { strokeDashoffset: prot.len + prot.w }, { strokeDashoffset: 0, duration: 2.4, ease: 'power2.inOut' }, b3 + 0.6);
+    tl.fromTo(protLab, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, b3 + 1.8);
+    // 4 · the goal: the small rise fills in; the spike steps back
+    const b4 = beatAt(3);
+    tl.fromTo(fill, { opacity: 0 }, { opacity: 1, duration: 1.2, ease: 'power2.out' }, b4 + 0.6);
+    tl.to([carb.p, carbLab], { opacity: 0.42, duration: 1.0, ease: 'power2.inOut' }, b4 + 0.6);
+
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('pl-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo($('pl-endsub'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, END + 1.0);
+    if (HF.shape !== 'tv') {
+      tl.to($('pl-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('pl-brand'), END + 1.4);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : beatAt(k), beatAt(k + 1)]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-plate-two-curves"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

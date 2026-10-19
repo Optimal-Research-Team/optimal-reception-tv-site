@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>The moving line</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Menopause Protocol §0.1 + §12: one hormone test is a snapshot of a line that keeps moving. An illustrative estrogen
+     line crosses the STRAW+10 stages; the view pushes in on a few weeks of perimenopause, where three test days catch
+     three different results. No y-axis values: the line is drawn against its own usual range, as in the protocol. */
+  .hs-block { position: relative; margin-top: 64px; width: 1080px; }
+  .hs-count { position: relative; height: 26px; }
+  .hs-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .hs-slot { position: relative; margin-top: 22px; height: 150px; }
+  .hs-st { position: absolute; left: 0; top: 0; width: 1080px; margin: 0; font: 400 56px/1.18 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .hs-st.wide { width: 1500px; }
+  .hs-end { position: absolute; left: 0; top: 30px; width: 1680px; margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .hs-end em { color: var(--leaf-300); }
+
+  /* three results, side by side: the point is that they disagree */
+  .hs-res { position: absolute; right: 120px; top: 326px; width: 500px; }
+  .hs-res-h { margin: 0 0 12px; font: 700 22px/1.2 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); opacity: 0; }
+  .hs-res-h .hf-num { font-weight: 700; }
+  .hs-row { display: flex; align-items: baseline; gap: 22px; margin: 0; padding: 9px 0; border-top: 1px solid rgba(255, 252, 247, .12); font: 400 34px/1.15 var(--sans); color: var(--cream); opacity: 0; }
+  .hs-row b { width: 22px; font: 600 30px/1 var(--sans); color: var(--leaf-300); font-variant-numeric: tabular-nums; }
+
+  .hs-chart { position: absolute; left: 120px; top: 578px; width: 1680px; height: 360px; overflow: visible; }
+  .hs-chart text { font-family: var(--sans); }
+  .hs-band { fill: rgba(255, 252, 247, .07); }
+  .hs-edge { stroke: rgba(255, 252, 247, .2); stroke-width: 1.5; fill: none; }
+  .hs-peri { fill: rgba(255, 252, 247, .035); }
+  .hs-early { fill: rgba(169, 212, 156, .08); }
+  .hs-tick { fill: rgba(255, 252, 247, .5); }
+  .hs-seg { fill: rgba(255, 252, 247, .22); }
+  .hs-fp { stroke: rgba(255, 252, 247, .38); stroke-width: 1.5; stroke-dasharray: 5 7; fill: none; }
+  .hs-line { fill: none; stroke: var(--cream); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+  .hs-glint { fill: none; stroke: var(--leaf-300); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+  .hs-tag { font-weight: 700; font-size: 20px; letter-spacing: .07em; text-transform: uppercase; fill: var(--fg-muted); }
+  .hs-stage { font-weight: 500; font-size: 26px; letter-spacing: -0.01em; fill: var(--fg); }
+  .hs-group { font-weight: 700; font-size: 19px; letter-spacing: .08em; text-transform: uppercase; fill: var(--fg-muted); }
+  .hs-mk-l { stroke: var(--leaf-300); stroke-width: 2; }
+  .hs-mk-t { font-weight: 700; font-size: 20px; letter-spacing: .07em; text-transform: uppercase; fill: var(--leaf-300); }
+  .hs-dot { fill: var(--leaf-300); }
+  .hs-halo { fill: none; stroke: var(--leaf-300); }
+  .hs-dn { font-weight: 600; font-size: 26px; fill: var(--leaf-300); }
+
+  .shape-reel .hs-block { margin-top: 44px; width: 840px; }
+  .shape-reel .hs-slot { height: 216px; }
+  .shape-reel .hs-st, .shape-reel .hs-st.wide { width: 840px; font-size: 54px; }
+  .shape-reel .hs-end { width: 840px; font-size: 72px; top: 24px; }
+  .shape-reel .hs-chart { left: 90px; top: 730px; width: 840px; height: 410px; }
+  .shape-reel .hs-stage { font-size: 28px; }
+  .shape-reel .hs-line, .shape-post .hs-line { stroke-width: 3.5; }
+  .shape-reel .hs-res { left: 90px; right: auto; top: 1160px; width: 840px; }
+  .shape-reel .hs-res-h { margin-bottom: 10px; }
+  .shape-reel .hs-row { padding: 7px 0; font-size: 32px; }
+
+  .shape-post .hs-block { margin-top: 40px; width: 900px; }
+  .shape-post .hs-slot { height: 130px; margin-top: 18px; }
+  .shape-post .hs-st, .shape-post .hs-st.wide { width: 900px; font-size: 50px; }
+  .shape-post .hs-end { width: 900px; font-size: 64px; top: 20px; }
+  .shape-post .hs-chart { left: 90px; top: 478px; width: 900px; height: 400px; }
+  .shape-post .hs-res { left: 90px; right: auto; top: 900px; width: 900px; }
+  .shape-post .hs-res-h { margin-bottom: 8px; }
+  .shape-post .hs-row { padding: 7px 0; font-size: 31px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-hormone-snapshot" data-start="0" data-width="1920" data-height="1080" data-duration="28">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="hs-eb">Menopause · Hormone tests</p>
+    <h2 class="hf-h" id="hs-hl">The <em>moving</em> line</h2>
+    <div class="hs-block">
+      <div class="hs-count" id="hs-count"></div>
+      <div class="hs-slot" id="hs-slot"></div>
+      <p class="hs-end" id="hs-end">One blood test is a <em>snapshot</em> of a moving line.</p>
+    </div>
+  </div>
+
+  <div class="hs-res" id="hs-res">
+    <p class="hs-res-h" id="hs-res-h">Three tests in <span class="hf-num">12</span> weeks</p>
+  </div>
+
+  <svg class="hs-chart" id="hs-chart" aria-hidden="true">
+    <g id="hs-zoom"></g>
+    <g id="hs-labels"></g>
+    <g id="hs-marks"></g>
+  </svg>
+
+  <p class="hf-foot" id="hs-foot">Illustrative, not to scale. For most healthy people over 45 not using hormonal birth control, perimenopause is recognized without hormone tests (NICE 2024). From the Optimal Menopause Protocol, v1.0, §0.1, §1 and §12. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="hs-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Beats: §12 (verbatim), §12 (shortened), §0.1 (verbatim), §1 Stage 2 (Harlow 2012). Each stands alone under the headline.
+  const BEATS = [
+    'Through perimenopause, hormone levels rise and fall unpredictably.',
+    'A single result can look ordinary in a hard week.',
+    'One hormone result can’t confirm or rule out perimenopause.',
+    'Early perimenopause: cycles that differ by <span class="hf-num">7 days</span> or more, again and again.',
+  ];
+  const LEN = [4.8, 5.8, 4.8, 5.0];                      // beat lengths; beat 2 carries two test days
+  const T0 = 2.6, AT = LEN.reduce((a, l, k) => (a.push(a[k] + l), a), [T0]), END = AT[LEN.length], DUR = 28;
+  // the three readings use the protocol figure's own words (§0.1, "12-week zoom": A, B, C)
+  const RESULTS = ['Higher than usual', 'Within usual range', 'Lower than usual'];
+
+  // Geometry per shape, in chart px (the svg's viewBox is 1:1 with its CSS box).
+  const G = HF.px({
+    tv:   { W: 1680, H: 360, yc: 168, u: 34, seg: 288, k: 2.6, r: 10, fade: 0.045 },
+    reel: { W: 840,  H: 410, yc: 178, u: 40, seg: 336, k: 3.4, r: 9, fade: 0.06 },
+    post: { W: 900,  H: 400, yc: 176, u: 38, seg: 322, k: 3.2, r: 9, fade: 0.06 },
+  });
+  const { W, H, yc, u, seg, k } = G;
+  // Stages adapted from STRAW+10 (Harlow 2012), drawn at similar widths as the protocol does; final period at 0.6.
+  const STAGES = [[0, 0.2, 'Before'], [0.2, 0.4, 'Early'], [0.4, 0.6, 'Late'], [0.6, 0.8, 'Early'], [0.8, 1, 'Later']];
+  const GROUPS = [[0.4, 'Perimenopause'], [0.8, 'Postmenopause']];
+  const FP = 0.6;
+  // Periods (§1, §10; Harlow 2012): regular before the transition; in early perimenopause consecutive cycles differ by
+  // 7 days or more, again and again; late perimenopause brings gaps of 60 days or more; the last mark is the final period.
+  const TICKS = [
+    ...Array.from({ length: 13 }, (_, i) => 0.008 + i * 0.0155),
+    ...[0.0125, 0.0185, 0.013, 0.019, 0.0125, 0.0175, 0.012, 0.0185, 0.0135, 0.019, 0.0125, 0.0185].reduce((a, d) => (a.push(a[a.length - 1] + d), a), [0.194]).slice(1),
+    0.416, 0.45, 0.468, 0.508, 0.545, 0.563, FP,
+  ];
+
+  // The illustrative estrogen line: fixed knots (x 0–1, value in band half-heights; ±1 = edge of the usual range).
+  // Before: small monthly ripples inside the range. Early perimenopause: wider swings, sometimes higher than before.
+  // Late perimenopause: surges and long lows. After the final period: falling for a while, then settling low.
+  const KN = [
+    [0, 0.05], [0.02, 0.3], [0.045, -0.22], [0.07, 0.32], [0.095, -0.2], [0.12, 0.3], [0.145, -0.25], [0.17, 0.28], [0.195, -0.12],
+    [0.215, 0.9], [0.232, -0.55], [0.252, 1.7], [0.27, -0.7], [0.29, 2.2], [0.31, -0.35], [0.328, 1.25], [0.348, -1.05], [0.368, 1.9], [0.384, -0.25],
+    [0.398, 2.35], [0.455, -1.75],
+    [0.475, -1.5], [0.49, -1.15], [0.505, 1.95], [0.52, -1.35], [0.54, -1.7], [0.555, -1.45], [0.568, 1.4], [0.582, -1.55], [0.596, -1.2],
+    [0.615, -1.85], [0.64, -1.6], [0.665, -2.25], [0.7, -2.1], [0.74, -2.5], [0.8, -2.65], [0.87, -2.72], [0.94, -2.76], [1, -2.76],
+  ];
+  // Catmull-Rom through the knots, sampled every ~2px: a smooth, fixed curve (no randomness).
+  const P = [];
+  for (let i = 0; i < KN.length - 1; i++) {
+    const p0 = KN[Math.max(0, i - 1)], p1 = KN[i], p2 = KN[i + 1], p3 = KN[Math.min(KN.length - 1, i + 2)];
+    const n = Math.max(2, Math.ceil((p2[0] - p1[0]) * W / 2));
+    for (let s = 0; s < n; s++) {
+      const t = s / n, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      P.push([f(p0[0], p1[0], p2[0], p3[0]) * W, yc - f(p0[1], p1[1], p2[1], p3[1]) * u]);
+    }
+  }
+  P.push([W, yc - KN[KN.length - 1][1] * u]);
+  const D = 'M' + P.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join('L');
+
+  // The three test days, on one stretch: the peak (high), the crossing (ordinary), the trough (low).
+  const inX = (a, b) => P.filter(([x]) => x >= a * W && x <= b * W);
+  const A = inX(0.385, 0.42).reduce((m, p) => (p[1] < m[1] ? p : m));
+  const C = inX(0.43, 0.48).reduce((m, p) => (p[1] > m[1] ? p : m));
+  const B = inX(A[0] / W, C[0] / W).reduce((m, p) => (Math.abs(p[1] - yc) < Math.abs(m[1] - yc) ? p : m));
+  const CX = B[0];                                         // the push-in is centred on the middle test
+  const zx = (x) => CX + (x - CX) * k;                     // where an overview x lands once zoomed
+
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const a in attrs) n.setAttribute(a, attrs[a]);
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const svg = $('hs-chart'), zoom = $('hs-zoom'), labels = $('hs-labels'), marks = $('hs-marks');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const NSS = { 'vector-effect': 'non-scaling-stroke' };
+  // a soft-edged window: flat in the overview, its edges fade once the view pushes in (keeps the 120px gutters)
+  const defs = el('defs', {}, null);
+  svg.insertBefore(defs, svg.firstChild);
+  const grad = el('linearGradient', { id: 'hs-fg', gradientUnits: 'userSpaceOnUse', x1: 0, x2: W, y1: 0, y2: 0 }, defs);
+  const STOPS = [0, 0, 1, 1].map((o) => el('stop', { offset: o, 'stop-color': '#fff', 'stop-opacity': 1 }, grad));
+  const mask = el('mask', { id: 'hs-fade', maskUnits: 'userSpaceOnUse', x: -20, y: -80, width: W + 40, height: H + 160 }, defs);
+  el('rect', { x: 0, y: -80, width: W, height: H + 160, fill: 'url(#hs-fg)' }, mask);
+  const win = el('g', { mask: 'url(#hs-fade)' }, null);   // untransformed, so the mask stays put while the group stretches
+  svg.insertBefore(win, zoom);
+  win.appendChild(zoom);
+
+  // zoomed group: everything that may stretch horizontally
+  const peri = el('rect', { class: 'hs-peri', x: 0.2 * W, y: 36, width: 0.4 * W, height: seg - 36 }, zoom);
+  const early = el('rect', { class: 'hs-early', x: 0.2 * W, y: 36, width: 0.2 * W, height: seg - 36, opacity: 0 }, zoom);
+  const band = el('rect', { class: 'hs-band', x: 0, y: yc - u, width: W, height: 2 * u }, zoom);
+  const edges = [yc - u, yc + u].map((y) => el('line', { class: 'hs-edge', x1: 0, x2: W, y1: y, y2: y, ...NSS }, zoom));
+  const fpLine = el('line', { class: 'hs-fp', x1: FP * W, x2: FP * W, y1: 36, y2: seg - 6, ...NSS }, zoom);
+  const ticks = TICKS.map((x) => el('rect', { class: 'hs-tick', x: x * W - 1.5, y: seg - 24, width: 3, height: 14, rx: 1.5, opacity: 0 }, zoom));
+  const segs = STAGES.map(([a, b]) => el('rect', { class: 'hs-seg', x: a * W + 2, y: seg, width: (b - a) * W - 4, height: 4, rx: 2 }, zoom));
+  const line = el('path', { class: 'hs-line', d: D, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, ...NSS }, zoom);
+  const glint = el('path', { class: 'hs-glint', d: D, pathLength: 1, 'stroke-dasharray': '0.07 2', 'stroke-dashoffset': 0.07, opacity: 0 }, zoom);
+
+  // labels: kept upright, their x tracked through the push-in
+  const sLab = STAGES.map(([a, b, t]) => el('text', { class: 'hs-stage', x: (a + b) / 2 * W, y: seg + 38, 'text-anchor': 'middle' }, labels, t));
+  const gLab = GROUPS.map(([c, t]) => el('text', { class: 'hs-group', x: c * W, y: seg + 66, 'text-anchor': 'middle' }, labels, t));
+  const fpLab = el('text', { class: 'hs-tag', x: FP * W - 12, y: 24, 'text-anchor': 'end' }, labels, 'Final period');
+  const eLab = el('text', { class: 'hs-tag', x: 0, y: 24 }, labels, 'Estrogen');
+  const rLab = el('text', { class: 'hs-tag', x: W, y: yc - u - 12, 'text-anchor': 'end' }, labels, 'Usual range');
+  const pLab = el('text', { class: 'hs-tag', x: 0, y: seg - 34, opacity: 0 }, labels, 'Periods');
+
+  // test-day markers, placed in zoomed coordinates (they only exist once the view has pushed in)
+  const DOTS = [A, B, C].map(([x, y], i) => {
+    const X = zx(x);
+    const g = el('g', { opacity: 0 }, marks);
+    const ln = el('line', { class: 'hs-mk-l', x1: X, x2: X, y1: 36, y2: y - G.r - 4 }, g);
+    const tx = el('text', { class: 'hs-mk-t', x: X, y: 24, 'text-anchor': 'middle' }, g, 'Test day');
+    const halo = el('circle', { class: 'hs-halo', cx: X, cy: y, r: G.r + 2, opacity: 0 }, marks);
+    const dot = el('circle', { class: 'hs-dot', cx: X, cy: y, r: G.r, opacity: 0 }, marks);
+    const off = [[0, -G.r - 14], [G.r + 12, -G.r - 2], [0, G.r + 30]][i];
+    const num = el('text', { class: 'hs-dn', x: X + off[0], y: y + off[1], 'text-anchor': i === 1 ? 'start' : 'middle', opacity: 0 }, marks, String(i + 1));
+    return { g, ln, tx, halo, dot, num };
+  });
+
+  BEATS.forEach((t, i) => {
+    $('hs-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(i + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('hs-slot').insertAdjacentHTML('beforeend', `<p class="hs-st${i === 3 ? ' wide' : ''}">${HF.smart(t)}</p>`);
+  });
+  RESULTS.forEach((t, i) => $('hs-res').insertAdjacentHTML('beforeend', `<p class="hs-row"><b>${i + 1}</b>${HF.smart(t)}</p>`));
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.hs-count .hf-count'), sts = document.querySelectorAll('.hs-st'), rows = document.querySelectorAll('.hs-row');
+
+    // intro: the frame of the chart, then the line draws across the stages
+    HF.rise(tl, $('hs-eb'), 0.15);
+    HF.reveal(tl, $('hs-hl'), 0.3);
+    HF.rise(tl, $('hs-foot'), 1.2);
+    tl.fromTo([band, peri, ...edges], { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0.6);
+    tl.fromTo(segs, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out', stagger: 0.08 }, 0.8);
+    tl.fromTo([...sLab, ...gLab], { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out', stagger: 0.06 }, 0.9);
+    tl.fromTo([eLab, rLab], { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, 1.1);
+    tl.fromTo(line, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 4.4, ease: 'power1.inOut' }, 1.0);
+    tl.set(line, { attr: { 'stroke-dasharray': 'none' } }, 5.5);
+    tl.fromTo([fpLine, fpLab], { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, 3.6);
+
+    BEATS.forEach((_, i) => {
+      const at = AT[i], next = AT[i + 1];
+      tl.set(counts[i], { opacity: 1 }, at);
+      if (i > 0) tl.set(counts[i - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[i], at, next - 0.45);
+    });
+
+    // push in on a few weeks of perimenopause (beat 2): stretch the line, track the labels, fade what leaves the frame
+    const zIn = AT[1] + 0.1, zDur = 1.5, zEase = 'power2.inOut';
+    const track = (n, x, at, toZoom) => {
+      const to = toZoom ? zx(x) : x, gone = toZoom && (to < 30 || to > W - 30);
+      tl.to(n, { attr: { x: to }, duration: zDur, ease: zEase }, at);
+      if (gone) tl.to(n, { opacity: 0, duration: 0.5, ease: 'power2.in' }, at);
+      if (!toZoom && (zx(x) < 30 || zx(x) > W - 30)) tl.to(n, { opacity: 1, duration: 0.6, ease: 'power2.out' }, at + zDur - 0.5);
+    };
+    tl.fromTo(zoom, { scaleX: 1 }, { scaleX: k, svgOrigin: `${CX} 0`, duration: zDur, ease: zEase }, zIn);
+    const edgeTo = (at, f) => {
+      tl.to([STOPS[0], STOPS[3]], { attr: { 'stop-opacity': f ? 0 : 1 }, duration: zDur, ease: zEase }, at);
+      tl.to(STOPS[1], { attr: { offset: f }, duration: zDur, ease: zEase }, at);
+      tl.to(STOPS[2], { attr: { offset: 1 - f }, duration: zDur, ease: zEase }, at);
+    };
+    edgeTo(zIn, G.fade);
+    STAGES.forEach(([a, b], i) => track(sLab[i], (a + b) / 2 * W, zIn, true));
+    GROUPS.forEach(([c], i) => track(gLab[i], c * W, zIn, true));
+    track(fpLab, FP * W - 12, zIn, true);
+    if (HF.shape !== 'tv') tl.to(rLab, { opacity: 0, duration: 0.5, ease: 'power2.in' }, zIn);
+
+    // three test days: the marker drops, the reading freezes as a dot, and the list fills in
+    const DROP = [AT[1] + 1.5, AT[1] + 3.4, AT[2] + 0.35];
+    tl.fromTo($('hs-res-h'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, DROP[0] - 0.2);
+    DOTS.forEach((d, i) => {
+      const at = DROP[i];
+      tl.fromTo(d.g, { opacity: 0, y: -40 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, at);
+      tl.fromTo(d.ln, { attr: { y2: 36 } }, { attr: { y2: d.ln.getAttribute('y2') }, duration: 0.6, ease: 'power2.inOut' }, at + 0.2);
+      tl.fromTo(d.dot, { opacity: 0, scale: 0.4, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.45, ease: 'power3.out' }, at + 0.7);
+      tl.fromTo(d.halo, { attr: { r: G.r + 2, 'stroke-width': 6 }, opacity: 0.9 }, { attr: { r: G.r + 26, 'stroke-width': 1 }, opacity: 0, duration: 1.3, ease: 'power2.out', immediateRender: false }, at + 0.75);
+      tl.fromTo(d.num, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' }, at + 1.0);
+      tl.fromTo(rows[i], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 0.85);
+      // the marker lifts away before the next test day; the frozen reading stays behind
+      tl.to(d.g, { opacity: 0, duration: 0.4, ease: 'power2.in' }, i < 2 ? DROP[i + 1] - 0.35 : AT[3] - 1.6);
+    });
+
+    // beat 4: back out to the whole transition; early perimenopause lights up
+    const zOut = AT[3] - 0.35;
+    tl.to([...rows, $('hs-res-h')], { opacity: 0, duration: 0.45, ease: 'power2.in' }, AT[3] - 0.6);
+    tl.to(DOTS.flatMap((d) => [d.dot, d.num]), { opacity: 0, duration: 0.45, ease: 'power2.in' }, AT[3] - 0.6);
+    tl.to(zoom, { scaleX: 1, svgOrigin: `${CX} 0`, duration: zDur, ease: zEase }, zOut);
+    edgeTo(zOut, 0);
+    STAGES.forEach(([a, b], i) => track(sLab[i], (a + b) / 2 * W, zOut, false));
+    GROUPS.forEach(([c], i) => track(gLab[i], c * W, zOut, false));
+    track(fpLab, FP * W - 12, zOut, false);
+    if (HF.shape !== 'tv') tl.to(rLab, { opacity: 1, duration: 0.6, ease: 'power2.out' }, zOut + zDur - 0.5);
+    const earlyTicks = ticks.filter((_, i) => TICKS[i] > 0.2 && TICKS[i] < 0.4);
+    tl.fromTo(pLab, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, AT[3] + 1.0);
+    tl.fromTo(ticks, { opacity: 0, scaleY: 0, transformOrigin: '50% 100%' }, { opacity: 1, scaleY: 1, duration: 0.35, ease: 'power2.out', stagger: 0.035 }, AT[3] + 1.0);
+    tl.fromTo(early, { opacity: 0 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, AT[3] + 2.3);
+    tl.to([segs[1], ...earlyTicks], { fill: '#A9D49C', duration: 0.7, ease: 'power2.out' }, AT[3] + 2.3);
+    tl.to(sLab[1], { fill: '#A9D49C', duration: 0.7, ease: 'power2.out' }, AT[3] + 2.3);
+
+    // close: the highlight settles, the closing line lands, and a glint runs the length of the moving line
+    tl.to(early, { opacity: 0, duration: 0.6, ease: 'power2.in' }, END - 0.3);
+    tl.to(segs[1], { fill: 'rgba(255, 252, 247, .22)', duration: 0.6 }, END - 0.3);
+    tl.to(earlyTicks, { fill: 'rgba(255, 252, 247, .5)', duration: 0.6 }, END - 0.3);
+    tl.to(sLab[1], { fill: '#C9CDBF', duration: 0.6 }, END - 0.3);
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('hs-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo(glint, { opacity: 0 }, { opacity: 0.95, duration: 0.4 }, END + 0.6);
+    tl.fromTo(glint, { attr: { 'stroke-dashoffset': 0.07 } }, { attr: { 'stroke-dashoffset': -1.0 }, duration: 3.4, ease: 'power1.inOut' }, END + 0.6);
+    tl.to(glint, { opacity: 0, duration: 0.4 }, END + 3.6);
+    if (HF.shape !== 'tv') {
+      tl.to($('hs-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('hs-brand'), END + 0.9);
+      const spans = LEN.map((_, i) => [i === 0 ? 0 : AT[i], AT[i + 1]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-hormone-snapshot"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

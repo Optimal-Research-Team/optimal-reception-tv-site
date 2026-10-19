@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Long intervals, not short sprints</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* The 4×4 (Longevity Protocol §1.2): the protocol's own heart-rate figure, redrawn on the night ground. Beat 1 traces
+     the whole session; beats 2 and 3 zoom into the first hard block and the first recovery with an interval timer;
+     then the session holds while the evidence and the safety line air. */
+  .ff-block { position: absolute; left: 120px; top: 336px; width: 1120px; }
+  .ff-count { position: relative; height: 26px; }
+  .ff-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .ff-slot { position: relative; margin-top: 22px; }
+  .ff-beat { position: absolute; left: 0; right: 0; top: 0; }
+  .ff-st { margin: 0; font: 400 58px/1.16 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .ff-su { margin: 18px 0 0; font: 400 32px/1.3 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+  .ff-end { margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .ff-end em { color: var(--leaf-300); }
+
+  /* the panel: the template name, then a hard timer, then an easy timer, stacked in one place */
+  .ff-panel { position: absolute; left: 1340px; top: 322px; width: 460px; height: 250px; }
+  .ff-layer { position: absolute; left: 0; right: 0; top: 0; opacity: 0; }
+  .ff-lab { margin: 0; font: 700 26px/1.2 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--leaf-300); }
+  .ff-big { margin: 14px 0 0; font: 400 190px/1 var(--display); letter-spacing: -0.02em; color: var(--cream); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+
+  .ff-chart { position: absolute; left: 120px; top: 626px; width: 1680px; height: 330px; overflow: visible; }
+  .ff-chart text { font-family: var(--sans); font-size: 22px; font-weight: 500; fill: var(--fg-muted); letter-spacing: -0.01em; }
+  .ff-chart text.cap { font-weight: 700; letter-spacing: .06em; }
+  .ff-chart text.mark { font-size: 26px; fill: var(--leaf-300); }
+
+  .shape-reel .hf-h { font-size: 86px; }
+  .shape-reel .ff-panel { left: 90px; top: 520px; width: 840px; height: 200px; }
+  .shape-reel .ff-big { font-size: 148px; margin-top: 10px; }
+  .shape-reel .ff-chart { left: 90px; top: 738px; width: 840px; height: 284px; }
+  .shape-reel .ff-chart text { font-size: 24px; }
+  .shape-reel .ff-chart text.mark { font-size: 26px; }
+  .shape-reel .ff-block { left: 90px; top: 1052px; width: 840px; }
+  .shape-reel .ff-st { font-size: 54px; }
+  .shape-reel .ff-su { font-size: 31px; margin-top: 14px; }
+  .shape-reel .ff-end { font-size: 64px; }
+  .shape-reel .ff-close { top: -48px; }
+
+  .shape-post .ff-panel { left: 90px; top: 340px; width: 900px; height: 160px; }
+  .shape-post .ff-lab { font-size: 24px; }
+  .shape-post .ff-big { font-size: 112px; margin-top: 8px; }
+  .shape-post .ff-chart { left: 90px; top: 504px; width: 900px; height: 258px; }
+  .shape-post .ff-chart text { font-size: 22px; }
+  .shape-post .ff-chart text.mark { font-size: 23px; }
+  .shape-post .ff-block { left: 90px; top: 794px; width: 900px; }
+  .shape-post .ff-slot { margin-top: 16px; }
+  .shape-post .ff-st { font-size: 48px; }
+  .shape-post .ff-su { font-size: 29px; margin-top: 12px; }
+  .shape-post .ff-end { font-size: 58px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-four-by-four" data-start="0" data-width="1920" data-height="1080" data-duration="29">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="ff-chart" id="ff-chart" aria-hidden="true"></svg>
+
+  <div class="ff-panel" id="ff-panel">
+    <div class="ff-layer" id="ff-p0"><p class="ff-lab">Once a week</p><p class="ff-big" data-layout-allow-overlap>4×4</p></div>
+    <div class="ff-layer" id="ff-p1"><p class="ff-lab">Hard</p><p class="ff-big" id="ff-th" data-layout-allow-overlap>0:00</p></div>
+    <div class="ff-layer" id="ff-p2"><p class="ff-lab">Easy</p><p class="ff-big" id="ff-te" data-layout-allow-overlap>0:00</p></div>
+  </div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="ff-eb">Fitness · VO₂ max</p>
+    <h2 class="hf-h" id="ff-hl"><em>Long</em> intervals, not short sprints</h2>
+    <div class="ff-block">
+      <div class="ff-count" id="ff-count"></div>
+      <div class="ff-slot" id="ff-slot">
+        <div class="ff-beat ff-close"><p class="ff-end" id="ff-end">Discuss any new exercise program with a qualified <em>clinician</em> first.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="ff-foot">Helgerud 2007; Mandsager 2018. From the Optimal Longevity Protocol, v1.0, §1.2. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="ff-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Longevity Protocol §1.2, verbatim where it fits. The closing line is the protocol's own opening caution
+  // ("Do not start … any … exercise program … without discussing it with a qualified clinician"); §1.2 has none of its own.
+  const n = (t) => `<span class="hf-num">${t}</span>`;
+  const BEATS = [
+    [`${n('One 4×4')} interval session a week is the protocol’s template.`, 'Sufficient for non-athletes; two for the ambitious.'],
+    [`${n('4 minutes')} at the hardest pace you can hold for ${n('4 minutes')}.`, 'Not an all-out sprint.'],
+    [`Go easy for about ${n('4 minutes')}, until heart rate is back near ${n('100 bpm')}.`, 'Shortchange the recovery and you miss the adaptation.'],
+    [`In ${n('122,007')} patients, higher fitness meant lower mortality.`, 'No upper limit was observed (Mandsager 2018).'],
+  ];
+  const T0 = 2.6, STEP = 5.0, END = T0 + STEP * BEATS.length, DUR = 29;
+
+  const $ = (id) => document.getElementById(id);
+  // Chart per shape: minutes 0–44 across the width; heart rate between the "near max" and "~100 bpm" guides.
+  const G = {
+    tv:   { w: 1680, gut: 150, h: 330, cap: 18, max: 64, hr100: 190, band: 248, bandH: 12, tick: 266, lab: 302, r: 9 },
+    reel: { w: 840,  gut: 128, h: 284, cap: 16, max: 56, hr100: 152, band: 214, bandH: 10, tick: 230, lab: 264, r: 8 },
+    post: { w: 900,  gut: 124, h: 258, cap: 16, max: 48, hr100: 136, band: 190, bandH: 10, tick: 206, lab: 238, r: 7 },
+  }[HF.shape];
+  const PW = G.w - G.gut, X = (m) => m * PW / 44;   // the plot, with a right gutter for the guide labels
+  // The protocol figure's own path (its 800×300 viewBox: x 60 = 0 min, 16.5 px/min; y 78 = near max, 196 = ~100 bpm).
+  const SRC = 'M60,222 C109.5,221 159,206 192,196 C200.25,196 210.15,78 225,78 L253.05,78 C264.6,78 279.45,196 324,196 C332.25,196 342.15,78 357,78 L385.05,78 C396.6,78 411.45,196 456,196 C464.25,196 474.15,78 489,78 L517.05,78 C528.6,78 543.45,196 588,196 C596.25,196 606.15,78 621,78 L649.05,78 C660.6,78 675.45,196 720,196 C739.8,196 762.9,226 786,230';
+  const Yp = (py) => G.max + (py - 78) * (G.hr100 - G.max) / (196 - 78);
+  const D = SRC.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, a, b) => `${X((+a - 60) / 16.5).toFixed(2)},${Yp(+b).toFixed(2)}`);
+  const base = G.band - 10;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = $('ff-chart');
+  svg.setAttribute('viewBox', `0 0 ${G.w} ${G.h}`);
+  const el = (tag, attrs, parent, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  };
+  const defs = el('defs', {});
+  const lg = el('linearGradient', { id: 'ff-fill', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  el('stop', { offset: 0, 'stop-color': '#FFFCF7', 'stop-opacity': 0.13 }, lg);
+  el('stop', { offset: 1, 'stop-color': '#FFFCF7', 'stop-opacity': 0 }, lg);
+  const clip = (id, x) => { const c = el('clipPath', { id }, defs); return el('rect', { x, y: -40, width: 0, height: G.h + 80 }, c); };
+  const reveal = clip('ff-reveal', 0), clipH = clip('ff-clip-h', X(8)), clipE = clip('ff-clip-e', X(12));
+
+  // guides and axis
+  const guide = (y, label) => [
+    el('line', { x1: 0, y1: y, x2: PW + 6, y2: y, stroke: 'rgba(255,252,247,.24)', 'stroke-width': 1.4, 'stroke-dasharray': '3 7', opacity: 0 }),
+    el('text', { x: PW + 20, y: y + 7, opacity: 0 }, null, label),
+  ];
+  const gMax = guide(G.max, 'near max'), g100 = guide(G.hr100, '~100 bpm');
+  const cap = el('text', { x: 0, y: G.cap, class: 'cap', opacity: 0 }, null, 'HEART RATE');
+  // blocks under the trace: warm-up, 4 × (hard, easy), cool-down
+  const bands = [];
+  const band = (m0, m1, kind) => bands.push({ kind, m0, el: el('rect', { x: X(m0) + 1.5, y: G.band, width: X(m1) - X(m0) - 3, height: G.bandH, rx: G.bandH / 2,
+    fill: kind === 'hard' ? '#A9D49C' : 'rgba(255,252,247,.16)', opacity: 0 }) });
+  band(0, 8, 'warm');
+  for (let i = 0; i < 4; i++) { band(8 + 8 * i, 12 + 8 * i, 'hard'); band(12 + 8 * i, 16 + 8 * i, 'easy'); }
+  band(40, 44, 'cool');
+  const hard = bands.filter((b) => b.kind === 'hard');
+  const ticks = [], tickLabels = [];
+  for (let m = 0; m <= 40; m += 10) {
+    ticks.push(el('line', { x1: X(m), y1: G.tick, x2: X(m), y2: G.tick + 8, stroke: 'rgba(255,252,247,.4)', 'stroke-width': 1.4, opacity: 0 }));
+    tickLabels.push(el('text', { x: X(m), y: G.lab, 'text-anchor': m === 0 ? 'start' : 'middle', opacity: 0 }, null, String(m)));
+  }
+  tickLabels.push(el('text', { x: PW + 20, y: G.lab, opacity: 0 }, null, 'min'));
+
+  // the trace: fill and line revealed by one clip; the first hard and first easy block redrawn in leaf on top
+  const fill = el('path', { d: `${D} L${X(44)},${base} L0,${base} Z`, fill: 'url(#ff-fill)', 'clip-path': 'url(#ff-reveal)' });
+  const trace = el('path', { d: D, fill: 'none', stroke: '#FFFCF7', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#ff-reveal)' });
+  const focusH = el('path', { d: D, fill: 'none', stroke: '#A9D49C', 'stroke-width': 4.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#ff-clip-h)' });
+  const focusE = el('path', { d: D, fill: 'none', stroke: '#A9D49C', 'stroke-width': 4.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'clip-path': 'url(#ff-clip-e)' });
+  // "back near 100 bpm" at the end of the first recovery
+  const ring = el('circle', { cx: X(16), cy: G.hr100, r: G.r + 6, fill: 'none', stroke: '#A9D49C', 'stroke-width': 2, opacity: 0 });
+  const back = el('text', { x: X(16), y: G.hr100 + (HF.shape === 'tv' ? 44 : HF.shape === 'reel' ? 41 : 37), 'text-anchor': 'middle', class: 'mark', opacity: 0 }, null, 'Back near 100 bpm');
+  const halo = el('circle', { cx: 0, cy: G.hr100, r: G.r, fill: 'none', stroke: '#A9D49C', 'stroke-width': 2, opacity: 0 });
+  const dot = el('circle', { cx: 0, cy: G.hr100, r: G.r, fill: '#A9D49C', opacity: 0 });
+
+  // y on the trace for any x (sampled once from the path itself, so the playhead sits exactly on the line)
+  const total = trace.getTotalLength(), S = [];
+  for (let i = 0; i <= 800; i++) { const p = trace.getPointAtLength(total * i / 800); S.push([p.x, p.y]); }
+  const yAt = (x) => {
+    let i = 1;
+    while (i < S.length - 1 && S[i][0] < x) i++;
+    const [x0, y0] = S[i - 1], [x1, y1] = S[i];
+    return x1 === x0 ? y1 : y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+  };
+  const place = (x) => { const y = yAt(x); dot.setAttribute('cx', x); dot.setAttribute('cy', y); halo.setAttribute('cx', x); halo.setAttribute('cy', y); };
+  place(0);
+  const clock = (node, s) => { node.textContent = `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
+
+  BEATS.forEach(([st, su], k) => {
+    $('ff-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('ff-slot').insertAdjacentHTML('beforeend', `<div class="ff-beat"><p class="ff-st">${st}</p><p class="ff-su">${su}</p></div>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.ff-count .hf-count'), sts = document.querySelectorAll('.ff-st'), sus = document.querySelectorAll('.ff-su');
+    const B = BEATS.map((_, k) => T0 + STEP * k);
+
+    HF.rise(tl, $('ff-eb'), 0.15);
+    HF.reveal(tl, $('ff-hl'), 0.3);
+    tl.to([gMax[0], g100[0]], { attr: { opacity: 1 }, duration: 0.8, stagger: 0.15 }, 0.7);
+    tl.to([cap, gMax[1], g100[1]], { attr: { opacity: 1 }, duration: 0.6, stagger: 0.1 }, 1.0);
+    tl.to(ticks, { attr: { opacity: 1 }, duration: 0.3, stagger: 0.08 }, 1.0);
+    tl.to(tickLabels, { attr: { opacity: 1 }, duration: 0.5, stagger: 0.06 }, 1.1);
+    tl.to(bands.map((b) => b.el), { attr: { opacity: 0.32 }, duration: 0.4, stagger: 0.05 }, 1.2);
+    tl.fromTo($('ff-p0'), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, 1.0);
+    HF.rise(tl, $('ff-foot'), 1.2);
+
+    BEATS.forEach((_, k) => {
+      const at = B[k], next = at + STEP;
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+      tl.fromTo(sus[k], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 1.1);
+      tl.to(sus[k], { opacity: 0, duration: 0.35, ease: 'power2.in' }, next - 0.45);
+    });
+
+    // Beat 1: the whole session draws itself, a playhead riding the line; each hard block lights as it is reached
+    const p = { x: 0 };
+    tl.to(dot, { attr: { opacity: 1 }, duration: 0.3 }, B[0] + 0.3);
+    tl.fromTo(p, { x: 0 }, { x: PW, duration: 4.0, ease: 'power1.inOut', immediateRender: false,
+      onUpdate: () => { reveal.setAttribute('width', p.x); place(p.x); } }, B[0] + 0.4);
+    hard.forEach((b) => tl.to(b.el, { attr: { opacity: 0.9 }, duration: 0.4 }, B[0] + 0.4 + 4.0 * (X(b.m0) / PW) * 0.9));
+    tl.to(dot, { attr: { opacity: 0 }, duration: 0.3 }, B[0] + 4.4);
+
+    // Beat 2: the first hard block, timed. The rest of the session steps back.
+    const blockRun = (at, clipRect, m0, timerNode, layerIn, layerOut, bandEl) => {
+      tl.to(layerOut, { opacity: 0, y: -10, duration: 0.4, ease: 'power2.in' }, at + 0.1);
+      tl.fromTo(layerIn, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: HF.EASE }, at + 0.4);
+      tl.to(bandEl, { attr: { opacity: 1 }, duration: 0.5 }, at + 0.5);
+      tl.set(dot, { attr: { opacity: 1 } }, at + 0.6);
+      const q = { s: 0 };
+      const w = X(m0 + 4) - X(m0);
+      tl.fromTo(q, { s: 0 }, { s: 240, duration: 3.6, ease: 'none', immediateRender: false,
+        onUpdate: () => { const x = X(m0) + w * q.s / 240; clipRect.setAttribute('width', x - X(m0)); place(x); clock(timerNode, q.s); } }, at + 0.6);
+    };
+    tl.to([trace, fill], { attr: { opacity: 0.32 }, duration: 0.6 }, B[1] + 0.1);
+    tl.to(hard.map((b) => b.el), { attr: { opacity: 0.32 }, duration: 0.5 }, B[1] + 0.1);
+    blockRun(B[1], clipH, 8, $('ff-th'), $('ff-p1'), $('ff-p0'), bands[1].el);
+    tl.fromTo(halo, { attr: { r: G.r, opacity: 0.9, 'stroke-width': 4 } }, { attr: { r: G.r * 4, opacity: 0, 'stroke-width': 1 }, duration: 1.4, ease: 'power2.out', immediateRender: false }, B[1] + 4.2);
+
+    // Beat 3: the first recovery, timed, down to ~100 bpm
+    tl.to(focusH, { attr: { opacity: 0.45 }, duration: 0.5 }, B[2] + 0.1);
+    tl.to(bands[1].el, { attr: { opacity: 0.32 }, duration: 0.5 }, B[2] + 0.1);
+    blockRun(B[2], clipE, 12, $('ff-te'), $('ff-p2'), $('ff-p1'), bands[2].el);
+    tl.fromTo(ring, { attr: { opacity: 0, r: G.r + 14 } }, { attr: { opacity: 1, r: G.r + 6 }, duration: 0.7, ease: 'power2.out', immediateRender: false }, B[2] + 4.1);
+    tl.to(back, { attr: { opacity: 1 }, duration: 0.5 }, B[2] + 4.2);
+
+    // Beat 4 and the close: the session returns whole; the four hard blocks light once more, in order
+    tl.to([dot, ring, back, focusH, focusE], { attr: { opacity: 0 }, duration: 0.5 }, B[3] + 0.1);
+    tl.to([trace, fill], { attr: { opacity: 1 }, duration: 0.8 }, B[3] + 0.2);
+    tl.to(bands[2].el, { attr: { opacity: 0.32 }, duration: 0.5 }, B[3] + 0.1);
+    tl.to($('ff-p2'), { opacity: 0, y: -10, duration: 0.4, ease: 'power2.in' }, B[3] + 0.1);
+    tl.fromTo($('ff-p0'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, ease: HF.EASE, immediateRender: false }, B[3] + 0.4);
+    tl.to(hard.map((b) => b.el), { attr: { opacity: 0.9 }, duration: 0.5, stagger: 0.25 }, B[3] + 0.6);
+
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('ff-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    if (HF.shape !== 'tv') {
+      tl.to($('ff-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('ff-brand'), END + 1.2);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : B[k], B[k] + STEP]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-four-by-four"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

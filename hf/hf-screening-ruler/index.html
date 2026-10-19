@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"focus","type":"enum","label":"Program to feature (awareness-month cuts)","default":"all","options":[{"value":"all","label":"All five, one per beat"},{"value":"cervical","label":"Cervical"},{"value":"breast","label":"Breast"},{"value":"colon","label":"Colon"},{"value":"lung","label":"Lung"},{"value":"prostate","label":"Prostate"}]},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Optimal Health · Barrie · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Ontario’s free cancer screening, by age</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Ontario's cancer screening on one 20–80 age line: the ruler draws itself, then each beat lights one program's
+     bracket (and a soft selection down to the ages it covers) while the others stay faint. Prostate has no program,
+     so its row carries words instead of a bracket. */
+  .sr-block { position: absolute; left: 120px; top: 318px; width: 1300px; }
+  .sr-count { position: relative; height: 26px; }
+  .sr-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .sr-slot { position: relative; margin-top: 22px; }
+  .sr-beat { position: absolute; left: 0; right: 0; top: 0; }
+  .sr-st { margin: 0; font: 400 60px/1.16 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .sr-st .sr-name { font: italic 400 1.12em/1 var(--display); letter-spacing: -0.035em; color: var(--cream); }
+  .sr-nw { white-space: nowrap; }
+  .sr-su { margin: 20px 0 0; font: 400 34px/1.3 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+  .sr-end { margin: 0; font: italic 400 74px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .sr-end em { color: var(--leaf-300); }
+  .sr-end-sub { margin: 24px 0 0; font: 400 34px/1.3 var(--sans); color: var(--fg); opacity: 0; }
+
+  .sr-ruler { position: absolute; left: 120px; top: 640px; width: 1680px; height: 300px; overflow: visible; }
+  .sr-ruler text { font-family: var(--sans); letter-spacing: -0.01em; }
+  .sr-ruler .row-label { font-size: 25px; font-weight: 500; fill: var(--fg-muted); }
+  .sr-ruler .row-label.on { fill: var(--cream); }
+  .sr-ruler .tick-label { font-size: 22px; font-weight: 500; fill: var(--fg-muted); font-variant-numeric: tabular-nums; }
+  .sr-ruler .age { font-size: 26px; font-weight: 600; fill: var(--leaf-300); font-variant-numeric: tabular-nums; }
+  .sr-ruler .none { font-size: 24px; font-style: italic; font-weight: 400; fill: var(--fg-muted); }
+  .sr-ruler .none.on { fill: var(--fg); }
+  .sr-ruler .axis-unit { font-size: 22px; font-weight: 500; fill: var(--fg-muted); }
+
+  .shape-reel .sr-block { left: 90px; top: 968px; width: 840px; }
+  .shape-reel .sr-st { font-size: 56px; }
+  .shape-reel .sr-su { font-size: 32px; }
+  .shape-reel .sr-end { font-size: 62px; }
+  .shape-reel .sr-end-sub { margin-top: 20px; font-size: 32px; }
+  .shape-reel .sr-ruler { left: 90px; top: 566px; width: 840px; height: 360px; }
+  .shape-reel .sr-ruler .row-label { font-size: 29px; }
+  .shape-reel .sr-ruler .tick-label, .shape-reel .sr-ruler .axis-unit { font-size: 25px; }
+  .shape-reel .sr-ruler .age { font-size: 29px; }
+  .shape-reel .sr-ruler .none { font-size: 27px; }
+
+  .shape-post .sr-block { left: 90px; top: 690px; width: 900px; }
+  .shape-post .sr-slot { margin-top: 18px; }
+  .shape-post .sr-st { font-size: 50px; }
+  .shape-post .sr-su { margin-top: 16px; font-size: 30px; }
+  .shape-post .sr-end { font-size: 60px; }
+  .shape-post .sr-end-sub { margin-top: 20px; font-size: 30px; }
+  .shape-post .sr-ruler .row-label { font-size: 26px; }
+  .shape-post .sr-ruler { left: 90px; top: 352px; width: 900px; height: 290px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-screening-ruler" data-start="0" data-width="1920" data-height="1080" data-duration="34">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="sr-ruler" id="sr-ruler" aria-hidden="true"></svg>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="sr-eb">Cancer screening · Ontario programs</p>
+    <h2 class="hf-h" id="sr-hl">Ontario’s free cancer screening, <em>by age</em></h2>
+    <div class="sr-block">
+      <div class="sr-count" id="sr-count"></div>
+      <div class="sr-slot" id="sr-slot">
+        <div class="sr-beat">
+          <p class="sr-end" id="sr-end">Keep up to date through your <em>family doctor</em> or Ontario’s programs.</p>
+          <p class="sr-end-sub" id="sr-end-sub">No family doctor? Call Health811 at <span class="hf-num">811</span>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="sr-foot">For people at average risk. Program details: ontario.ca and Ontario Health, 2026. From the Optimal Longevity Protocol, v1.0, §11. Educational, not medical advice.</p>
+  <div class="hf-brand social-only" id="sr-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Optimal Health · Barrie · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Longevity Protocol §11 table, checked against ontario.ca and Ontario Health (Oct 2026). Lung follows the current
+  // program (55–80, 20+ years of daily smoking, then a risk check), which is newer than the protocol's row.
+  const n = (t) => `<span class="hf-num">${t}</span>`;
+  const PROGRAMS = [
+    { id: 'cervical', name: 'Cervical', from: 25, to: 69,
+      st: `<span class="sr-name">Cervical,</span> ages ${n('25 to 69')}: an HPV test every ${n('5 years')}.`,
+      su: 'Through the Ontario Cervical Screening Program.' },
+    { id: 'breast', name: 'Breast', from: 40, to: 74,
+      st: `<span class="sr-name">Breast,</span> ages ${n('40 to 74')}: a mammogram every ${n('2 years')}.`,
+      su: `No referral needed from ${n('40')}.` },
+    { id: 'colon', name: 'Colon', from: 45, to: 74,
+      st: `<span class="sr-name">Colon,</span> ages ${n('45 to 74')}: <span class="sr-nw">an at-home FIT kit</span> every ${n('2 years')}.`,
+      su: `Lowered from ${n('50')} on ${n('July 1, 2026')}.` },
+    { id: 'lung', name: 'Lung', from: 55, to: 80,
+      st: `<span class="sr-name">Lung,</span> ages ${n('55 to 80')} who smoked daily for ${n('20+ years')}: a yearly low-dose CT.`,
+      su: 'A risk check with the program confirms who qualifies.' },
+    { id: 'prostate', name: 'Prostate', from: null, to: null,
+      st: `<span class="sr-name">Prostate:</span> no Ontario program. PSA testing is a shared decision with your clinician.`,
+      su: 'Canada’s Task Force advises against routine PSA screening.' },
+  ];
+  const V = HF.vars();
+  const FOCUS = PROGRAMS.some((p) => p.id === V.focus) ? V.focus : 'all';
+  // Awareness-month cuts: one program holds the whole middle; the others stay faint for context.
+  const BEATS = FOCUS === 'all' ? PROGRAMS : PROGRAMS.filter((p) => p.id === FOCUS);
+  const T0 = 2.6, END = 27.6, STEP = (END - T0) / BEATS.length, DUR = 34;
+
+  const $ = (id) => document.getElementById(id);
+  if (FOCUS !== 'all') $('sr-eb').textContent = `Cancer screening · ${BEATS[0].name}`;
+
+  // Geometry per shape (px, 1:1 with the stage): row labels in a gutter, ages 20–80 across [x0, x1].
+  const G = {
+    tv:   { w: 1680, h: 300, x0: 250, x1: 1600, row0: 22, gap: 42, axis: 236, cap: 9, lab: 44 },
+    reel: { w: 840,  h: 360, x0: 196, x1: 788,  row0: 26, gap: 53, axis: 296, cap: 10, lab: 48 },
+    post: { w: 900,  h: 290, x0: 178, x1: 850,  row0: 20, gap: 41, axis: 230, cap: 8, lab: 44 },
+  }[HF.shape];
+  const X = (age) => G.x0 + (age - 20) * (G.x1 - G.x0) / 60;
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = $('sr-ruler');
+  svg.setAttribute('viewBox', `0 0 ${G.w} ${G.h}`);
+  const el = (tag, attrs, parent, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    (parent || svg).appendChild(e);
+    return e;
+  };
+
+  // selection band (one rect that moves between programs) sits under everything
+  const defs = el('defs', {});
+  const grad = el('linearGradient', { id: 'sr-sel', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  el('stop', { offset: 0, 'stop-color': '#A9D49C', 'stop-opacity': 0.13 }, grad);
+  el('stop', { offset: 1, 'stop-color': '#A9D49C', 'stop-opacity': 0.035 }, grad);
+  const band = el('rect', { x: X(25), y: 0, width: X(69) - X(25), height: 10, fill: 'url(#sr-sel)', opacity: 0 });
+  const axisHi = el('line', { x1: X(25), y1: G.axis, x2: X(69), y2: G.axis, stroke: '#A9D49C', 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0 });
+  // the ruler: a hairline with year ticks, labelled every ten
+  const axisLen = G.x1 - G.x0;
+  const axis = el('line', { x1: G.x0, y1: G.axis, x2: G.x1, y2: G.axis, stroke: 'rgba(255,252,247,.42)', 'stroke-width': 1.6, 'stroke-dasharray': axisLen, 'stroke-dashoffset': axisLen });
+  const ticks = [], tickLabels = [];
+  for (let a = 20; a <= 80; a += 5) {
+    const major = a % 10 === 0;
+    ticks.push(el('line', { x1: X(a), y1: G.axis, x2: X(a), y2: G.axis + (major ? 14 : 8), stroke: 'rgba(255,252,247,.42)', 'stroke-width': 1.4, opacity: 0 }));
+    if (major) tickLabels.push(el('text', { x: X(a), y: G.axis + G.lab, 'text-anchor': 'middle', class: 'tick-label', opacity: 0 }, null, String(a)));
+  }
+  const unit = el('text', { x: 0, y: G.axis + G.lab, class: 'axis-unit', opacity: 0 }, null, 'Age');
+
+  const rows = PROGRAMS.map((p, i) => {
+    const y = G.row0 + G.gap * i;
+    const r = { p, y };
+    r.label = el('text', { x: 0, y: y + (HF.shape === 'reel' ? 10 : 9), class: 'row-label', opacity: 0 }, null, p.name);
+    if (p.from == null) {
+      r.none = el('text', { x: G.x0, y: y + 8, class: 'none', opacity: 0 }, null, 'No Ontario program');
+      return r;
+    }
+    const x1 = X(p.from), x2 = X(p.to), len = x2 - x1 + 2 * G.cap;
+    const path = `M${x1},${y - G.cap} L${x1},${y} L${x2},${y} L${x2},${y - G.cap}`;
+    r.faint = el('path', { d: path, fill: 'none', stroke: 'rgba(255,252,247,.26)', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': len, 'stroke-dashoffset': len });
+    r.lit = el('path', { d: path, fill: 'none', stroke: '#A9D49C', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0 });
+    r.a = el('text', { x: x1 - 12, y: y + 9, 'text-anchor': 'end', class: 'age', opacity: 0 }, null, String(p.from));
+    r.b = el('text', { x: x2 + 12, y: y + 9, class: 'age', opacity: 0 }, null, String(p.to));
+    return r;
+  });
+  const rowOf = (p) => rows[PROGRAMS.indexOf(p)];
+
+  BEATS.forEach((p, k) => {
+    if (BEATS.length > 1) $('sr-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('sr-slot').insertAdjacentHTML('beforeend', `<div class="sr-beat"><p class="sr-st">${p.st}</p><p class="sr-su">${p.su}</p></div>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.sr-count .hf-count'), sts = document.querySelectorAll('.sr-st'), sus = document.querySelectorAll('.sr-su');
+    const brackets = rows.filter((r) => r.lit);
+
+    HF.rise(tl, $('sr-eb'), 0.15);
+    HF.reveal(tl, $('sr-hl'), 0.3);
+    // the ruler draws left to right, ticks follow it, then the four programs sketch in faintly above it
+    tl.to(axis, { attr: { 'stroke-dashoffset': 0 }, duration: 1.5, ease: 'power2.inOut' }, 0.6);
+    tl.to(ticks, { attr: { opacity: 1 }, duration: 0.3, ease: 'power2.out', stagger: 1.2 / ticks.length }, 0.7);
+    tl.to([...tickLabels, unit], { attr: { opacity: 1 }, duration: 0.5, ease: 'power2.out', stagger: 0.08 }, 1.0);
+    tl.to(rows.map((r) => r.label), { attr: { opacity: 1 }, duration: 0.6, ease: 'power2.out', stagger: 0.1 }, 1.1);
+    brackets.forEach((r, i) => tl.to(r.faint, { attr: { 'stroke-dashoffset': 0 }, duration: 0.9, ease: 'power2.inOut' }, 1.3 + 0.14 * i));
+    tl.to(rows[4].none, { attr: { opacity: 0.85 }, duration: 0.6, ease: 'power2.out' }, 1.9);
+    HF.rise(tl, $('sr-foot'), 1.2);
+
+    let prev = null;
+    BEATS.forEach((p, k) => {
+      const at = T0 + STEP * k, next = at + STEP, r = rowOf(p);
+      if (counts[k]) { tl.set(counts[k], { opacity: 1 }, at); if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at); }
+      HF.beat(tl, sts[k], at, next - 0.45);
+      tl.fromTo(sus[k], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 1.1);
+      tl.to(sus[k], { opacity: 0, duration: 0.35, ease: 'power2.in' }, next - 0.45);
+      tl.set(r.label, { attr: { class: 'row-label on' } }, at + 0.3);
+      tl.set(r.label, { attr: { class: 'row-label' } }, next - 0.2);
+      if (r.lit) {
+        // the bracket lights, its end ages appear, and the selection slides to the ages it covers
+        tl.to(r.lit, { attr: { opacity: 1 }, duration: 0.7, ease: 'power2.out' }, at + 0.3);
+        tl.to([r.a, r.b], { attr: { opacity: 1 }, duration: 0.6, ease: 'power2.out' }, at + 0.6);
+        const bandTo = { x: X(p.from), width: X(p.to) - X(p.from), y: r.y + 10, height: G.axis - r.y - 10 };
+        if (!prev || !prev.lit) tl.set(band, { attr: bandTo }, at + 0.1);
+        tl.to(band, { attr: { ...bandTo, opacity: 1 }, duration: 0.9, ease: 'power3.inOut' }, at + 0.1);
+        if (!prev || !prev.lit) tl.set(axisHi, { attr: { x1: X(p.from), x2: X(p.to) } }, at + 0.1);
+        tl.to(axisHi, { attr: { x1: X(p.from), x2: X(p.to), opacity: 1 }, duration: 0.9, ease: 'power3.inOut' }, at + 0.1);
+        tl.to(r.lit, { attr: { opacity: 0 }, duration: 0.5, ease: 'power2.in' }, next - 0.4);
+        tl.to([r.a, r.b], { attr: { opacity: 0 }, duration: 0.35, ease: 'power2.in' }, next - 0.45);
+      } else {
+        // no program: the selection lets go and the row's own words come forward
+        tl.to([band, axisHi], { attr: { opacity: 0 }, duration: 0.6, ease: 'power2.out' }, at + 0.1);
+        tl.to(r.none, { attr: { opacity: 1 }, duration: 0.6, ease: 'power2.out' }, at + 0.3);
+        tl.set(r.none, { attr: { class: 'none on' } }, at + 0.3);
+      }
+      prev = r;
+    });
+
+    // Close: every program lights at once (or the featured one stays), and the line points to who arranges it.
+    if (counts.length) tl.to(counts[counts.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.to([band, axisHi], { attr: { opacity: 0 }, duration: 0.6, ease: 'power2.out' }, END - 0.4);
+    const finale = FOCUS === 'all' ? brackets : brackets.filter((r) => r.p.id === FOCUS);
+    if (finale.length) tl.to(finale.map((r) => r.lit), { attr: { opacity: 1 }, duration: 0.8, ease: 'power2.out', stagger: 0.12 }, END + 0.1);
+    tl.fromTo($('sr-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo($('sr-end-sub'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, END + 1.2);
+    if (HF.shape !== 'tv') {
+      tl.to($('sr-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('sr-brand'), END + 1.4);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : T0 + STEP * k, T0 + STEP * (k + 1)]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-screening-ruler"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

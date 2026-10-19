@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>What we won’t do</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Seven commitments from the Menopause Protocol §0.4, one at a time, each lighting one dot of the Optimal mark. */
+  .ww-block { position: relative; margin-top: 150px; width: 1000px; }
+  .ww-count { position: relative; height: 26px; }
+  .ww-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .ww-anchor { margin: 22px 0 0; font: italic 400 110px/1 var(--display); letter-spacing: -0.04em; color: var(--leaf-300); }
+  .ww-slot { position: relative; margin-top: 14px; height: 160px; }
+  .ww-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 64px/1.18 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .ww-sub { position: relative; margin-top: 26px; height: 96px; }
+  .ww-su { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 36px/1.3 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
+  .ww-end { position: absolute; left: 0; right: 0; top: 48px; margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .ww-end em { color: var(--leaf-300); }
+  .ww-ring { position: absolute; right: 150px; top: 290px; width: 520px; height: 520px; overflow: visible; }
+  .ww-ring .halo { fill: none; stroke: var(--leaf-300); }
+
+  .shape-reel .ww-ring { left: 24px; right: auto; top: 440px; width: 340px; height: 340px; }
+  .shape-reel .ww-block { margin-top: 420px; width: 840px; }
+  .shape-reel .ww-anchor { font-size: 104px; }
+  .shape-reel .ww-slot { height: 220px; }
+  .shape-reel .ww-st { font-size: 60px; }
+  .shape-reel .ww-su { font-size: 34px; }
+  .shape-reel .ww-end { font-size: 72px; top: 30px; }
+
+  .shape-post .ww-ring { left: 37px; right: auto; top: 280px; width: 300px; height: 300px; }
+  .shape-post .ww-block { margin-top: 400px; width: 900px; }
+  .shape-post .ww-anchor { font-size: 92px; margin-top: 16px; }
+  .shape-post .ww-slot { height: 190px; }
+  .shape-post .ww-st { font-size: 54px; }
+  .shape-post .ww-su { font-size: 30px; }
+  .shape-post .ww-end { font-size: 64px; top: 20px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="hf-wont-do" data-start="0" data-width="1920" data-height="1080" data-duration="37">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <svg class="ww-ring" viewBox="-28.5 14.2 460 460" aria-hidden="true">
+    <circle id="ww-rim" cx="201.5" cy="244.2" r="104.9" fill="none" stroke="rgba(255,252,247,.16)" stroke-width="1.6"/>
+    <g id="ww-dots"></g>
+  </svg>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="ww-eb">Menopause care · Our commitments</p>
+    <h2 class="hf-h" id="ww-hl">What we <em>won’t</em> do</h2>
+    <div class="ww-block">
+      <div class="ww-count" id="ww-count"></div>
+      <p class="ww-anchor" id="ww-anchor">We won’t</p>
+      <div class="ww-slot" id="ww-slot"></div>
+      <div class="ww-sub" id="ww-sub"></div>
+      <p class="ww-end" id="ww-end">These hold from your <em>first call</em>.</p>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="ww-foot">From the Optimal Menopause Protocol, v1.0, §0.4. The one charge before you enrol: a second missed onboarding appointment.</p>
+  <div class="hf-cta tv-only" id="ww-cta">
+    <span class="hf-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h7"/></svg>Talk to the receptionist</span>
+    <span class="hf-cta-sub">about a free intro call</span>
+  </div>
+  <div class="hf-brand social-only" id="ww-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // §0.4, verbatim where it fits a beat; the supporting line is the protocol's own next sentence, shortened.
+  const ITEMS = [
+    ['diagnose perimenopause from one hormone result.', 'Symptoms, cycle changes and history come first.'],
+    ['discuss treatment before a safety review.', 'Your NP reviews your complete labs before your consultation is booked.'],
+    ['start anything without your consent.', 'You can decide to wait.'],
+    ['choose your pharmacy.', 'Fill any prescription at the pharmacy of your choice.'],
+    ['surprise you with costs.', 'Fees are listed in full, with what’s included and what isn’t.'],
+    ['ask for payment before you choose to enrol.', 'The intro call and the onboarding appointment are free.'],
+    ['replace your family doctor or emergency care.', 'If you authorize it, your family doctor gets a note after each visit.'],
+  ];
+  // The seven dots of the Optimal mark, in logo px (as the TV's "Seven things" scene draws them).
+  const DOTS = [[102.8, 242.4, 49.4], [150.8, 148.6, 39.2], [246.4, 148.4, 31.4], [300.2, 210.7, 25.4], [300.2, 274.0, 25.4], [246.1, 339.2, 34.6], [147.7, 339.0, 42.4]];
+  const T0 = 2.6, STEP = 4.2, END = T0 + STEP * ITEMS.length, DUR = 37;
+
+  const $ = (id) => document.getElementById(id);
+  const ns = 'http://www.w3.org/2000/svg';
+  const g = $('ww-dots');
+  const dots = [], halos = [];
+  DOTS.forEach(([x, y, r]) => {
+    const h = document.createElementNS(ns, 'circle'); h.setAttribute('class', 'halo'); h.setAttribute('cx', x); h.setAttribute('cy', y); h.setAttribute('r', r + 10); h.setAttribute('opacity', 0); g.appendChild(h); halos.push(h);
+    const d = document.createElementNS(ns, 'circle'); d.setAttribute('cx', x); d.setAttribute('cy', y); d.setAttribute('r', r); d.setAttribute('fill', '#4A5444'); g.appendChild(d); dots.push(d);
+  });
+  ITEMS.forEach(([st, su], k) => {
+    $('ww-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(k + 1).padStart(2, '0')}</b> / 07</p>`);
+    $('ww-slot').insertAdjacentHTML('beforeend', `<p class="ww-st">${HF.smart(st)}</p>`);
+    $('ww-sub').insertAdjacentHTML('beforeend', `<p class="ww-su">${HF.smart(su)}</p>`);
+  });
+
+  document.fonts.ready.then(() => {
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.ww-count .hf-count'), sts = document.querySelectorAll('.ww-st'), sus = document.querySelectorAll('.ww-su');
+
+    HF.rise(tl, $('ww-eb'), 0.15);
+    HF.reveal(tl, $('ww-hl'), 0.3);
+    tl.fromTo('.ww-ring', { opacity: 0, scale: 0.94, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 1.2, ease: HF.EASE }, 0.5);
+    HF.rise(tl, $('ww-anchor'), 1.4);
+    HF.rise(tl, $('ww-foot'), 1.2);
+
+    ITEMS.forEach((_, k) => {
+      const at = T0 + STEP * k, next = at + STEP;
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+      tl.fromTo(sus[k], { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 1.0);
+      tl.to(sus[k], { opacity: 0, duration: 0.35, ease: 'power2.in' }, next - 0.45);
+      tl.to(dots[k], { attr: { fill: '#A9D49C' }, duration: 0.7, ease: 'power2.out' }, at + 0.3);
+      tl.fromTo(halos[k], { attr: { opacity: 0.9, 'stroke-width': 9 } }, { attr: { opacity: 0, 'stroke-width': 1 }, duration: 1.6, ease: 'power2.out', immediateRender: false }, at + 0.3);
+    });
+
+    // All seven hold: the counter and anchor give way to the closing line; the ring breathes once as a whole.
+    tl.to([counts[ITEMS.length - 1], $('ww-anchor')], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('ww-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo(halos, { attr: { opacity: 0.6, 'stroke-width': 6 } }, { attr: { opacity: 0, 'stroke-width': 1 }, duration: 2, ease: 'power2.out', immediateRender: false, stagger: 0.08 }, END + 0.3);
+    if (HF.shape === 'tv') HF.rise(tl, $('ww-cta'), END + 0.9);
+    else {
+      tl.to($('ww-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('ww-brand'), END + 0.9);
+      const spans = ITEMS.map((_, k) => [k === 0 ? 0 : T0 + STEP * k, T0 + STEP * (k + 1)]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["hf-wont-do"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>
