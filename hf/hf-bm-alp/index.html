@@ -1,0 +1,341 @@
+﻿<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"},{"id":"group","type":"string","label":"Panel group (eyebrow)","default":"Organ function"},{"id":"ask","type":"string","label":"Question words","default":"What is"},{"id":"name","type":"string","label":"Marker name (headline)","default":"alkaline phosphatase"},{"id":"beat1","type":"string","label":"Beat 1: what it is","default":"Alkaline phosphatase is an enzyme from the liver and bone."},{"id":"beat2","type":"string","label":"Beat 2","default":"Alkaline phosphatase screens liver and bone turnover."},{"id":"beat3","type":"string","label":"Beat 3","default":"Alkaline phosphatase is one of seven organ-function tests on the panel."},{"id":"beat4","type":"string","label":"Beat 4","default":""},{"id":"beat5","type":"string","label":"Beat 5 (optional)","default":""},{"id":"device","type":"enum","label":"Device","default":"phrase","options":[{"value":"band","label":"Range bar + number (target placed inside the lab band)"},{"value":"number","label":"Number only (no lab band)"},{"value":"phrase","label":"Phrase only (no number)"}]},{"id":"deviceBeat","type":"number","label":"Beat that brings in the target (0 = none)","default":0,"min":0,"max":5,"step":1},{"id":"labelA","type":"string","label":"Device label, before the target","default":"Alkaline phosphatase · what it measures"},{"id":"bigA","type":"string","label":"Device phrase, before the target","default":"Liver and bone enzyme"},{"id":"labelB","type":"string","label":"Device label, target","default":""},{"id":"bigB","type":"string","label":"Target (number or phrase)","default":""},{"id":"unit","type":"string","label":"Target unit","default":""},{"id":"bandFrom","type":"number","label":"Target band start (fraction of lab band)","default":0,"min":0,"max":1,"step":0.01},{"id":"bandTo","type":"number","label":"Target band end (fraction of lab band)","default":0,"min":0,"max":1,"step":0.01},{"id":"cap","type":"string","label":"Caption under the range bar","default":""},{"id":"panel","type":"string","label":"Panel key (ruler)","default":"alp"},{"id":"end","type":"string","label":"Closing line","default":"One enzyme: *liver* and bone."},{"id":"foot","type":"string","label":"Footnote","default":"From the Optimal Longevity Protocol, v1.0, §12. Educational, not medical advice."}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>What is ___?</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* "What is ___?": one lab marker per video, from the Optimal Longevity Protocol §8, §9, §12 (and the Menopause
+     Protocol §12 where it speaks). Beats on the left; one device below that degrades with the row:
+       band    the protocol places its target inside a wider "normal" (§0.1, §9, §12 TSH): the lab's reference range is a
+               wide, unnumbered cream band and the working target closes in inside it, in leaf (hf-normal-target)
+       number  a target or threshold is stated, but nothing relates it to the lab's range: the number, no band
+       phrase  no number at all: the protocol's own words for it
+     Underneath, until a band replaces it, a ruler of the §12 Annual Health Evaluation panel: 20 tests in five groups
+     plus the three §12 orders "when indicated", with this one lit. Leaf is the only accent. */
+  .bm-h { white-space: nowrap; }
+  .shape-reel .bm-h, .shape-post .bm-h { white-space: normal; }
+  .shape-reel .bm-ask, .shape-post .bm-ask { display: block; }
+  .shape-reel .bm-nm, .shape-post .bm-nm { display: block; white-space: nowrap; }
+
+  .bm-block { position: relative; margin-top: 64px; width: 1300px; }
+  .bm-count { position: relative; height: 26px; }
+  .bm-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .bm-slot { position: relative; margin-top: 22px; height: 150px; }
+  .bm-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 56px/1.18 var(--sans); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .bm-end { position: absolute; left: 0; right: 0; top: 30px; margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .bm-end em { color: var(--leaf-300); }
+
+  .bm-mk { position: absolute; left: 120px; top: 556px; width: 1680px; height: 230px; }
+  .bm-lab { position: absolute; left: 0; top: 0; margin: 0; font: 500 34px/1.2 var(--sans); letter-spacing: -0.015em; color: var(--cream); white-space: nowrap; opacity: 0; }
+  .bm-lab span { color: var(--fg-muted); }
+  .bm-big { position: absolute; left: -6px; top: 46px; margin: 0; display: flex; align-items: baseline; gap: 22px; white-space: nowrap; opacity: 0; }
+  .bm-big b { font: 400 150px/1 var(--sans); letter-spacing: -0.045em; color: var(--leaf-300); font-variant-numeric: lining-nums tabular-nums; }
+  .bm-big i { font: 500 42px/1 var(--sans); font-style: normal; letter-spacing: -0.01em; color: var(--leaf-200); }
+  .bm-phrase { position: absolute; left: -3px; top: 44px; width: 1680px; margin: 0; font: italic 400 96px/1.04 var(--display); letter-spacing: -0.035em; color: var(--leaf-300); text-wrap: balance; opacity: 0; }
+
+  .bm-ruler { position: absolute; left: 120px; top: 790px; width: 1680px; height: 110px; overflow: visible; }
+  .bm-bar { position: absolute; left: 120px; top: 800px; width: 1680px; height: 64px; overflow: visible; }
+  .bm-ruler text, .bm-bar text { font-family: var(--sans); }
+  .bm-grp { font-weight: 700; font-size: 20px; letter-spacing: .08em; }
+  .bm-in { font-weight: 700; font-size: 21px; letter-spacing: .08em; }
+  .bm-cap { position: absolute; left: 120px; top: 884px; margin: 0; font: 400 24px/1.3 var(--sans); color: var(--fg-muted); opacity: 0; }
+
+  .shape-reel .bm-block { margin-top: 44px; width: 840px; }
+  .shape-reel .bm-slot { height: 220px; }
+  .shape-reel .bm-st { font-size: 54px; }
+  .shape-reel .bm-end { top: 10px; font-size: 70px; }
+  .shape-reel .bm-mk { left: 90px; top: 880px; width: 840px; height: 268px; }
+  .shape-reel .bm-big b { font-size: 132px; }
+  .shape-reel .bm-big i { font-size: 38px; }
+  .shape-reel .bm-phrase { width: 840px; font-size: 84px; }
+  .shape-reel .bm-ruler { left: 90px; top: 1150px; width: 840px; height: 104px; }
+  .shape-reel .bm-bar { left: 90px; top: 1160px; width: 840px; height: 80px; }
+  .shape-reel .bm-cap { left: 90px; top: 1264px; width: 840px; font-size: 26px; }
+
+  .shape-post .bm-block { margin-top: 40px; width: 900px; }
+  .shape-post .bm-slot { height: 180px; margin-top: 18px; }
+  .shape-post .bm-st { font-size: 50px; }
+  .shape-post .bm-end { top: 10px; font-size: 62px; }
+  .shape-post .bm-mk { left: 90px; top: 620px; width: 900px; height: 234px; }
+  .shape-post .bm-big b { font-size: 140px; }
+  .shape-post .bm-big i { font-size: 40px; }
+  .shape-post .bm-phrase { width: 900px; font-size: 80px; }
+  .shape-post .bm-ruler { left: 90px; top: 856px; width: 900px; height: 104px; }
+  .shape-post .bm-bar { left: 90px; top: 866px; width: 900px; height: 80px; }
+  .shape-post .bm-cap { left: 90px; top: 970px; width: 900px; font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="biomarkers" data-start="0" data-width="1920" data-height="1080" data-duration="21">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="bm-eb">Your bloodwork · <span id="bm-group">Lipids</span></p>
+    <h2 class="hf-h bm-h" id="bm-hl"><span class="bm-ask" id="bm-ask">What is</span> <span class="bm-nm" id="bm-nm"><em id="bm-name">ApoB</em>?</span></h2>
+    <div class="bm-block">
+      <div class="bm-count" id="bm-count"></div>
+      <div class="bm-slot" id="bm-slot"></div>
+      <p class="bm-end" id="bm-end"></p>
+    </div>
+  </div>
+
+  <div class="bm-mk" id="bm-mk">
+    <p class="bm-lab" id="bm-labA"></p>
+    <p class="bm-phrase" id="bm-bigA"></p>
+    <p class="bm-lab" id="bm-labB"></p>
+    <p class="bm-big" id="bm-num"></p>
+    <p class="bm-phrase" id="bm-bigB"></p>
+  </div>
+  <svg class="bm-ruler" id="bm-ruler" aria-hidden="true"></svg>
+  <svg class="bm-bar" id="bm-bar" aria-hidden="true"></svg>
+  <p class="bm-cap" id="bm-cap"></p>
+
+  <p class="hf-foot" id="bm-foot"></p>
+  <div class="hf-brand social-only" id="bm-brand"><span class="hf-logo"></span><p class="hf-brand-line" data-var-text="brandLine">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  const V = HF.vars();
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent, text) => {
+    const n = document.createElementNS(NS, tag);
+    for (const a in attrs) n.setAttribute(a, attrs[a]);
+    if (text != null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const fail = (msg) => console.error('biomarkers: ' + msg);   // check's runtime audit fails on console errors
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // House markup in the content: {…} is a number (leaf, never breaks), *…* is the closing line's emphasis.
+  const md = (s) => HF.smart(esc(s)).replace(/\{([^}]*)\}/g, '<span class="hf-num">$1</span>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // "Name · what it is": the part after the first " · " is muted.
+  const lab = (s) => { const t = String(s || ''), k = t.indexOf(' · '); return k < 0 ? md(t) : `${md(t.slice(0, k))}<span> · ${md(t.slice(k + 3))}</span>`; };
+
+  const BEATS = [V.beat1, V.beat2, V.beat3, V.beat4, V.beat5].filter((b) => b && String(b).trim());
+  const DEVICE = V.device, DB = Number(V.deviceBeat) || 0, BAND = DEVICE === 'band';
+  // Timing (keep in step with README): each beat reads at 2.9 s + 0.16 s a word, held 4.0–5.4 s; the beat that brings
+  // in the target gets +0.6 s (+1.0 s when a band draws). Root duration = ceil(END + 4.4), set per row in content/.
+  const words = (s) => String(s).replace(/[{}*]/g, '').trim().split(/\s+/).filter(Boolean).length;
+  const LEN = BEATS.map((b, i) => Math.min(5.4, Math.max(4.0, Math.round((2.9 + 0.16 * words(b)) * 10) / 10)) + (i + 1 === DB ? (BAND ? 1.0 : 0.6) : 0));
+  const T0 = 2.6, AT = LEN.reduce((a, l, k) => (a.push(Math.round((a[k] + l) * 10) / 10), a), [T0]), END = AT[LEN.length];
+  const DUR = Number(document.getElementById('root').getAttribute('data-duration'));
+  if (DUR !== Math.ceil(END + 4.4)) fail(`row duration is ${DUR}; set "duration": ${Math.ceil(END + 4.4)}`);
+  if (BEATS.length < 3 || BEATS.length > 5) fail('a row needs 3 to 5 beats');
+  if (DB === 1 || DB > BEATS.length) fail('deviceBeat must be 0 or 2..beats');
+  BEATS.forEach((b, i) => { if (words(b) > 15) fail(`beat ${i + 1} is over 15 words`); });
+  if (BAND && !(V.bandTo > V.bandFrom)) fail('a band row needs bandFrom < bandTo');
+
+  // The §12 Annual Health Evaluation panel, group by group, in the protocol's order, then §12's "ordered separately
+  // when indicated" (homocysteine; the female hormone panel through the hormone-health program; PSA by shared decision).
+  const PANEL = [
+    { name: 'Lipids', keys: ['lipids', 'apob', 'lpa', 'hscrp'] },
+    { name: 'Metabolic', keys: ['glucose', 'hba1c', 'insulin'] },
+    { name: 'Organ function', keys: ['egfr', 'electrolytes', 'alt', 'alp', 'albumin', 'urinalysis', 'cbc'] },
+    { name: 'Nutrients', keys: ['ferritin', 'b12', 'vitamind', 'camg'] },
+    { name: 'Hormones', keys: ['thyroid', 'testosterone'] },
+    { name: 'When indicated', keys: ['homocysteine', 'femhormones', 'psa'], ind: true },
+  ];
+  const LIT = PANEL.findIndex((c) => c.keys.includes(V.panel));
+  if (LIT < 0) fail(`unknown panel key "${V.panel}"`);
+
+  // text
+  $('bm-group').textContent = HF.smart(V.group);
+  $('bm-ask').textContent = HF.smart(V.ask);
+  $('bm-name').innerHTML = md(V.name);
+  BEATS.forEach((b, i) => {
+    $('bm-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${String(i + 1).padStart(2, '0')}</b> / ${String(BEATS.length).padStart(2, '0')}</p>`);
+    $('bm-slot').insertAdjacentHTML('beforeend', `<p class="bm-st">${md(b)}</p>`);
+  });
+  $('bm-end').innerHTML = md(V.end);
+  $('bm-foot').innerHTML = md(V.foot);
+  $('bm-labA').innerHTML = lab(V.labelA);
+  $('bm-bigA').innerHTML = md(V.bigA);
+  if (DB) {
+    $('bm-labB').innerHTML = lab(V.labelB);
+    if (DEVICE === 'phrase') $('bm-bigB').innerHTML = md(V.bigB);
+    else $('bm-num').innerHTML = `<b>${md(V.bigB)}</b>${V.unit ? `<i>${md(V.unit)}</i>` : ''}`;
+  }
+  if (BAND) $('bm-cap').innerHTML = md(V.cap);
+
+  // Measured layout: rows vary in length, so each line takes the largest size that keeps it in its box.
+  const fitLines = (node, max, min, lines, lh) => {
+    for (let s = max; s >= min; s -= 2) {
+      node.style.fontSize = s + 'px';
+      if (node.getBoundingClientRect().height <= lines * s * lh + 2) return;
+    }
+  };
+  const fitWidth = (node, max, min, width) => {
+    for (let s = max; s >= min; s -= 2) { node.style.fontSize = s + 'px'; if (node.scrollWidth <= width + 1) return; }
+  };
+  const F = HF.px({
+    tv:   { W: 1680, hl: [84, 60], st: [56, 44, 2], end: [76, 56, 2], ph: [96, 60, 1, 150], lab: [34, 26] },
+    reel: { W: 840,  hl: [92, 60], st: [54, 42, 3], end: [70, 52, 3], ph: [84, 54, 2, 176], lab: [34, 26] },
+    post: { W: 900,  hl: [78, 54], st: [50, 40, 3], end: [62, 48, 3], ph: [80, 50, 2, 168], lab: [32, 24] },
+  });
+
+  document.fonts.ready.then(() => {
+    // headline: one line on the TV; on social, "What is" then the name, which shrinks to fit its line
+    if (HF.shape === 'tv') fitWidth($('bm-hl'), F.hl[0], F.hl[1], F.W);
+    else fitWidth($('bm-nm'), F.hl[0], F.hl[1], F.W);
+    document.querySelectorAll('.bm-st').forEach((n) => fitLines(n, F.st[0], F.st[1], F.st[2], 1.18));
+    fitLines($('bm-end'), F.end[0], F.end[1], F.end[2], 1.08);
+    ['bm-bigA', 'bm-bigB'].forEach((id) => {
+      const n = $(id);
+      for (let s = F.ph[0]; s >= F.ph[1]; s -= 2) {
+        n.style.fontSize = s + 'px';
+        const h = n.getBoundingClientRect().height;
+        if (h <= F.ph[2] * s * 1.04 + 2 && h <= F.ph[3]) break;
+      }
+    });
+    ['bm-labA', 'bm-labB'].forEach((id) => fitWidth($(id), F.lab[0], F.lab[1], F.W));
+    // the number and its unit scale together if they would run past the frame
+    const num = $('bm-num'), nw = num.getBoundingClientRect().width;
+    if (nw > F.W) num.querySelectorAll('b, i').forEach((n) => { n.style.fontSize = (parseFloat(getComputedStyle(n).fontSize) * F.W / nw).toFixed(1) + 'px'; });
+
+    // ── the panel ruler ──
+    const ruler = $('bm-ruler'), rb = ruler.getBoundingClientRect(), RW = rb.width, RH = rb.height;
+    ruler.setAttribute('viewBox', `0 0 ${RW} ${RH}`);
+    const G = HF.px({
+      tv:   { base: 54, h: 22, hi: 54, w: 5, wi: 9, ly: RH - 8, all: true },
+      reel: { base: 50, h: 22, hi: 50, w: 5, wi: 9, ly: RH - 8, all: false },
+      post: { base: 50, h: 22, hi: 50, w: 5, wi: 9, ly: RH - 8, all: false },
+    });
+    // a soft glow behind the lit test (static blur; only its opacity moves)
+    const rdefs = el('defs', {}, ruler);
+    const blur = el('filter', { id: 'bm-glow', x: '-200%', y: '-60%', width: '500%', height: '220%' }, rdefs);
+    el('feGaussianBlur', { stdDeviation: 7 }, blur);
+    const glow = el('rect', { x: 0, y: G.base - G.hi, width: G.wi + 8, height: G.hi, rx: 6, fill: '#A9D49C', filter: 'url(#bm-glow)', opacity: 0 }, ruler);
+    const DIM = 'rgba(255,252,247,0.26)', IND = 'rgba(255,252,247,0.36)', MUTED = '#8E9884', LEAF = '#A9D49C', CREAM = '#FFFCF7';
+    const labels = PANEL.map((c, ci) => el('text', { class: 'bm-grp', y: G.ly, 'text-anchor': 'middle', fill: MUTED, opacity: 0 }, (G.all || ci === LIT) ? ruler : null, HF.smart(c.name).toUpperCase()));
+    const lw = labels.map((t, ci) => ((G.all || ci === LIT) ? t.getComputedTextLength() : 0));
+    let P, cw, gap;
+    if (G.all) {
+      P = 44;
+      cw = PANEL.map((c, ci) => Math.max(c.keys.length * P, lw[ci] + 30));
+      gap = (RW - cw.reduce((a, b) => a + b, 0)) / (PANEL.length - 1);
+    } else {
+      P = RW / (23 + 5 * 1.5);
+      cw = PANEL.map((c) => c.keys.length * P);
+      gap = 1.5 * P;
+    }
+    const ticks = [], cx = [];
+    let x0 = 0, litTick = null, litX = 0;
+    PANEL.forEach((c, ci) => {
+      if (c.ind) {
+        const dx = x0 - gap / 2;
+        ticks.push(el('line', { x1: dx, x2: dx, y1: G.base - G.hi, y2: G.base, stroke: 'rgba(255,252,247,0.16)', 'stroke-width': 1.5 }, ruler));
+      }
+      const pad = (cw[ci] - c.keys.length * P) / 2;
+      // each group sits on its own hairline axis
+      ticks.push(el('line', { x1: x0 + pad + 0.5 * P - 10, x2: x0 + pad + (c.keys.length - 0.5) * P + 10, y1: G.base + 7, y2: G.base + 7, stroke: 'rgba(255,252,247,0.14)', 'stroke-width': 1 }, ruler));
+      c.keys.forEach((k, ti) => {
+        const x = x0 + pad + (ti + 0.5) * P - G.w / 2;
+        const t = el('rect', c.ind
+          ? { x, y: G.base - G.h, width: G.w, height: G.h, rx: G.w / 2, fill: 'rgba(255,252,247,0)', stroke: IND, 'stroke-width': 1.5 }
+          : { x, y: G.base - G.h, width: G.w, height: G.h, rx: G.w / 2, fill: DIM }, ruler);
+        ticks.push(t);
+        if (ci === LIT && k === V.panel) { litTick = t; litX = x; }
+      });
+      cx.push(x0 + cw[ci] / 2);
+      x0 += cw[ci] + gap;
+    });
+    labels.forEach((t, ci) => {
+      if (!(G.all || ci === LIT)) return;
+      t.setAttribute('x', Math.min(RW - lw[ci] / 2, Math.max(lw[ci] / 2, cx[ci])).toFixed(1));
+    });
+    const halo = el('rect', { x: litX - 7, y: G.base - G.hi - 7, width: G.wi + 14, height: G.hi + 14, rx: 8, fill: 'none', stroke: LEAF, 'stroke-width': 1, opacity: 0 }, ruler);
+
+    // ── the range bar (band rows only): the lab's range, unnumbered; the working target inside it ──
+    const bar = $('bm-bar'), bb = bar.getBoundingClientRect(), W = bb.width, H = bb.height, R = 8;
+    bar.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    let ref, refEdge, refIn, tgt, tgtIn, tgtFits = false;
+    const A = Math.max(0, Math.min(1, Number(V.bandFrom) || 0)), Z = Math.max(0, Math.min(1, Number(V.bandTo) || 0));
+    if (BAND) {
+      ref = el('rect', { x: 0, y: 0, width: W, height: H, rx: R, fill: 'rgba(255,252,247,0.12)' }, bar);
+      refEdge = el('rect', { x: 0.75, y: 0.75, width: W - 1.5, height: H - 1.5, rx: R, fill: 'none', stroke: 'rgba(255,252,247,0.28)', 'stroke-width': 1.5 }, bar);
+      refIn = el('text', { class: 'bm-in', x: W - 24, y: H / 2 + 8, 'text-anchor': 'end', fill: 'rgba(255,252,247,0.78)', opacity: 0 }, bar, 'LAB REFERENCE RANGE');
+      tgt = el('rect', { x: 0, y: 0, width: W, height: H, rx: R, fill: LEAF, opacity: 0 }, bar);
+      // the in-band name is the row's own wording for the target ("working target", "often considered optimal")
+      const tname = String(V.labelB || '').split(' · ')[1] || 'working target';
+      tgtIn = el('text', { class: 'bm-in', x: A * W + 22, y: H / 2 + 8, fill: '#0B1608', opacity: 0 }, bar, HF.smart(tname).toUpperCase());
+      tgtFits = tgtIn.getComputedTextLength() + 44 <= (Z - A) * W;
+      // the in-band label hides the ref label only if they'd meet
+      if (tgtFits && A * W + 22 + tgtIn.getComputedTextLength() + 40 > W - 24 - refIn.getComputedTextLength()) tgtFits = false;
+    }
+
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.bm-count .hf-count'), sts = document.querySelectorAll('.bm-st');
+    const labA = $('bm-labA'), bigA = $('bm-bigA'), labB = $('bm-labB'), bigB = DEVICE === 'phrase' ? $('bm-bigB') : $('bm-num');
+
+    HF.rise(tl, $('bm-eb'), 0.15);
+    HF.reveal(tl, $('bm-hl'), 0.3);
+    HF.rise(tl, $('bm-foot'), 1.2);
+
+    // the panel draws on, tick by tick, then this test lights
+    const rects = ticks.filter((t) => t.tagName === 'rect');
+    rects.forEach((t, i) => tl.fromTo(t, { attr: { y: G.base, height: 0 } }, { attr: { y: G.base - G.h, height: G.h }, duration: 0.5, ease: 'power3.out' }, 0.9 + i * 0.022));
+    ticks.filter((t) => t.tagName === 'line').forEach((t) => tl.fromTo(t, { opacity: 0 }, { opacity: 1, duration: 0.6 }, 1.3));
+    labels.forEach((t, ci) => { if (G.all || ci === LIT) tl.fromTo(t, { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power2.out' }, 1.5 + ci * 0.05); });
+    const LT = T0 + 0.8;
+    if (litTick) {
+      const on = { x: litX - (G.wi - G.w) / 2, width: G.wi, y: G.base - G.hi, height: G.hi, rx: G.wi / 2, fill: LEAF };
+      if (PANEL[LIT].ind) on.stroke = LEAF;
+      tl.to(litTick, { attr: on, duration: 0.8, ease: 'power3.out' }, LT);
+      glow.setAttribute('x', (litX - (G.wi - G.w) / 2 - 4).toFixed(1));
+      tl.fromTo(glow, { attr: { opacity: 0 } }, { attr: { opacity: 0.32 }, duration: 1.2, ease: 'power2.out' }, LT + 0.2);
+      tl.fromTo(halo, { attr: { opacity: 0.9, 'stroke-width': 8 } }, { attr: { opacity: 0, 'stroke-width': 1 }, duration: 1.6, ease: 'power2.out', immediateRender: false }, LT + 0.1);
+      tl.to(labels[LIT], { attr: { fill: CREAM }, duration: 0.6, ease: 'power2.out' }, LT);
+    }
+
+    // what it is: the protocol's own words, in large type, under the first beats
+    tl.fromTo(labA, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, T0 + 0.5);
+    tl.fromTo(bigA, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, T0 + 0.6);
+
+    BEATS.forEach((_, i) => {
+      const at = AT[i], next = AT[i + 1];
+      tl.set(counts[i], { opacity: 1 }, at);
+      if (i > 0) tl.set(counts[i - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[i], at, next - 0.45);
+    });
+
+    // the target beat: the phrase hands over to the target; on a band row the ruler steps back for the range bar
+    if (DB) {
+      const at = AT[DB - 1];
+      tl.to([labA, bigA], { opacity: 0, y: -14, duration: 0.4, ease: 'power2.in' }, at - 0.45);
+      tl.fromTo(labB, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + 0.5);
+      tl.fromTo(bigB, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, at + 0.6);
+      if (BAND) {
+        tl.to(ruler, { opacity: 0, duration: 0.4, ease: 'power2.in' }, at - 0.45);
+        tl.fromTo([ref, refEdge], { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 1.4, ease: 'power3.inOut' }, at + 0.15);
+        tl.fromTo(refIn, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, at + 1.2);
+        // the working target closes in from the edges of "normal" to its own band, sharpening as it lands
+        tl.fromTo(tgt, { attr: { x: 0, width: W, opacity: 0 } }, { attr: { x: A * W, width: (Z - A) * W, opacity: 1 }, duration: 1.6, ease: 'power3.inOut' }, at + 1.2);
+        HF.rise(tl, $('bm-cap'), at + 2.4);
+      }
+    }
+
+    // close: the closing line takes the beats' place; the lit test (or the target band) answers once more
+    tl.to(counts[BEATS.length - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.fromTo($('bm-end'), { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    if (BAND) { if (tgtFits) tl.fromTo(tgtIn, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out' }, END + 0.9); }
+    else if (litTick) tl.fromTo(halo, { attr: { opacity: 0.7, 'stroke-width': 6 } }, { attr: { opacity: 0, 'stroke-width': 1 }, duration: 1.8, ease: 'power2.out', immediateRender: false }, END + 0.5);
+    if (HF.shape !== 'tv') {
+      tl.to([$('bm-foot'), $('bm-cap')], { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('bm-brand'), END + 0.9);
+      const spans = LEN.map((_, i) => [i === 0 ? 0 : AT[i], AT[i + 1]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["biomarkers"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

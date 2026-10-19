@@ -1,0 +1,256 @@
+﻿<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"kicker","type":"string","label":"Kicker (series + section)","default":"Longevity Protocol · §0.4"},{"id":"mark","type":"string","label":"Section mark in the dial","default":"§0.4"},{"id":"headline","type":"string","label":"Headline (*italic leaf*)","default":"Exercise as *foundational*"},{"id":"b1","type":"string","label":"Beat 1 ({number} in leaf, max 15 words)","default":"Exercise is the most powerful longevity intervention available."},{"id":"f1","type":"string","label":"Beat 1 figure","default":"Exercise"},{"id":"u1","type":"string","label":"Beat 1 figure caption","default":"the most powerful intervention"},{"id":"b2","type":"string","label":"Beat 2","default":"Exercise has clearer data for lifespan and healthspan than any drug."},{"id":"f2","type":"string","label":"Beat 2 figure","default":"Clearer data"},{"id":"u2","type":"string","label":"Beat 2 figure caption","default":"than any drug"},{"id":"b3","type":"string","label":"Beat 3","default":"Regular exercisers live years longer than sedentary people."},{"id":"f3","type":"string","label":"Beat 3 figure","default":"Years"},{"id":"u3","type":"string","label":"Beat 3 figure caption","default":"longer than sedentary people"},{"id":"b4","type":"string","label":"Beat 4","default":"Cardiorespiratory fitness predicts mortality with no observed upper limit of benefit."},{"id":"f4","type":"string","label":"Beat 4 figure","default":"No upper limit"},{"id":"u4","type":"string","label":"Beat 4 figure caption","default":"observed for fitness"},{"id":"b5","type":"string","label":"Beat 5 (leave empty for four beats)","default":"Muscle-strengthening activity independently lowers all-cause mortality."},{"id":"f5","type":"string","label":"Beat 5 figure","default":"Strength"},{"id":"u5","type":"string","label":"Beat 5 figure caption","default":"independently lowers mortality"},{"id":"takeaway","type":"string","label":"Closing takeaway (*italic leaf*)","default":"Everything else supports, or is measured by, the *capacity to move*."},{"id":"foot","type":"string","label":"Footnote (sources + section)","default":"Reimers 2012; Mandsager 2018; Momma 2022; Saeidifard 2019. From the Optimal Longevity Protocol, v1.0, §0.4. Educational, not medical advice."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>The Protocol in 60 seconds</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* "The Protocol in 60 seconds": one protocol section per video. A dial carries the series: one arc per beat, filled
+     like a timer while the beat plays, with the beat's figure (a number in leaf, or a phrase in Castoro) at its centre.
+     The section mark sits in the dial before the first beat and returns with the closing line. Every size below is a
+     ceiling: the script measures each row's text and steps it down until it fits its box. */
+  .p6-dial { position: absolute; left: 1190px; top: 262px; width: 600px; height: 600px; }
+  .p6-ring { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+  .p6-figs { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .p6-f, .p6-mark { position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; opacity: 0; }
+  .p6-mark { font: italic 400 150px/1 var(--display); letter-spacing: -0.03em; color: var(--leaf-300); }
+  .p6-v { margin: 0; font: 500 190px/1 var(--sans); letter-spacing: -0.05em; color: var(--leaf-300); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .p6-v.word { font: italic 400 100px/1.04 var(--display); letter-spacing: -0.035em; color: var(--cream); white-space: normal; text-wrap: balance; }
+  .p6-u { margin: 20px 0 0; font: 400 30px/1.25 var(--sans); letter-spacing: -0.01em; color: var(--fg); text-wrap: balance; }
+
+  .p6-block { position: absolute; left: 120px; top: 432px; width: 900px; }
+  .p6-count { position: relative; height: 26px; }
+  .p6-count .hf-count { position: absolute; left: 0; top: 0; opacity: 0; }
+  .p6-slot { position: relative; margin-top: 24px; height: 420px; }
+  .p6-st { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: 400 58px/1.2 var(--sans); letter-spacing: -0.028em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .p6-end { position: absolute; left: 0; right: 0; top: 0; margin: 0; font: italic 400 72px/1.1 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
+  .p6-end em { color: var(--leaf-300); }
+  .p6-end .hf-num { font-weight: 400; }
+  #p6-hl { max-width: 1040px; }
+  .nw { white-space: nowrap; }
+  .sub { font-size: .6em; letter-spacing: 0; vertical-align: -0.12em; }
+
+  .shape-reel .p6-dial { left: 270px; top: 530px; width: 480px; height: 480px; }
+  .shape-reel .p6-block { left: 90px; top: 1046px; width: 840px; }
+  .shape-reel .p6-slot { margin-top: 20px; }
+  .shape-reel #p6-hl { max-width: 840px; }
+
+  .shape-post .p6-dial { left: 330px; top: 324px; width: 420px; height: 420px; }
+  .shape-post .p6-block { left: 90px; top: 776px; width: 900px; }
+  .shape-post .p6-slot { margin-top: 18px; }
+  .shape-post #p6-hl { max-width: 900px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="protocol-60" data-start="0" data-width="1920" data-height="1080" data-duration="45">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="p6-dial" id="p6-dial">
+    <svg class="p6-ring" id="p6-ring" aria-hidden="true"></svg>
+    <div class="p6-figs" id="p6-figs"><p class="p6-mark" id="p6-mark"></p></div>
+  </div>
+
+  <div class="hf-frame">
+    <p class="hf-eyebrow" id="p6-eb"></p>
+    <h2 class="hf-h" id="p6-hl"></h2>
+  </div>
+  <div class="p6-block" id="p6-block">
+    <div class="p6-count" id="p6-count"></div>
+    <div class="p6-slot" id="p6-slot"></div>
+  </div>
+
+  <p class="hf-foot" id="p6-foot"></p>
+  <div class="hf-brand social-only" id="p6-brand"><span class="hf-logo"></span><p class="hf-brand-line" id="p6-brandline">Free 15-minute intro call · beoptimal.ca</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Content arrives as composition variables (one row of content/protocol-60.json). Markup inside a string:
+  // {3 hours} sets a number in leaf (.hf-num), *word* sets italic leaf (headline, takeaway), VO₂ gets a drawn subscript.
+  // The variables push <meta charset> past the first 1024 bytes, so the file opens with a UTF-8 byte-order mark; if a
+  // server or bundler ever drops it, fail loudly (check reports console errors) rather than render mojibake.
+  if (document.characterSet !== 'UTF-8') console.error(`protocol-60: page decoded as ${document.characterSet}, not UTF-8`);
+  // Seen intermittently in CLI snapshots: variable values arrive as UTF-8 bytes read as Windows-1252 ("Â§1.1" for "§1.1").
+  // Undo exactly that and nothing else: a string is only rewritten if every character maps back to one byte and the
+  // bytes are valid UTF-8, which ordinary text with curly quotes or accents never is.
+  const CP1252 = { '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, '†': 0x86, '‡': 0x87, 'ˆ': 0x88, '‰': 0x89, 'Š': 0x8A, '‹': 0x8B, 'Œ': 0x8C, 'Ž': 0x8E, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97, '˜': 0x98, '™': 0x99, 'š': 0x9A, '›': 0x9B, 'œ': 0x9C, 'ž': 0x9E, 'Ÿ': 0x9F };
+  const unmojibake = (s) => {
+    if (typeof s !== 'string' || !/[Â-ô]/.test(s)) return s;
+    const bytes = [];
+    for (const ch of s) { const c = ch.codePointAt(0); if (c < 0x100) bytes.push(c); else if (CP1252[ch] != null) bytes.push(CP1252[ch]); else return s; }
+    try { const t = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes)); console.warn('protocol-60: repaired a mis-decoded variable'); return t; } catch (e) { return s; }
+  };
+  const V = {};
+  { const raw = HF.vars(); for (const k in raw) V[k] = unmojibake(raw[k]); }
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const mk = (s) => HF.smart(esc(s))
+    .replace(/([A-Za-z0-9’'.₂]+(?:-[A-Za-z0-9’'.₂]+)+)/g, '<span class="nw">$1</span>')  // non-negotiable, 9-1-1: never split at a hyphen
+    .replace(/\{([^}]+)\}/g, '<span class="hf-num">$1</span>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/₂/g, '<span class="sub">2</span>');                          // the fonts have no subscript two
+  const plain = (s) => String(s || '').replace(/[{}*]/g, '').trim();
+  const words = (s) => plain(s).split(/\s+/).filter(Boolean).length;
+
+  const BEATS = [];
+  for (let i = 1; i <= 5; i++) {
+    const t = String(V['b' + i] || '').trim();
+    if (t) BEATS.push({ t, f: String(V['f' + i] || '').trim() || String(BEATS.length + 1).padStart(2, '0'), u: String(V['u' + i] || '').trim() });
+  }
+  const N = BEATS.length;
+
+  // Timing: the row's duration is authoritative (root data-duration, baked by stage.mjs). A 3.4 s opening, a 7 s close,
+  // and the beats share what's left in proportion to their length (the same weights content/protocol-60.json was sized with).
+  const DUR = Number($('root').getAttribute('data-duration')) || 47;
+  const T0 = 3.4, END = DUR - 7;
+  const WT = BEATS.map((b) => 4 + 0.27 * words(b.t));
+  const SUMW = WT.reduce((a, w) => a + w, 0);
+  const AT = WT.reduce((a, w, k) => (a.push(a[k] + (END - T0) * w / SUMW), a), [T0]);
+
+  // A figure is a number (leaf, Public Sans) when it opens with a digit or a sign; otherwise a phrase (Castoro italic).
+  const isNum = (f) => /^[<>±~+−$-]?\s?\d/.test(f);
+  // Whole numbers of 2–3 digits count up as they land; prices, decimals, ranges and years don't.
+  const countable = (f) => { const m = /^(\d{2,3})(%|\+)?$/.exec(f); return m ? { n: Number(m[1]), sfx: m[2] || '' } : null; };
+
+  $('p6-eb').textContent = HF.smart(V.kicker || '');
+  $('p6-hl').innerHTML = mk(V.headline);
+  $('p6-mark').innerHTML = `<span>${esc(HF.smart(V.mark || ''))}</span>`;
+  $('p6-foot').innerHTML = mk(V.foot);
+  // set here rather than by data-var-text, so it gets the same repair as every other variable
+  if (V.brandLine) $('p6-brandline').textContent = HF.smart(V.brandLine);
+  const pad = (k) => String(k).padStart(2, '0');
+  BEATS.forEach((b, k) => {
+    $('p6-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${pad(k + 1)}</b> / ${pad(N)}</p>`);
+    $('p6-slot').insertAdjacentHTML('beforeend', `<p class="p6-st">${mk(b.t)}</p>`);
+    $('p6-figs').insertAdjacentHTML('beforeend', `<div class="p6-f"><p class="p6-v${isNum(b.f) ? '' : ' word'}">${mk(b.f)}</p>${b.u ? `<p class="p6-u">${mk(b.u)}</p>` : ''}</div>`);
+  });
+  $('p6-slot').insertAdjacentHTML('beforeend', `<p class="p6-end" id="p6-end">${mk(V.takeaway)}</p>`);
+
+  // Type ceilings and floors per shape (px), and the dial's geometry as fractions of its box.
+  const G = HF.px({
+    tv:   { hl: [84, 62], st: [58, 44], end: [72, 50], val: 190, word: 100, unit: 30, mark: 150, gap: 34, tick: [10, 18], ring: 40, sw: 6, dot: 9, inner: 0.74 },
+    reel: { hl: [92, 66], st: [54, 42], end: [64, 46], val: 170, word: 88,  unit: 28, mark: 132, gap: 28, tick: [9, 16],  ring: 34, sw: 5, dot: 8, inner: 0.76 },
+    post: { hl: [78, 58], st: [48, 38], end: [56, 42], val: 150, word: 76,  unit: 25, mark: 116, gap: 26, tick: [8, 14],  ring: 30, sw: 5, dot: 7, inner: 0.76 },
+  });
+  const fit = (el, max, min, ok) => { for (let s = max; s >= min; s--) { el.style.fontSize = s + 'px'; if (ok(el, s)) return s; } return min; };
+  const box = (el) => el.getBoundingClientRect();
+
+  document.fonts.ready.then(() => {
+    // --- measured layout -------------------------------------------------------------------------------------------
+    const hl = $('p6-hl');
+    fit(hl, G.hl[0], G.hl[1], (el, s) => box(el).height <= s * 1.02 * 2 + 4);
+
+    const slot = $('p6-slot'), sts = [...document.querySelectorAll('.p6-st')], endEl = $('p6-end');
+    const slotTop = box(slot).top;
+    const footTop = box($('p6-foot')).top;
+    const slotH = Math.floor(footTop - G.gap - slotTop);
+    slot.style.height = slotH + 'px';
+    // one size for every beat in the row, so the type doesn't jump from beat to beat
+    const stSize = Math.min(...sts.map((el) => fit(el, G.st[0], G.st[1], (e) => box(e).height <= slotH)));
+    sts.forEach((el) => { el.style.fontSize = stSize + 'px'; });
+    // the closing line shares the slot with the social sign-off, which rises below it
+    const brandTop = HF.shape === 'tv' ? Infinity : box($('p6-brand')).top;
+    const endH = Math.floor(Math.min(slotH, brandTop - G.gap * 2 - slotTop));
+    fit(endEl, G.end[0], G.end[1], (e) => box(e).height <= endH);
+
+    // the dial
+    const dial = $('p6-dial'), S = box(dial).width, C = S / 2, R = C - 2, r = C - G.ring;
+    const innerW = 2 * r * G.inner, innerH = 2 * r * 0.66;
+    document.querySelectorAll('.p6-f').forEach((f) => {
+      const v = f.querySelector('.p6-v'), u = f.querySelector('.p6-u');
+      if (u) { u.style.maxWidth = Math.round(innerW * 0.9) + 'px'; u.style.fontSize = G.unit + 'px'; if (box(u).height > G.unit * 1.25 * 2 + 2) u.style.fontSize = (G.unit - 3) + 'px'; }
+      const uh = u ? box(u).height + 20 : 0;
+      if (v.classList.contains('word')) {
+        v.style.maxWidth = Math.round(innerW) + 'px';
+        fit(v, G.word, 36, (e, s) => box(e).height <= Math.min(s * 1.04 * 2 + 2, innerH - uh) && e.scrollWidth <= innerW + 1);
+      } else {
+        fit(v, G.val, 40, (e) => box(e).width <= innerW && box(e).height <= innerH - uh);
+      }
+    });
+    const mark = $('p6-mark');
+    fit(mark, G.mark, 48, (e) => box(e.firstChild).width <= innerW);
+
+    // --- the ring ----------------------------------------------------------------------------------------------------
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = $('p6-ring');
+    svg.setAttribute('viewBox', `0 0 ${S} ${S}`);
+    const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const a in attrs) n.setAttribute(a, attrs[a]); (parent || svg).appendChild(n); return n; };
+    const rad = (a) => a * Math.PI / 180;
+    const pt = (a, rr) => [C + rr * Math.cos(rad(a)), C + rr * Math.sin(rad(a))];
+    const f2 = (v) => v.toFixed(2);
+    const arc = (a0, a1) => { const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r); return `M ${f2(x0)} ${f2(y0)} A ${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${f2(x1)} ${f2(y1)}`; };
+    // sixty ticks on the bezel: the "60 seconds" of the series, every fifth one longer
+    const tickG = el('g', {});
+    const ticks = [];
+    for (let i = 0; i < 60; i++) {
+      const a = -90 + i * 6, major = i % 5 === 0, [x0, y0] = pt(a, R - (major ? G.tick[1] : G.tick[0])), [x1, y1] = pt(a, R);
+      ticks.push(el('line', { x1: f2(x0), y1: f2(y0), x2: f2(x1), y2: f2(y1), stroke: major ? 'rgba(255,252,247,.3)' : 'rgba(255,252,247,.13)', 'stroke-width': major ? 2 : 1.5, 'stroke-linecap': 'round', opacity: 0 }, tickG));
+    }
+    // one arc per beat: a faint track, and the leaf fill that runs while the beat plays
+    const GAP = N > 1 ? 3.2 : 0;
+    const SEG = BEATS.map((_, k) => [-90 + k * 360 / N + GAP / 2, -90 + (k + 1) * 360 / N - GAP / 2]);
+    const tracks = SEG.map(([a0, a1]) => el('path', { d: arc(a0, a1), fill: 'none', stroke: 'rgba(255,252,247,.14)', 'stroke-width': G.sw, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }));
+    const fills = SEG.map(([a0, a1]) => el('path', { d: arc(a0, a1), fill: 'none', stroke: '#A9D49C', 'stroke-width': G.sw, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }));
+    const glint = el('path', { d: `M ${C} ${f2(C - r)} A ${r} ${r} 0 1 1 ${C} ${f2(C + r)} A ${r} ${r} 0 1 1 ${C} ${f2(C - r)}`, fill: 'none', stroke: '#FFFCF7', 'stroke-width': G.sw + 1, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '0.06 1.2', 'stroke-dashoffset': 0.06, opacity: 0 });
+    const tip = el('g', { opacity: 0 });
+    el('circle', { cx: C, cy: f2(C - r), r: G.dot, fill: '#A9D49C', stroke: '#0B1608', 'stroke-width': 3 }, tip);
+
+    // --- the timeline --------------------------------------------------------------------------------------------------
+    const tl = gsap.timeline({ paused: true });
+    const counts = document.querySelectorAll('.p6-count .hf-count'), figs = document.querySelectorAll('.p6-f');
+    const ORG = `${C} ${C}`;
+
+    // open: kicker, headline wipe, then the dial assembles clockwise around the section mark
+    HF.rise(tl, $('p6-eb'), 0.15);
+    HF.reveal(tl, hl, 0.3);
+    tl.fromTo(ticks, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out', stagger: 0.012 }, 0.45);
+    tl.fromTo(tracks, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.inOut', stagger: 0.12 }, 0.6);
+    HF.rise(tl, mark, 0.95, 1.0);
+    HF.rise(tl, $('p6-foot'), 1.2);
+    tl.to(mark, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
+    tl.fromTo(tip, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' }, T0 + 0.3);
+
+    BEATS.forEach((b, k) => {
+      const at = AT[k], next = AT[k + 1];
+      tl.set(counts[k], { opacity: 1 }, at);
+      if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
+      HF.beat(tl, sts[k], at, next - 0.45);
+      // the figure lands a beat ahead of the sentence and leaves with it
+      tl.fromTo(figs[k], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, at + 0.25);
+      tl.to(figs[k], { opacity: 0, y: -14, duration: 0.4, ease: 'power2.in' }, next - 0.45);
+      const c = countable(b.f);
+      if (c) {
+        const v = figs[k].querySelector('.p6-v'), o = { v: 0 };
+        tl.fromTo(o, { v: 0 }, { v: c.n, duration: 1.4, ease: 'power2.out', onUpdate: () => { v.textContent = Math.round(o.v) + c.sfx; } }, at + 0.25);
+      }
+      // the beat's arc fills like a timer, a dot riding its head
+      const [a0, a1] = SEG[k], run = Math.max(0.5, next - at - 0.6);
+      tl.fromTo(fills[k], { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: run, ease: 'none' }, at + 0.3);
+      tl.fromTo(tip, { rotation: a0 + 90, svgOrigin: ORG }, { rotation: a1 + 90, svgOrigin: ORG, duration: run, ease: 'none' }, at + 0.3);
+    });
+
+    // close: the counter gives way to the takeaway, the section mark returns, and one glint runs the full ring
+    tl.to(counts[N - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
+    tl.to(tip, { opacity: 0, duration: 0.4, ease: 'power2.in' }, END - 0.2);
+    tl.fromTo(endEl, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
+    tl.fromTo(mark, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
+    tl.fromTo(glint, { opacity: 0 }, { opacity: 0.9, duration: 0.3 }, END + 0.6);
+    tl.fromTo(glint, { attr: { 'stroke-dashoffset': 0.06 } }, { attr: { 'stroke-dashoffset': -1.0 }, duration: 2.2, ease: 'power1.inOut' }, END + 0.6);
+    tl.to(glint, { opacity: 0, duration: 0.3 }, END + 2.6);
+    if (HF.shape !== 'tv') {
+      tl.to($('p6-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('p6-brand'), END + 1.4);
+      const spans = BEATS.map((_, k) => [k === 0 ? 0 : AT[k], AT[k + 1]]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["protocol-60"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>

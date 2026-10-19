@@ -1,0 +1,290 @@
+﻿<!doctype html>
+<html lang="en" data-composition-variables='[{"id":"eyebrow","type":"string","label":"Eyebrow: appointment · context","default":"VO2 max test · Before your visit"},{"id":"headline","type":"string","label":"Headline (*word* = leaf italic)","default":"Before your *test*"},{"id":"fact1Label","type":"string","label":"Fact 1 label","default":"Time"},{"id":"fact1","type":"string","label":"Fact 1 ([n] = number)","default":"About [60 minutes], including your results"},{"id":"fact2Label","type":"string","label":"Fact 2 label","default":"Wear"},{"id":"fact2","type":"string","label":"Fact 2","default":"Comfortable exercise clothing and running shoes"},{"id":"fact3Label","type":"string","label":"Fact 3 label (optional)","default":""},{"id":"fact3","type":"string","label":"Fact 3 (optional)","default":""},{"id":"step1","type":"string","label":"Step 1 (15 words max)","default":"The day before: eat normally, stay hydrated and aim for [7–8 hours] of sleep."},{"id":"step2","type":"string","label":"Step 2","default":"[12 hours] before: no hard training, no heavy lifting and no alcohol."},{"id":"step3","type":"string","label":"Step 3","default":"[4 hours] before: no caffeine and no large meals. A light snack is fine."},{"id":"step4","type":"string","label":"Step 4 (optional)","default":"Keep drinking water, but don’t drink a lot right before the test."},{"id":"note","type":"string","label":"Tell-us-first note (optional)","default":"Possibly pregnant, recently ill, injured, on new medication or unwell? Tell staff before testing."},{"id":"foot","type":"string","label":"Source footnote","default":"Prep from beoptimal.ca/services/vo2-max-testing, “Before your test.” A nurse practitioner screens you beforehand and stays with you throughout."},{"id":"ctaSub","type":"string","label":"TV: line under “Talk to the receptionist”","default":"to book a VO2 max test"},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Questions before your visit? (437) 370-0291"}]'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Before your visit</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<script src="../vendor/gsap.min.js"></script>
+<script src="../kit/lockup.js"></script>
+<style>
+  /* Visit prep: one appointment type per row. A short spec table (time, what to wear or bring), then the prep as a
+     checklist on a hairline rail: a leaf dot walks the rail, each step rises as the dot arrives, and its ring fills
+     with a tick once the line has had time to be read. Then one tell-us-first note, and the sign-off.
+     TV: the head, facts and note in a left column, the checklist on the right. Reel and post: one column.
+     Type sizes are CSS variables the script fits to each row (measured once fonts load), so long rows never spill. */
+  :root { --vp-hl: 76px; --vp-step: 44px; --vp-gap: 32px; --vp-fact: 30px; --vp-note: 32px; --vp-indent: 74px; }
+
+  .vp-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; }
+  #vp-hl { font-size: var(--vp-hl); }
+  .vp-sub { font-size: .62em; vertical-align: -0.16em; line-height: 0; }
+  .vp-nw { white-space: nowrap; }
+
+  /* the spec table: label and value, hairlines between */
+  .vp-facts { margin: 44px 0 0; }
+  .vp-fact { display: grid; grid-template-columns: 140px minmax(0, 1fr); column-gap: 24px; align-items: baseline; padding: 16px 0 17px; border-top: 1.5px solid rgba(255, 252, 247, .13); }
+  .vp-fact:last-child { border-bottom: 1.5px solid rgba(255, 252, 247, .13); }
+  .vp-fact dt { margin: 0; font: 700 20px/1.2 var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--fg-muted); }
+  .vp-fact dd { margin: 0; font: 400 var(--vp-fact)/1.3 var(--sans); letter-spacing: -0.015em; color: var(--fg); text-wrap: pretty; }
+
+  /* the checklist: text in HTML so it wraps; the rail is an SVG laid over the indent */
+  .vp-list { position: relative; margin-top: 52px; }
+  .vp-rail { position: absolute; left: 0; top: 0; overflow: visible; }
+  .vp-steps { list-style: none; margin: 0; padding: 0 0 0 var(--vp-indent); }
+  .vp-step { margin: 0; font: 400 var(--vp-step)/1.22 var(--sans); letter-spacing: -0.025em; color: var(--cream); text-wrap: pretty; opacity: 0; }
+  .vp-step + .vp-step { margin-top: var(--vp-gap); }
+  .vp-base { stroke: rgba(255, 252, 247, .16); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+  .vp-prog { stroke: var(--leaf-300); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+  .vp-ring { fill: none; stroke: rgba(255, 252, 247, .42); stroke-width: 2.5; }
+  .vp-fill { fill: var(--leaf-300); }
+  .vp-tick { fill: none; stroke: var(--night-950); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+  .vp-dot { fill: var(--leaf-300); }
+  .vp-glow { fill: rgba(169, 212, 156, .16); }
+  .vp-halo { fill: none; stroke: var(--leaf-300); }
+
+  /* one note after the list: a short leaf rule, then the line */
+  .vp-note { margin-top: 44px; }
+  .vp-note-rule { display: block; width: 56px; height: 2px; border-radius: 1px; background: var(--leaf-300); }
+  .vp-note-t { margin: 16px 0 0; font: 400 var(--vp-note)/1.3 var(--sans); letter-spacing: -0.015em; color: var(--leaf-200); text-wrap: pretty; opacity: 0; }
+
+  .shape-tv .vp-grid { grid-template-columns: 640px minmax(0, 1fr); column-gap: 100px; grid-template-rows: auto auto 1fr; }
+  .shape-tv .vp-head { grid-column: 1; grid-row: 1; }
+  .shape-tv .vp-facts { grid-column: 1; grid-row: 2; margin-top: 48px; }
+  .shape-tv .vp-fact { display: block; padding: 14px 0 15px; }
+  .shape-tv .vp-fact dd { margin-top: 6px; }
+  .shape-tv .vp-note { grid-column: 1; grid-row: 3; margin-top: 40px; align-self: start; }
+  .shape-tv .vp-list { grid-column: 2; grid-row: 1 / span 3; margin-top: 36px; align-self: start; }
+  .shape-tv .hf-foot { width: 1000px; }
+
+  .shape-reel .vp-facts { margin-top: 40px; }
+  .shape-reel .vp-fact { grid-template-columns: 150px minmax(0, 1fr); }
+  .shape-reel .vp-fact dt { font-size: 22px; }
+  .shape-reel .vp-list { margin-top: 48px; }
+  .shape-reel .vp-note { margin-top: 42px; }
+
+  .shape-post .vp-facts { margin-top: 28px; }
+  .shape-post .vp-fact { grid-template-columns: 120px minmax(0, 1fr); padding: 12px 0 13px; }
+  .shape-post .vp-fact dt { font-size: 19px; }
+  .shape-post .vp-list { margin-top: 36px; }
+  .shape-post .vp-note { margin-top: 30px; }
+  .shape-post .vp-note-t { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="root" class="hf-root shape-tv" data-composition-id="visit-prep" data-start="0" data-width="1920" data-height="1080" data-duration="24">
+  <div class="hf-grain"></div>
+  <div class="hf-strip social-only"></div>
+
+  <div class="hf-frame">
+    <div class="vp-grid" id="vp-grid">
+      <div class="vp-head">
+        <p class="hf-eyebrow" id="vp-eb"></p>
+        <h2 class="hf-h" id="vp-hl"></h2>
+      </div>
+      <dl class="vp-facts" id="vp-facts"></dl>
+      <div class="vp-list" id="vp-list">
+        <svg class="vp-rail" id="vp-rail" aria-hidden="true"></svg>
+        <ol class="vp-steps" id="vp-steps"></ol>
+      </div>
+      <div class="vp-note" id="vp-note"><span class="vp-note-rule" id="vp-note-rule"></span><p class="vp-note-t" id="vp-note-t"></p></div>
+    </div>
+  </div>
+
+  <p class="hf-foot" id="vp-foot"></p>
+  <div class="hf-cta tv-only" id="vp-cta">
+    <span class="hf-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h7"/></svg>Talk to the receptionist</span>
+    <span class="hf-cta-sub" id="vp-cta-sub"></span>
+  </div>
+  <div class="hf-brand social-only" id="vp-brand"><span class="hf-logo"></span><p class="hf-brand-line" id="vp-brand-line" data-var-text="brandLine">Questions before your visit? (437) 370-0291</p></div>
+</div>
+<script src="../kit/kit.js"></script>
+<script>
+  // Every line comes from the row (content/visit-prep.json); each row names its sources and quotes them.
+  // Markup in the row text: [24 hours] = a number in leaf, *word* = leaf italic, VO2 = VO with a set subscript 2
+  // (the local fonts have no ₂ glyph).
+  const V = HF.vars();
+  const $ = (id) => document.getElementById(id);
+  const root = $('root');
+  const TV = HF.shape === 'tv';
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // hyphenated compounds (body-composition, 30-second) never break at the hyphen
+  const mark = (t) => HF.smart(esc(t))
+    .replace(/[A-Za-z0-9’]+(?:-[A-Za-z0-9’]+)+/g, '<span class="vp-nw">$&</span>')
+    .replace(/\[([^\]]+)\]/g, '<span class="hf-num">$1</span>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/VO2/g, 'VO<span class="vp-sub">2</span>');
+  const plain = (t) => String(t || '').replace(/[\[\]*]/g, '').trim();
+  const has = (k) => plain(V[k]).length > 0;
+
+  $('vp-eb').innerHTML = mark(V.eyebrow || '');
+  $('vp-hl').innerHTML = mark(V.headline || '');
+  $('vp-foot').innerHTML = mark(V.foot || '');
+  $('vp-cta-sub').innerHTML = mark(V.ctaSub || '');
+  $('vp-brand-line').textContent = HF.smart(V.brandLine || '');
+
+  const FACTS = [1, 2, 3].filter((i) => has('fact' + i)).map((i) => [V['fact' + i + 'Label'] || '', V['fact' + i]]);
+  $('vp-facts').innerHTML = FACTS.map(([l, v]) => `<div class="vp-fact"><dt>${mark(l)}</dt><dd>${mark(v)}</dd></div>`).join('');
+  if (!FACTS.length) $('vp-facts').style.display = 'none';
+
+  const STEPS = [1, 2, 3, 4].filter((i) => has('step' + i)).map((i) => V['step' + i]);
+  $('vp-steps').innerHTML = STEPS.map((s) => `<li class="vp-step">${mark(s)}</li>`).join('');
+  const HAS_NOTE = has('note');
+  if (HAS_NOTE) $('vp-note-t').innerHTML = mark(V.note);
+  else $('vp-note').style.display = 'none';
+
+  // Per-shape type: start sizes, the floor each may shrink to, and the line the content must stay above
+  // (reel: the sign-off's top; post: the sign-off's top; TV: the CTA's top on the right, the footnote on the left).
+  const S = HF.px({
+    tv:   { hl: [76, 60], step: [44, 36], fact: [30, 25], note: [32, 26], indent: 74, r: 15, dot: 7, glow: 22, listMax: 818, leftMax: 918 },
+    reel: { hl: [92, 72], step: [46, 36], fact: [32, 27], note: [34, 28], indent: 70, r: 15, dot: 7, glow: 22, listMax: 1298 },
+    post: { hl: [74, 60], step: [40, 32], fact: [28, 24], note: [30, 25], indent: 60, r: 13, dot: 6, glow: 19, listMax: 1026 },
+  });
+  const cur = { hl: S.hl[0], step: S.step[0], fact: S.fact[0], note: S.note[0] };
+  const apply = () => {
+    const st = root.style;
+    st.setProperty('--vp-hl', cur.hl + 'px');
+    st.setProperty('--vp-step', cur.step + 'px');
+    st.setProperty('--vp-gap', Math.round(cur.step * 0.74) + 'px');
+    st.setProperty('--vp-fact', cur.fact + 'px');
+    st.setProperty('--vp-note', cur.note + 'px');
+    st.setProperty('--vp-indent', S.indent + 'px');
+  };
+
+  // Root-space bottoms (in composition px, whatever scale the player shows it at).
+  const bottom = (el) => {
+    const r = root.getBoundingClientRect(), k = r.height / root.offsetHeight;
+    return (el.getBoundingClientRect().bottom - r.top) / k;
+  };
+  const leftBottom = () => Math.max(bottom($('vp-facts')), HAS_NOTE ? bottom($('vp-note')) : 0, bottom($('vp-hl')));
+  const listBottom = () => (TV ? bottom($('vp-list')) : Math.max(bottom($('vp-list')), HAS_NOTE ? bottom($('vp-note')) : 0));
+  const lines = (el, lh) => Math.round(el.getBoundingClientRect().height / (root.getBoundingClientRect().height / root.offsetHeight) / lh);
+
+  function fit() {
+    apply();
+    // social: a headline runs to two lines at most
+    if (!TV) for (let g = 0; g < 40 && cur.hl > S.hl[1] && lines($('vp-hl'), cur.hl * 1.02) > 2; g++) { cur.hl -= 2; apply(); }
+    for (let g = 0; g < 80 && listBottom() > S.listMax; g++) {
+      if (cur.step > S.step[1]) cur.step -= 1;
+      else if (!TV && cur.hl > S.hl[1]) cur.hl -= 2;
+      else if (!TV && cur.fact > S.fact[1]) { cur.fact -= 1; cur.note = Math.max(S.note[1], cur.note - 1); }
+      else break;
+      apply();
+    }
+    if (TV) for (let g = 0; g < 80 && leftBottom() > S.leftMax; g++) {
+      if (cur.hl > S.hl[1]) cur.hl -= 2;
+      else if (cur.fact > S.fact[1] || cur.note > S.note[1]) { cur.fact = Math.max(S.fact[1], cur.fact - 1); cur.note = Math.max(S.note[1], cur.note - 1); }
+      else break;
+      apply();
+    }
+  }
+
+  document.fonts.ready.then(() => {
+    fit();
+
+    // ---- the rail, drawn to the fitted text ----
+    const NS = 'http://www.w3.org/2000/svg';
+    const el = (tag, attrs, parent) => {
+      const n = document.createElementNS(NS, tag);
+      for (const a in attrs) n.setAttribute(a, attrs[a]);
+      parent.appendChild(n);
+      return n;
+    };
+    const svg = $('vp-rail'), list = $('vp-list');
+    const items = Array.from(document.querySelectorAll('.vp-step'));
+    const H = list.offsetHeight, W = S.indent;
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    // each ring sits on the cap-height centre of its step's first line
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `400 ${cur.step}px "Public Sans"`;
+    const m = ctx.measureText('H');
+    const lh = cur.step * 1.22, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, cap = m.actualBoundingBoxAscent;
+    const capMid = (lh - (fa + fd)) / 2 + fa - cap / 2;
+    const R = S.r, CX = R + 2;
+    const Y = items.map((li) => li.offsetTop + capMid);
+    const GAP = R + 9;
+
+    const segs = Y.slice(1).map((y, i) => [Y[i] + GAP, y - GAP]);
+    const base = segs.map(([a, b]) => el('path', { class: 'vp-base', d: `M${CX} ${a.toFixed(1)}V${b.toFixed(1)}` }, svg));
+    const prog = segs.map(([a, b]) => el('path', { class: 'vp-prog', d: `M${CX} ${a.toFixed(1)}V${b.toFixed(1)}`, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, svg));
+    const glow = el('circle', { class: 'vp-glow', cx: CX, cy: Y[0], r: S.glow, opacity: 0 }, svg);
+    const dot = el('circle', { class: 'vp-dot', cx: CX, cy: Y[0], r: S.dot, opacity: 0 }, svg);
+    const rings = Y.map((y) => el('circle', { class: 'vp-ring', cx: CX, cy: y, r: R }, svg));
+    const fills = Y.map((y) => el('circle', { class: 'vp-fill', cx: CX, cy: y, r: R + 1.25, opacity: 0 }, svg));
+    const k = R / 15;
+    const ticks = Y.map((y) => el('path', { class: 'vp-tick', d: `M${(CX - 6.4 * k).toFixed(2)} ${(y + 0.2 * k).toFixed(2)}L${(CX - 2 * k).toFixed(2)} ${(y + 4.8 * k).toFixed(2)}L${(CX + 6.6 * k).toFixed(2)} ${(y - 4.6 * k).toFixed(2)}`, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, svg));
+    const halos = Y.map((y) => el('circle', { class: 'vp-halo', cx: CX, cy: y, r: R, opacity: 0 }, svg));
+
+    // ---- the schedule, from the row's length and its words ----
+    const DUR = Number(root.getAttribute('data-duration')) || 24;
+    const T0 = 2.4, NOTE = HAS_NOTE ? 3.4 : 0, TAIL = 3.6;
+    const words = STEPS.map((s) => plain(s).split(/\s+/).filter(Boolean).length);
+    const wt = words.map((n) => 1.4 + 0.2 * n), wsum = wt.reduce((a, b) => a + b, 0);
+    const avail = Math.max(3.2 * STEPS.length, DUR - T0 - NOTE - TAIL);
+    const LEN = wt.map((x) => avail * x / wsum);
+    const AT = LEN.reduce((a, l, i) => (a.push(a[i] + l), a), [T0]);
+    const NOTE_AT = AT[STEPS.length], END = NOTE_AT + NOTE;
+
+    const tl = gsap.timeline({ paused: true });
+    const LEAF = '#A9D49C', CREAM = '#FFFCF7', FG = '#C9CDBF';
+
+    HF.rise(tl, $('vp-eb'), 0.15);
+    HF.reveal(tl, $('vp-hl'), 0.3);
+    document.querySelectorAll('.vp-fact').forEach((f, i) => HF.rise(tl, f, 0.75 + i * 0.12, 0.8));
+    HF.rise(tl, $('vp-foot'), 1.3);
+    // the rail is laid out first, so the number of steps reads before the walk starts
+    tl.fromTo(base, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 0.9);
+    tl.fromTo(rings, { opacity: 0, scale: 0.4, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', stagger: 0.09 }, 1.0);
+    tl.fromTo([glow, dot], { opacity: 0, scale: 0.3, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out' }, T0 - 0.5);
+
+    // dot travel: centre to centre, power2.inOut; the leaf segment between the two rings fills exactly under the dot
+    const inOut = gsap.parseEase('power2.inOut');
+    const travel = (from, to, at, dur) => {
+      const a = Y[from], b = Y[to], L = b - a, g = GAP;
+      tl.to([dot, glow], { attr: { cy: b }, duration: dur, ease: 'power2.inOut' }, at);
+      const segEase = (s) => Math.min(1, Math.max(0, (inOut(s) * L - g) / (L - 2 * g)));
+      tl.to(prog[from], { attr: { 'stroke-dashoffset': 0 }, duration: dur, ease: segEase }, at);
+    };
+
+    STEPS.forEach((_, i) => {
+      const at = AT[i], len = LEN[i];
+      const arrive = i === 0 ? at + 0.15 : at + 0.95;
+      const tick = Math.max(arrive + 1.0, at + len - 1.0);
+      if (i > 0) {
+        tl.to(items[i - 1], { color: FG, duration: 0.5, ease: 'power2.inOut' }, at);
+        tl.to(glow, { opacity: 1, duration: 0.3, ease: 'power2.out' }, at);
+        travel(i - 1, i, at, 0.95);
+      }
+      tl.fromTo(items[i], { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, at + (i === 0 ? 0.1 : 0.3));
+      tl.to(rings[i], { stroke: LEAF, duration: 0.4, ease: 'power2.out' }, arrive);
+      // read, then ticked: the ring fills, the tick draws, a halo marks it, the glow steps back
+      tl.to(fills[i], { opacity: 1, duration: 0.35, ease: 'power2.out' }, tick);
+      tl.to(ticks[i], { attr: { 'stroke-dashoffset': 0 }, duration: 0.45, ease: 'power2.out' }, tick + 0.12);
+      tl.fromTo(halos[i], { attr: { r: R + 1, 'stroke-width': 4 }, opacity: 0.85 }, { attr: { r: R + 24, 'stroke-width': 1 }, opacity: 0, duration: 1.2, ease: 'power2.out', immediateRender: false }, tick);
+      tl.to(glow, { opacity: 0, duration: 0.4, ease: 'power2.out' }, tick);
+    });
+
+    if (HAS_NOTE) {
+      tl.to(items[items.length - 1], { color: FG, duration: 0.5, ease: 'power2.inOut' }, NOTE_AT);
+      tl.fromTo($('vp-note-rule'), { scaleX: 0, transformOrigin: '0% 50%' }, { scaleX: 1, duration: 0.7, ease: HF.EASE }, NOTE_AT + 0.1);
+      tl.fromTo($('vp-note-t'), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: HF.EASE }, NOTE_AT + 0.3);
+    }
+
+    // close: the whole list comes back to full strength and every ring answers once
+    tl.to(items, { color: CREAM, duration: 0.6, ease: 'power2.inOut' }, END);
+    tl.fromTo(halos, { attr: { r: R + 1, 'stroke-width': 3 }, opacity: 0.7 }, { attr: { r: R + 20, 'stroke-width': 1 }, opacity: 0, duration: 1.3, ease: 'power2.out', immediateRender: false, stagger: 0.09 }, END + 0.1);
+    if (TV) HF.rise(tl, $('vp-cta'), END + 0.5);
+    else {
+      tl.to($('vp-foot'), { opacity: 0, duration: 0.4 }, END);
+      HF.rise(tl, $('vp-brand'), END + 0.5);
+      const spans = STEPS.map((_, i) => [i === 0 ? 0 : AT[i], AT[i + 1]]);
+      if (HAS_NOTE) spans.push([NOTE_AT, END]);
+      spans.push([END, DUR]);
+      HF.strip(tl, spans);
+    }
+    window.__timelines = window.__timelines || {};
+    window.__timelines["visit-prep"] = tl;
+    if (window.__hfForceTimelineRebind) window.__hfForceTimelineRebind();
+  });
+</script>
+</body>
+</html>
