@@ -1,8 +1,8 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "c82b093",
+  "commit": "c04551d",
   "dirty": false,
-  "syncedAt": "2026-10-21T04:59:08.991Z",
+  "syncedAt": "2026-10-21T19:22:47.840Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
   "pinned": {
@@ -58,7 +58,10 @@
       "folder": "a2-hypothalamus",
       "element": "optimal-fig-hypothalamus",
       "script": "figures/a2-hypothalamus/optimal-fig-hypothalamus.js",
-      "bytes": 244441
+      "bytes": 256119,
+      "extra": [
+        "hypothalamus-3d.js"
+      ]
     },
     {
       "folder": "a3-finger-skin",
