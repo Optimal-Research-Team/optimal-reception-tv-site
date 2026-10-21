@@ -1,8 +1,8 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "6474eac",
+  "commit": "82ed129",
   "dirty": false,
-  "syncedAt": "2026-10-21T03:55:06.660Z",
+  "syncedAt": "2026-10-21T04:06:15.288Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
   "pinned": {
@@ -16,92 +16,92 @@
       "folder": "01-menopause-thermostat",
       "element": "optimal-fig-menopause-thermostat",
       "script": "figures/01-menopause-thermostat/optimal-fig-menopause-thermostat.js",
-      "bytes": 424553
+      "bytes": 424610
     },
     {
       "folder": "02-inbody-580",
       "element": "optimal-fig-inbody-580",
       "script": "figures/02-inbody-580/optimal-fig-inbody-580.js",
-      "bytes": 337449
+      "bytes": 337508
     },
     {
       "folder": "03-iv-iron",
       "element": "optimal-fig-iv-iron",
       "script": "figures/03-iv-iron/optimal-fig-iv-iron.js",
-      "bytes": 289627
+      "bytes": 289683
     },
     {
       "folder": "04-creator-600",
       "element": "optimal-fig-creator-600",
       "script": "figures/04-creator-600/optimal-fig-creator-600.js",
-      "bytes": 216491
+      "bytes": 216550
     },
     {
       "folder": "05-vo2max",
       "element": "optimal-fig-vo2max",
       "script": "figures/05-vo2max/optimal-fig-vo2max.js",
-      "bytes": 390987
+      "bytes": 391046
     },
     {
       "folder": "06-vo2max-treadmill",
       "element": "optimal-fig-vo2max-treadmill",
       "script": "figures/06-vo2max-treadmill/optimal-fig-vo2max-treadmill.js",
-      "bytes": 361784
+      "bytes": 361843
     },
     {
       "folder": "a1-gut-cell",
       "element": "optimal-fig-gut-cell",
       "script": "figures/a1-gut-cell/optimal-fig-gut-cell.js",
-      "bytes": 167134
+      "bytes": 167193
     },
     {
       "folder": "a2-hypothalamus",
       "element": "optimal-fig-hypothalamus",
       "script": "figures/a2-hypothalamus/optimal-fig-hypothalamus.js",
-      "bytes": 244382
+      "bytes": 244441
     },
     {
       "folder": "a3-finger-skin",
       "element": "optimal-fig-finger-skin",
       "script": "figures/a3-finger-skin/optimal-fig-finger-skin.js",
-      "bytes": 211181
+      "bytes": 211240
     },
     {
       "folder": "a4-heart",
       "element": "optimal-fig-heart",
       "script": "figures/a4-heart/optimal-fig-heart.js",
-      "bytes": 121941,
+      "bytes": 122063,
       "pinned": "3077669"
     },
     {
       "folder": "a5-alveolus",
       "element": "optimal-fig-alveolus",
       "script": "figures/a5-alveolus/optimal-fig-alveolus.js",
-      "bytes": 213045
+      "bytes": 213104
     },
     {
       "folder": "a6-red-cell-cycle",
       "element": "optimal-fig-red-cell-cycle",
       "script": "figures/a6-red-cell-cycle/optimal-fig-red-cell-cycle.js",
-      "bytes": 130375
+      "bytes": 130434
     },
     {
       "folder": "a7-knee",
       "element": "optimal-fig-knee",
       "script": "figures/a7-knee/optimal-fig-knee.js",
-      "bytes": 115409
+      "bytes": 115468
     },
     {
       "folder": "a8-muscle-water",
       "element": "optimal-fig-muscle-water",
       "script": "figures/a8-muscle-water/optimal-fig-muscle-water.js",
-      "bytes": 112778
+      "bytes": 112837
     },
     {
       "folder": "a9-bone-remodelling",
       "element": "optimal-fig-bone-remodelling",
       "script": "figures/a9-bone-remodelling/optimal-fig-bone-remodelling.js",
-      "bytes": 215486
+      "bytes": 215545
     }
   ]
 }
