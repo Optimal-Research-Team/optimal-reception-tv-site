@@ -1,8 +1,8 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "3d88cd8",
+  "commit": "c82b093",
   "dirty": false,
-  "syncedAt": "2026-10-21T04:29:18.644Z",
+  "syncedAt": "2026-10-21T04:59:08.991Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
   "pinned": {
@@ -40,7 +40,7 @@
       "folder": "05-vo2max",
       "element": "optimal-fig-vo2max",
       "script": "figures/05-vo2max/optimal-fig-vo2max.js",
-      "bytes": 391046
+      "bytes": 393528
     },
     {
       "folder": "06-vo2max-treadmill",
