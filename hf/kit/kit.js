@@ -62,7 +62,23 @@
       .replace(/(\d) (%|°C|kg|g|mL|L|mmol\/L|pmol\/L|hours?|years?|minutes?|min|bpm|weeks?|days?)\b/g, '$1 $2');
   }
 
-  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, strip: strip, smart: smart, EASE: EASE,
+  /** Hanging punctuation, as on the TV's own scenes (.hang1/.hang2): a left-aligned block that opens with a quote mark
+   *  hangs the mark into the margin so the letters align. Takes a selector, an element or a list; call it once the text is in. */
+  function hang(target) {
+    var els = typeof target === 'string' ? document.querySelectorAll(target) : (target && target.length != null ? target : [target]);
+    Array.prototype.forEach.call(els, function (el) {
+      if (!el || ['left', 'start', 'justify'].indexOf(getComputedStyle(el).textAlign) < 0) return;
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode()) && !n.data.trim()) { /* skip leading whitespace nodes */ }
+      var m = n && /^(\s*)([\u201c\u2018])/.exec(n.data);
+      if (!m) return;
+      var q = n.splitText(m[1].length); q.splitText(1);
+      var s = document.createElement('span'); s.className = m[2] === '\u201c' ? 'hf-hang2' : 'hf-hang1';
+      q.parentNode.replaceChild(s, q); s.appendChild(q);
+    });
+  }
+
+  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, strip: strip, smart: smart, hang: hang, EASE: EASE,
     /** Pixel value per shape: HF.px({ tv: 120, reel: 90, post: 90 }). */
     px: function (m) { return m[shape] != null ? m[shape] : m.tv; } };
   logo();

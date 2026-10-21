@@ -128,6 +128,7 @@
     $('p6-figs').insertAdjacentHTML('beforeend', `<div class="p6-f"><p class="p6-v${isNum(b.f) ? '' : ' word'}">${mk(b.f)}</p>${b.u ? `<p class="p6-u">${mk(b.u)}</p>` : ''}</div>`);
   });
   $('p6-slot').insertAdjacentHTML('beforeend', `<p class="p6-end" id="p6-end">${mk(V.takeaway)}</p>`);
+  HF.hang('#p6-hl, .p6-st, #p6-end'); // a block that opens with a quote mark hangs it (before the type is fitted)
 
   // Type ceilings and floors per shape (px), and the dial's geometry as fractions of its box.
   const G = HF.px({

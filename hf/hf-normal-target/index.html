@@ -149,6 +149,8 @@
       : `<p class="nt-lab">${b.name}<span> · working target</span></p><p class="nt-big"><b>${HF.smart(b.big)}</b><i>${b.unit}</i></p>`);
   });
 
+  HF.hang('#nt-hl, .nt-st, #nt-end'); // the headline and close open with “Normal”: hang the mark like the TV's own scenes
+
   document.fonts.ready.then(() => {
     const tl = gsap.timeline({ paused: true });
     const counts = document.querySelectorAll('.nt-count .hf-count'), sts = document.querySelectorAll('.nt-st');

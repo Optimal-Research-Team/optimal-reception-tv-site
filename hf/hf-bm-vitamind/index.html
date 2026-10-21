@@ -162,6 +162,7 @@
     else $('bm-num').innerHTML = `<b>${md(V.bigB)}</b>${V.unit ? `<i>${md(V.unit)}</i>` : ''}`;
   }
   if (BAND) $('bm-cap').innerHTML = md(V.cap);
+  HF.hang('.bm-st, #bm-end'); // a block that opens with a quote mark hangs it (before the type is fitted)
 
   // Measured layout: rows vary in length, so each line takes the largest size that keeps it in its box.
   const fitLines = (node, max, min, lines, lh) => {
