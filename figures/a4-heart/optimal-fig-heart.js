@@ -1372,8 +1372,8 @@ function mount(fig) {
     const d = rnd(0, 8);
     if (side === "R") {
       const fromTop = Math.random() < 0.55;
-      cells.push({ side, stage: 0, p: fromTop ? [rnd(165, 188), -6] : [rnd(78, 98), 372], path: fromTop ? [[176, 120]] : [[132, 288]], j: [rnd(-16, 16), rnd(-16, 16)], d, dT: d });
-    } else cells.push({ side, stage: 0, p: [560, Math.random() < 0.5 ? 168 : 214], path: [[470, 196]], j: [rnd(-16, 16), rnd(-14, 14)], d, dT: d });
+      cells.push({ side, stage: 0, p: fromTop ? [rnd(165, 188), -6] : [rnd(78, 98), 372], path: fromTop ? [[176, 120]] : [[132, 288]], j: [rnd(-16, 16), rnd(-16, 16)], d, dT: d, a: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 3 });
+    } else cells.push({ side, stage: 0, p: [560, Math.random() < 0.5 ? 168 : 214], path: [[470, 196]], j: [rnd(-16, 16), rnd(-14, 14)], d, dT: d, a: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 3 });
   }
   function moveTo(c, t, v, dt) {
     const dx = t[0] - c.p[0], dy = t[1] - c.p[1];
