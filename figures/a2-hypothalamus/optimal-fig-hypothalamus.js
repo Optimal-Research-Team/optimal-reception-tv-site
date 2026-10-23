@@ -1188,7 +1188,8 @@ function mount(fig) {
   //   size-readout="word"                         "Small / Larger / Smaller" in place of the % (the 194 % rests on a LOW source)
   //   gl="off" · gl-src="<url>"                   keep the SVG drawing · load the 3-D chunk from elsewhere
   // and it announces every change with a "stagechange" event ({ stage, source: "tour" | "user" | "host" }).
-  // The standalone pages read the same names from the URL (?stage=after&tour=none&size-readout=word&gl=off).
+  // The standalone pages read the same names from the URL (?stage=after&tour=none&size-readout=word&gl=off),
+  // except gl-src: that one loads a script, so only an embedding element may set it, never a link.
   const STAGE_NAMES = ["before", "after", "therapy", "nonhormonal"];
   const host = fig.getRootNode && fig.getRootNode().host;
   const params = host ? null : new URLSearchParams(location.search);
@@ -1331,7 +1332,7 @@ function mount(fig) {
     // say it can be turned from the start, so the footer doesn't change height when the layer arrives
     if (hint) hint.textContent = `${hintText} ·\u00a0Drag\u00a0to\u00a0turn`; // wraps as one phrase on narrow phones
     stage.dataset.gl = "waiting";
-    const src = attr("gl-src") || (A2_GL_BASE ? new URL(`${DATA.gl.file}?v=${DATA.gl.v}`, A2_GL_BASE).href : "");
+    const src = (host && host.getAttribute("gl-src")) || (A2_GL_BASE ? new URL(`${DATA.gl.file}?v=${DATA.gl.v}`, A2_GL_BASE).href : "");
     const begin = async () => {
       const why = src ? a2GlProbe() : "no-src";
       if (why) return giveUp(why);

@@ -676,18 +676,817 @@ const ISO_CSS = `
 @media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}
 `;
 
+const { glLayer } = (() => {
+const GLSL_ISO = `precision highp float;
+uniform vec2 uCanvas;
+uniform vec2 uView;
+uniform vec2 uOrigin;
+uniform float uK;
+uniform vec4 uCam;
+uniform float uTime;
+vec2 viewOf(vec2 frag){return vec2(frag.x,uCanvas.y-frag.y)*(uView.x/uCanvas.x);}
+vec2 project(vec3 p){return uOrigin+uK*vec2(p.x*uCam.x-p.y*uCam.y,(p.x*uCam.y+p.y*uCam.x)*uCam.z-p.z*uCam.w);}
+vec3 towardViewer(){return vec3(uCam.y*uCam.w,uCam.x*uCam.w,uCam.z);}
+vec3 rayOf(vec2 vb){vec2 q=(vb-uOrigin)/uK;return vec3(q.x*uCam.x,-q.x*uCam.y,-q.y/uCam.w);}
+float pixelOf(){return (uView.x/uCanvas.x)/uK;}
+vec3 lightDir(){return normalize(vec3(-uCam.x,uCam.y,1.2));}
+vec3 onFloor(vec2 vb,float h){vec2 q=(vb-uOrigin)/uK;float b=(q.y+h*uCam.w)/uCam.z;return vec3(q.x*uCam.x+b*uCam.y,-q.x*uCam.y+b*uCam.x,h);}
+vec3 onWallY(vec2 vb,float y){vec2 q=(vb-uOrigin)/uK;float x=(q.x+y*uCam.y)/uCam.x;return vec3(x,y,((x*uCam.y+y*uCam.x)*uCam.z-q.y)/uCam.w);}
+vec3 onWallX(vec2 vb,float x){vec2 q=(vb-uOrigin)/uK;float y=(x*uCam.x-q.x)/uCam.y;return vec3(x,y,((x*uCam.y+y*uCam.x)*uCam.z-q.y)/uCam.w);}
+float hash12(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
+float hash13(vec3 p){p=fract(p*.1031);p+=dot(p,p.zyx+31.32);return fract((p.x+p.y)*p.z);}
+float noise2(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash12(i),hash12(i+vec2(1.,0.)),f.x),mix(hash12(i+vec2(0.,1.)),hash12(i+vec2(1.,1.)),f.x),f.y);}
+float noise3(vec3 p){vec3 i=floor(p);vec3 f=fract(p);f=f*f*(3.-2.*f);
+  float a=mix(mix(hash13(i),hash13(i+vec3(1.,0.,0.)),f.x),mix(hash13(i+vec3(0.,1.,0.)),hash13(i+vec3(1.,1.,0.)),f.x),f.y);
+  float b=mix(mix(hash13(i+vec3(0.,0.,1.)),hash13(i+vec3(1.,0.,1.)),f.x),mix(hash13(i+vec3(0.,1.,1.)),hash13(i+vec3(1.,1.,1.)),f.x),f.y);
+  return mix(a,b,f.z);}
+float fbm2(vec2 p){float s=0.;float a=.5;for(int i=0;i<4;i++){s+=a*noise2(p);p=p*2.07+vec2(17.1,9.2);a*=.5;}return s/.9375;}
+float fbm3(vec3 p){float s=0.;float a=.5;for(int i=0;i<4;i++){s+=a*noise3(p);p=p*2.07+vec3(17.1,9.2,4.7);a*=.5;}return s/.9375;}
+float window(float x,float a,float b,float soft){return smoothstep(a-soft,a+soft,x)*(1.-smoothstep(b-soft,b+soft,x));}
+vec3 tonemap(vec3 c,float exposure){return 1.-exp(-c*exposure);}
+`;
+
+const GLSL_TURN = `uniform vec3 uGroupX;
+uniform vec3 uGroupY;
+uniform vec3 uGroupZ;
+uniform vec3 uGroupT;
+uniform vec3 uCoverEdge[60];
+uniform float uCoverCount[6];
+vec3 toGroup(vec3 p){vec3 q=p-uGroupT;return vec3(dot(q,uGroupX),dot(q,uGroupY),dot(q,uGroupZ));}
+vec3 toWorld(vec3 g){return uGroupT+g.x*uGroupX+g.y*uGroupY+g.z*uGroupZ;}
+vec3 dirToGroup(vec3 d){return vec3(dot(d,uGroupX),dot(d,uGroupY),dot(d,uGroupZ));}
+vec3 dirToWorld(vec3 d){return d.x*uGroupX+d.y*uGroupY+d.z*uGroupZ;}
+float coverOf(vec2 vb,float soft){float c=0.;for(int p=0;p<6;p++){float n=uCoverCount[p];float inside=-1e4;for(int e=0;e<10;e++){if(float(e)>=n)break;vec3 h=uCoverEdge[p*10+e];inside=max(inside,h.x*vb.x+h.y*vb.y+h.z);}if(n>0.)c=max(c,1.-smoothstep(-soft,soft,inside));}return c;}
+`;
+
+function glslPose(name, prefix = `u${name}`) {
+  return `uniform vec3 ${prefix}X;uniform vec3 ${prefix}Y;uniform vec3 ${prefix}Z;uniform vec3 ${prefix}T;
+vec3 to${name}(vec3 p){vec3 q=p-${prefix}T;return vec3(dot(q,${prefix}X),dot(q,${prefix}Y),dot(q,${prefix}Z));}
+vec3 from${name}(vec3 g){return ${prefix}T+g.x*${prefix}X+g.y*${prefix}Y+g.z*${prefix}Z;}
+vec3 dirTo${name}(vec3 d){return vec3(dot(d,${prefix}X),dot(d,${prefix}Y),dot(d,${prefix}Z));}
+vec3 dirFrom${name}(vec3 d){return d.x*${prefix}X+d.y*${prefix}Y+d.z*${prefix}Z;}
+`;
+}
+
+function glCamera(projection) {
+  const a = ((projection.azimuth ?? 45) * Math.PI) / 180;
+  const e = ((projection.elevation ?? 30) * Math.PI) / 180;
+  return {
+    origin: [projection.origin[0], projection.origin[1]],
+    k: projection.scale * Math.sqrt(1.6),
+    cam: [Math.sin(a), Math.cos(a), Math.sin(e), Math.cos(e)],
+  };
+}
+
+const VERTEX = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+
+function glLayer({ canvas, fragment, view, camera, uniforms = [], fixed = {}, extensions = [], maxRatio = 1.5, onError = (message) => console.error(message) }) {
+  const gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false, preserveDrawingBuffer: false });
+  if (!gl) return null;
+  const compile = (type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader;
+    onError(gl.getShaderInfoLog(shader));
+    return null;
+  };
+  const vs = compile(gl.VERTEX_SHADER, VERTEX);
+  const enabled = extensions.filter((name) => gl.getExtension(name.replace(/^GL_/, "")));
+  const fs = compile(gl.FRAGMENT_SHADER, enabled.map((name) => `#extension ${name} : enable\n`).join("") + GLSL_ISO + fragment);
+  if (!vs || !fs) return null;
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    onError(gl.getProgramInfoLog(program));
+    return null;
+  }
+  gl.useProgram(program);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, "p");
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  const where = {};
+  for (const name of ["uCanvas", "uView", "uOrigin", "uK", "uCam", "uTime", ...uniforms, ...Object.keys(fixed)]) where[name] = gl.getUniformLocation(program, name);
+  const types = {};
+  const active = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+  for (let index = 0; index < active; index++) {
+    const info = gl.getActiveUniform(program, index);
+    if (info) types[info.name.replace(/\[0\]$/, "")] = info.type;
+  }
+  let painted = false;
+  const fit = () => {
+    const box = canvas.getBoundingClientRect();
+    const ratio = Math.min(maxRatio, window.devicePixelRatio || 1);
+    const width = Math.max(1, Math.round(box.width * ratio));
+    const height = Math.max(1, Math.round(box.height * ratio));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  };
+  const set = (name, value) => {
+    const at = where[name];
+    if (at === undefined || at === null) return;
+    if (typeof value === "number") gl.uniform1f(at, value);
+    else if (value.length > 4) {
+      const data = value instanceof Float32Array ? value : new Float32Array(value);
+      const type = types[name];
+      if (type === gl.FLOAT_VEC2) gl.uniform2fv(at, data);
+      else if (type === gl.FLOAT_VEC3) gl.uniform3fv(at, data);
+      else if (type === gl.FLOAT_VEC4) gl.uniform4fv(at, data);
+      else gl.uniform1fv(at, data);
+    }
+    else if (value.length === 1) gl.uniform1f(at, value[0]);
+    else if (value.length === 2) gl.uniform2f(at, value[0], value[1]);
+    else if (value.length === 3) gl.uniform3f(at, value[0], value[1], value[2]);
+    else if (value.length === 4) gl.uniform4f(at, value[0], value[1], value[2], value[3]);
+  };
+  for (const [name, value] of Object.entries(fixed)) set(name, value);
+  return {
+    gl,
+    extensions: enabled,
+    set(values = {}) {
+      for (const [name, value] of Object.entries(values)) set(name, value);
+    },
+    draw(values = {}, time = 0) {
+      fit();
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      set("uCanvas", [canvas.width, canvas.height]);
+      set("uView", view);
+      set("uOrigin", camera.origin);
+      set("uK", camera.k);
+      set("uCam", camera.cam);
+      set("uTime", time);
+      for (const [name, value] of Object.entries(values)) set(name, value);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      painted = true;
+    },
+    clear() {
+      if (!painted) return;
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      painted = false;
+    },
+  };
+}
+
+const smooth = (a, b, x) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
+const burst = (age, rise, fall) => (age > 0 ? smooth(0, rise, age) * Math.exp(-Math.max(0, age - rise) / fall) : 0);
+
+function settle(state, target, dt, seconds, calm = false) {
+  if (calm) {
+    state.x = target;
+    state.v = 0;
+    return false;
+  }
+  const w = 1 / seconds;
+  for (let index = 0; index < 4; index++) {
+    const h = dt / 4;
+    state.v += (w * w * (target - state.x) - 2 * w * state.v) * h;
+    state.x += state.v * h;
+  }
+  if (Math.abs(target - state.x) < 1e-4 && Math.abs(state.v) < 1e-4) {
+    state.x = target;
+    state.v = 0;
+    return false;
+  }
+  return true;
+}
+
+return { glLayer };
+})();
+// A4 · the heart as a solid, ray-marched in the figure's own camera (kit/gl.mjs), so it can turn.
+//
+// The heart is a signed-distance model in the section frame the SVG uses: x right (the person's left), y down,
+// d back from the cut plane. A window is cut into its front, so the four chambers, the valves, the cords and the
+// papillary muscles show inside a whole, round organ with its great vessels. Everything moves with the same
+// beat model as the SVG: the valve plane is pulled toward the apex, the cavities shrink while the walls
+// thicken, the atria squeeze, the leaflets swing, and blood cells move at their own depths.
+// The SVG heart stays as the fallback (no WebGL, or a shader that fails to compile).
+//
+//   const H = heartGL({ fig, canvas, data });   // null without WebGL
+//   H.draw({ beat, cells, yaw });
+function heartGL({ fig, canvas, data, onError }) {
+  if (typeof glLayer !== "function") return null;
+  const D = data;
+  const f = (v) => (Math.abs(v) < 1e-6 ? "0." : Number.isInteger(v) ? `${v}.` : `${+v.toFixed(4)}`);
+  const v3 = (p) => `vec3(${f(p[0])},${f(p[1])},${f(p[2])})`;
+  const sub = (a, b) => a.map((v, i) => v - b[i]);
+  const add = (a, b) => a.map((v, i) => v + b[i]);
+  const mul = (a, s) => a.map((v) => v * s);
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const len = (a) => Math.hypot(a[0], a[1], a[2]);
+  const nrm = (a) => mul(a, 1 / (len(a) || 1));
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  /** An orthonormal frame with `u` as its second axis and the first as close to `toward` as it can be. */
+  const frame = (u, toward = [1, 0, 0]) => {
+    u = nrm(u);
+    const a = nrm(sub(toward, mul(u, dot(toward, u))));
+    return [a, u, cross(a, u)];
+  };
+
+  // ---------------------------------------------------------------- the model (section frame, end of filling)
+  const AVY = 262;
+  const APEX = 522;
+  const FLOOR = D.floorY;
+  // ventricles and atria (centres, frames, radii)
+  // The outer body is the figure's own outline (geo.OUT, as the SVG draws it) puffed into a rounded solid: a
+  // star-shaped spheroid about C2 whose radius in each direction is the outline's, and whose depth is DK of it.
+  // Its widest section (the "equator") lies DC behind the cut, so the cut face sits inside a rim of round outer wall.
+  const C2 = [318, 336];
+  const DC = 30;
+  const DK = 0.74;
+  const RAD = (() => {
+    // the outline's radius from C2, by direction, as a Fourier series (12 terms)
+    const P = [];
+    const O = D.out;
+    for (let i = 0; i < O.length; i++) {
+      const p0 = O[(i - 1 + O.length) % O.length], p1 = O[i], p2 = O[(i + 1) % O.length], p3 = O[(i + 2) % O.length];
+      for (let k = 0; k < 12; k++) {
+        const t = k / 12, t2 = t * t, t3 = t2 * t;
+        P.push([0, 1].map((c) => 0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3)));
+      }
+    }
+    const N = 256;
+    const R = [];
+    for (let j = 0; j < N; j++) {
+      const th = (j / N) * 2 * Math.PI;
+      const u = [Math.cos(th), Math.sin(th)];
+      let best = 0;
+      for (let i = 0; i < P.length; i++) {
+        const a = P[i], b = P[(i + 1) % P.length];
+        const e = [b[0] - a[0], b[1] - a[1]];
+        const w = [a[0] - C2[0], a[1] - C2[1]];
+        const den = u[0] * e[1] - u[1] * e[0];
+        if (Math.abs(den) < 1e-9) continue;
+        const t = (w[0] * e[1] - w[1] * e[0]) / den;
+        const sgm = (w[0] * u[1] - w[1] * u[0]) / den;
+        if (t > 0 && sgm >= 0 && sgm <= 1) best = Math.max(best, t);
+      }
+      R.push(best);
+    }
+    const K = 12;
+    const a = [R.reduce((x, y) => x + y, 0) / N];
+    const b = [0];
+    for (let k = 1; k <= K; k++) {
+      let ak = 0, bk = 0;
+      R.forEach((r, j) => {
+        const th = (j / N) * 2 * Math.PI;
+        ak += r * Math.cos(k * th);
+        bk += r * Math.sin(k * th);
+      });
+      a.push((2 * ak) / N);
+      b.push((2 * bk) / N);
+    }
+    return { a, b, K, at: (th) => a[0] + a.slice(1).reduce((s, ak, i) => s + ak * Math.cos((i + 1) * th) + b[i + 1] * Math.sin((i + 1) * th), 0) };
+  })();
+  const LVf = frame([-16, 264, -28]);
+  const RVf = frame([70, 230, 0]);
+  // Proportions (scale ≈ 34 units per cm, from the ventricles' ~9 cm width): left ventricle ~4 cm across with a
+  // ~0.75 cm wall, septum ~0.9 cm, right ventricle wall ~0.4 cm, atria meeting at a thin (~0.6 cm) septum,
+  // atrial walls ~0.2 cm, apex ~0.7 cm. Typical adult values; individual hearts differ.
+  const LVc = { c: [382, 378, 22], f: LVf, r: [67, 114, 64] };
+  const RVc = { c: [234, 368, 8], f: RVf, r: [51, 88, 58] };
+  const RAc = { c: [208, 218, 20], r: [80, 58, 64] };
+  const LAc = { c: [394, 210, 24], r: [84, 52, 62] };
+  const RA_C = [184, 214, 30];
+  const LA_C = [424, 194, 50];
+  const CV = [330, 380, 30]; // the ventricles squeeze about here
+  // valves: centre, axis (into the downstream chamber or vessel), annulus radius, leaflet length, leaflets, thickness
+  const VALVES = {
+    tri: { c: [236, 284, 6], ax: [0.1, 1, 0.02], ra: 42, len: 52, n: 3, th: 2.4 },
+    mit: { c: [382, 264, 8], ax: [-0.04, 1, 0.02], ra: 45, len: 60, n: 2, th: 2.6 },
+  };
+  for (const v of Object.values(VALVES)) {
+    v.ax = nrm(v.ax);
+    // commissures toward the back (+d), so the window cuts each valve across its leaflets, as in the textbook view
+    const e1 = nrm(sub([0, 0, 1], mul(v.ax, dot([0, 0, 1], v.ax))));
+    v.e1 = e1;
+    v.e2 = cross(v.ax, e1);
+  }
+  // papillary muscles: base in the wall, tip toward its valve (rest positions; they scale with their ventricle)
+  const PAPS = [
+    { base: [228, 442, 30], tip: [232, 378, 20], r: [10, 4.2], cav: RVc, valve: "tri", phis: [Math.PI / 3, Math.PI * 0.8, Math.PI * 1.2, (5 * Math.PI) / 3] },
+    { base: [352, 456, 36], tip: [358, 386, 22], r: [13, 5], cav: LVc, valve: "mit", phis: [Math.PI / 2 + 0.3, Math.PI / 2 + 0.7, (3 * Math.PI) / 2 - 0.5] },
+    { base: [418, 450, 42], tip: [410, 382, 28], r: [13, 5], cav: LVc, valve: "mit", phis: [Math.PI / 2 - 0.3, Math.PI / 2 - 0.7, (3 * Math.PI) / 2 + 0.5] },
+  ];
+  // the great vessels: [x, y, d, r]; `art` red (oxygen-rich) or blue; open ends show their lumen
+  const VES = [
+    { name: "ao", art: 1, open: [0, 1], pts: [[372, 330, -24, 15], [326, 262, -18, 17], [306, 206, -10, 19], [298, 154, 2, 20], [306, 108, 24, 19.5], [340, 76, 52, 19], [412, 64, 92, 18], [452, 86, 118, 17.5], [474, 128, 138, 17], [484, 210, 152, 16.5], [490, 320, 158, 16], [494, 470, 160, 16]] },
+    { name: "bca", art: 1, open: [0, 1], pts: [[346, 80, 54, 8], [344, 40, 54, 7.5], [342, 4, 54, 7]] },
+    { name: "lcc", art: 1, open: [0, 1], pts: [[392, 68, 84, 7], [394, 32, 84, 6.5], [396, -2, 84, 6.5]] },
+    { name: "lsc", art: 1, open: [0, 1], pts: [[432, 76, 106, 7], [440, 42, 106, 6.5], [448, 6, 106, 6.5]] },
+    { name: "pt", art: 0, open: [0, 0], pts: [[262, 330, -40, 15], [316, 236, -50, 16.5], [344, 186, -44, 18], [364, 148, -22, 18], [372, 126, 6, 16], [374, 118, 26, 14]] },
+    { name: "lpa", art: 0, open: [0, 1], pts: [[374, 118, 24, 13], [410, 114, 40, 12], [446, 118, 56, 11.5], [476, 126, 66, 11]] },
+    { name: "rpa", art: 0, open: [0, 1], pts: [[374, 118, 28, 13], [340, 116, 62, 12.5], [296, 116, 76, 12], [240, 116, 84, 11.5], [176, 120, 92, 11], [140, 124, 96, 11]] },
+    { name: "svc", art: 0, open: [1, 0], pts: [[160, -14, 34, 19], [164, 50, 36, 20], [172, 120, 40, 21], [180, 186, 30, 21]] },
+    { name: "ivc", art: 0, open: [1, 0], pts: [[82, 392, 50, 20], [104, 338, 46, 20], [140, 282, 34, 19]] },
+    { name: "pv1", art: 1, open: [1, 0], pts: [[570, 168, 76, 9.5], [522, 170, 70, 9.5], [468, 180, 62, 9]] },
+    { name: "pv2", art: 1, open: [1, 0], pts: [[570, 216, 78, 9.5], [522, 216, 70, 9.5], [466, 212, 62, 9]] },
+  ];
+  // coronary arteries (red) and veins (blue) on the outer wall's right side, the side that faces the viewer.
+  // A point on the body: direction th from C2 in the cut plane, rolled back by phi over the round profile.
+  const onBody = (th, phi, lift) => {
+    const R = RAD.at(th);
+    const u = [Math.cos(th), Math.sin(th)];
+    const p = [C2[0] + u[0] * R * Math.cos(phi), C2[1] + u[1] * R * Math.cos(phi), DC + DK * R * Math.sin(phi)];
+    const n = nrm([u[0] * Math.cos(phi), u[1] * Math.cos(phi), Math.sin(phi) / DK]);
+    return add(p, mul(n, lift));
+  };
+  const along = (a, b, n, r0, r1, lift, wob = 0.05) => Array.from({ length: n }, (_, i) => {
+    const t = i / (n - 1);
+    const w = wob * Math.sin(t * 9.4 + a[0] * 7) * Math.sin(Math.PI * t);
+    return [...onBody(a[0] + (b[0] - a[0]) * t + w, a[1] + (b[1] - a[1]) * t, lift), r0 + (r1 - r0) * t];
+  });
+  const COR = [
+    // circumflex artery round the left atrioventricular groove, and the great cardiac vein beside it
+    { art: 1, pts: along([-0.47, -0.12], [-0.62, 1.15], 7, 3.8, 3.2, -1.2) },
+    { art: 0, pts: along([-0.53, -0.1], [-0.7, 1.1], 7, 3.4, 3, -1.4) },
+    // an obtuse marginal branch down the lateral wall toward the apex, and its vein
+    { art: 1, pts: along([-0.45, 0.16], [0.4, 0.36], 9, 3, 1.6, -0.9, 0.07) },
+    { art: 0, pts: along([-0.52, 0.48], [0.28, 0.7], 9, 2.8, 1.6, -1, 0.06) },
+    // a second marginal branch further back, and a twig off the first
+    { art: 1, pts: along([-0.57, 0.74], [0.14, 1.02], 8, 2.4, 1.4, -0.9, 0.08) },
+    { art: 1, pts: along([-0.12, 0.24], [0.1, 0.58], 5, 1.7, 1.1, -0.7, 0.04) },
+  ];
+  // soft shadow casters for the floor (spheres)
+  const CASTERS = [[340, 400, 50, 100], [250, 350, 40, 86], [392, 456, 40, 62], [196, 218, 40, 66], [420, 200, 50, 60], [490, 330, 158, 16], [494, 440, 160, 16], [100, 360, 48, 20]];
+
+  // ---------------------------------------------------------------- code generation for the tubes
+  function dense(pts) {
+    // Catmull-Rom through the control points, a sample every ~26 units
+    const out = [];
+    const n = pts.length;
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n - 1, i + 2)];
+      const steps = Math.max(1, Math.round(len(sub(p2.slice(0, 3), p1.slice(0, 3))) / 26));
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps, t2 = t * t, t3 = t2 * t;
+        out.push([0, 1, 2, 3].map((c) => 0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3)));
+      }
+    }
+    out.push(pts[n - 1]);
+    return out;
+  }
+  // a tube as chunks of up to 4 round-cone segments, each with its own bounding sphere; k scales the radius
+  // (1 for the outer wall, less for the lumen). An open end's lumen runs a little past the end, so it shows a ring.
+  function tubeFn(name, pts, open) {
+    const P = dense(pts);
+    const segs = [];
+    for (let i = 0; i < P.length - 1; i++) segs.push([P[i], P[i + 1], false]);
+    [0, 1].forEach((e) => {
+      if (!open[e]) return;
+      const a = e ? P[P.length - 1] : P[0];
+      const b = e ? P[P.length - 2] : P[1];
+      const dir = nrm(sub(a.slice(0, 3), b.slice(0, 3)));
+      segs.push([a, [...add(a.slice(0, 3), mul(dir, a[3] * 0.8)), a[3]], true]);
+    });
+    const chunks = [];
+    for (let i = 0; i < segs.length; i += 4) chunks.push(segs.slice(i, i + 4));
+    let code = "";
+    chunks.forEach((ch, j) => {
+      const pts3 = ch.flatMap(([a, b]) => [a, b]);
+      const c = pts3.reduce((sum, p) => add(sum, p.slice(0, 3)), [0, 0, 0]).map((v) => v / pts3.length);
+      const R = Math.max(...pts3.map((p) => len(sub(p.slice(0, 3), c)) + p[3])) + 2;
+      const body = ch.map(([a, b, ext]) => `${ext ? "if(k<1.)" : ""}d=min(d,sdRC(q,${v3(a)},${v3(b)},${f(a[3])}*k,${f(b[3])}*k));`).join("");
+      code += `{float bb=length(q-${v3(c)})-${f(R)};if(bb<6.){${body}}else d=min(d,bb);}`;
+    });
+    const c = P.reduce((sum, p) => add(sum, p.slice(0, 3)), [0, 0, 0]).map((v) => v / P.length);
+    const R = Math.max(...P.map((p) => len(sub(p.slice(0, 3), c)) + p[3])) + 10;
+    return { code: `float ${name}(vec3 q,float k){float d=1e5;${code}return d;}\n`, c, R };
+  }
+  const tubes = VES.map((v) => ({ ...v, ...tubeFn(`ves_${v.name}`, v.pts, v.open) }));
+  const cors = COR.map((v, i) => ({ ...v, ...tubeFn(`cor_${i}`, v.pts, [0, 0]) }));
+  const tubeCode = tubes.map((t) => t.code).join("") + cors.map((t) => t.code).join("");
+  // vessel calls inside map(): exact near a vessel, its bounding sphere's distance (a lower bound) elsewhere
+  const vesselCalls = tubes
+    .map(
+      (t, i) =>
+        `{float b=length(q-${v3(t.c)})-${f(t.R)};if(b<8.){float o=ves_${t.name}(q,1.);float l=o<5.?ves_${t.name}(q,${f(Math.min(0.74, 1 - 2.4 / t.pts[0][3]))}):o;${t.art ? "vA=min(vA,o);" : "vV=min(vV,o);"}lum=min(lum,l);}else{${t.art ? "vA=min(vA,b);" : "vV=min(vV,b);"}lum=min(lum,b);}}`,
+    )
+    .join("\n");
+  const corCalls = cors.map((t, i) => `{float b=length(qv-${v3(t.c)})-${f(t.R)};if(b<12.){float o=cor_${i}(qv,1.)*sO;${t.art ? "cA=min(cA,o);" : "cV=min(cV,o);"}}else{${t.art ? "cA=min(cA,b*sO);" : "cV=min(cV,b*sO);"}}}`).join("\n");
+  const radCode = RAD.a.slice(1).map((ak, i) => `c=vec2(c.x*u.x-c.y*u.y,c.y*u.x+c.x*u.y);r+=${f(ak)}*c.x+${f(RAD.b[i + 1])}*c.y;`).join("");
+  const ell = (name, E) => {
+    const [a, u, b] = E.f;
+    return `vec3 ${name}(vec3 q){vec3 p=q-${v3(E.c)};return vec3(dot(p,${v3(a)}),dot(p,${v3(u)}),dot(p,${v3(b)}));}\n`;
+  };
+  const valveConsts = Object.entries(VALVES)
+    .map(([k, v]) => `const vec3 ${k.toUpperCase()}_C=${v3(v.c)};const vec3 ${k.toUpperCase()}_AX=${v3(v.ax)};const vec3 ${k.toUpperCase()}_E1=${v3(v.e1)};const vec3 ${k.toUpperCase()}_E2=${v3(v.e2)};`)
+    .join("\n");
+  const casterCode = CASTERS.map((c) => `occ+=sphOcc(p,${v3(c)},${f(c[3])});sh=min(sh,sphShadow(p,L,${v3(c)},${f(c[3])}));`).join("");
+
+  // palette from the theme's tokens
+  const style = getComputedStyle(fig);
+  const hex = (name, fb) => {
+    const v = (style.getPropertyValue(name) || "").trim();
+    const m = /^#?([0-9a-f]{6})$/i.exec(v) || /^#?([0-9a-f]{6})$/i.exec(fb);
+    return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  };
+  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  const m1 = hex("--a4-gl-muscle", "#c46a5a");
+  const cut = hex("--a4-gl-cut", "#e9a493");
+  const ven = hex("--a4-ven", "#8892cc");
+  const art = hex("--a4-art", "#dc6656");
+  const PAL = [
+    m1, // 0 outer muscle
+    cut, // 1 cut muscle
+    mix(mix(m1, ven, 0.55), [0, 0, 0], 0.08), // 2 right chambers' inner wall
+    mix(m1, art, 0.45), // 3 left chambers' inner wall
+    art, // 4 arteries
+    ven, // 5 veins
+    hex("--a4-gl-valve", "#f3e2cc"), // 6 leaflets
+    hex("--a4-gl-chord", "#efe0cf"), // 7 cords
+    hex("--a4-gl-fat", "#ecd39a"), // 8 fat
+    hex("--a4-lumen-art", "#7d2219"), // 9 artery lumen / cut wall
+    hex("--a4-lumen-ven", "#3a427f"), // 10 vein lumen
+    hex("--a4-gl-shadow", "#5a2a20"), // 11 floor shadow ink
+    hex("--a4-art-cell", "#8f261c"), // 12 oxygen-rich cell
+    hex("--a4-ven-cell", "#3f4a96"), // 13 oxygen-poor cell
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+  const palCode = PAL.map((c, i) => `const vec3 PAL_${i}=vec3(${c.map((v) => f(v)).join(",")});`).join("\n");
+  const NCH = PAPS.reduce((s, p) => s + p.phis.length, 0);
+  const FRAG = `
+uniform vec4 uBeat;   // x valve-plane descent, y cavity scale across, z cavity scale along, w atrial cavity scale
+uniform vec4 uBeat2;  // x ventricles' outer scale, y atria's outer scale, z AV valves open, w outflow valves open
+uniform vec4 uTurn;   // x cos yaw, y sin yaw, z quality (0..1), w monitor top (viewBox y)
+uniform vec4 uPap[3]; // papillary tips this frame (xyz)
+uniform vec4 uPapB[3];// papillary bases this frame (xyz)
+uniform vec4 uCell[24];
+uniform float uLight;
+${palCode}
+const float DEP=${f(D.dep)};
+const float AVY=${f(AVY)};
+const float APEX=${f(APEX)};
+const float FLOOR=${f(FLOOR)};
+const vec3 PIVOT=vec3(330.,0.,40.);
+const vec3 CV=${v3(CV)};
+${valveConsts}
+float smin(float a,float b,float k){float h=max(k-abs(a-b),0.)/k;return min(a,b)-h*h*k*.25;}
+float smax(float a,float b,float k){float h=max(k-abs(a-b),0.)/k;return max(a,b)+h*h*k*.25;}
+float sdE(vec3 p,vec3 r){float k0=length(p/r);float k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-5);}
+float sdE2(vec2 p,vec2 r){float k0=length(p/r);float k1=length(p/(r*r));return k0*(k0-1.)/max(k1,1e-5);}
+float sdRC(vec3 p,vec3 a,vec3 b,float r1,float r2){
+  vec3 ba=b-a;float l2=dot(ba,ba);float rr=r1-r2;float a2=l2-rr*rr;float il2=1./l2;
+  vec3 pa=p-a;float y=dot(pa,ba);float z=y-l2;vec3 xv=pa*l2-ba*y;float x2=dot(xv,xv);float y2=y*y*l2;float z2=z*z*l2;
+  float k=sign(rr)*rr*rr*x2;
+  if(sign(z)*a2*z2>k)return sqrt(x2+z2)*il2-r2;
+  if(sign(y)*a2*y2<k)return sqrt(x2+y2)*il2-r1;
+  return (sqrt(x2*a2*il2)+y*rr)*il2-r1;}
+float sdCap(vec3 p,vec3 a,vec3 b,float r){vec3 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h)-r;}
+${ell("inLVc", LVc)}${ell("inRVc", RVc)}
+const vec2 C2=vec2(${f(C2[0])},${f(C2[1])});
+const float DC=${f(DC)};
+const float DK=${f(DK)};
+const vec3 RA_C=${v3(RA_C)};
+const vec3 LA_C=${v3(LA_C)};
+// the outline's radius in the direction u (a unit vector in the cut plane)
+float radOf(vec2 u){float r=${f(RAD.a[0])};vec2 c=vec2(1.,0.);${radCode}return r;}
+// the outer body: the outline puffed into a rounded solid, with the atrioventricular groove pressed in at the back
+float bodyOf(vec3 p){
+  vec2 v=p.xy-C2;float r=length(v);vec2 u=v/max(r,1e-3);float R=radOf(u);
+  float e=sdE2(vec2(r,p.z-DC),vec2(R,DK*R));
+  e+=5.5*exp(-pow((p.y-AVY+4.)/12.,2.))*smoothstep(0.,40.,p.z-DC);
+  return e*.92;}
+${tubeCode}
+// the valve plane is pulled toward the apex while the apex stays put; the atria stretch, the vessels above stay
+float wDesc(float y){return y<AVY?smoothstep(AVY-170.,AVY,y):clamp((APEX-y)/(APEX-AVY),0.,1.);}
+// the window in the front wall (negative inside); removed: in front of the cut plane and inside the window
+float cutOf(vec3 q){vec2 v=q.xy-C2;float r=length(v);return max(q.z,r-radOf(v/max(r,1e-3))-2.);}
+// one leaflet set: sheets from the annulus (radius ra) toward B=(r,h) in the valve's own (radius, along-axis) plane,
+// split at n commissures that open toward the free edge
+float segT(vec2 p,vec2 a,vec2 b,out float t){vec2 pa=p-a,ba=b-a;t=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*t);}
+float valveOf(vec3 q,vec3 c,vec3 ax,vec3 e1,vec3 e2,float ra,vec2 A,vec2 B,float n,float th,float gapOpen,float belly){
+  vec3 p=q-c;float h=dot(p,ax);vec3 rv=p-ax*h;float r=length(rv);
+  float b0=length(p)-ra-max(abs(B.y),abs(A.y))-8.;if(b0>8.)return b0;
+  float ph=atan(dot(rv,e2),dot(rv,e1));
+  float sg=abs(sin(n*ph*.5));
+  vec2 b=A+(B-A)*(.68+.32*sg);
+  vec2 dir=b-A;vec2 nn=normalize(vec2(-dir.y,dir.x));
+  vec2 m=A+dir*.5+nn*belly*length(dir);
+  float t1,t2;float d1=segT(vec2(r,h),A,m,t1);float d2=segT(vec2(r,h),m,b,t2);
+  float t=d1<d2?t1*.5:.5+t2*.5;
+  float d=min(d1,d2)-th*(1.-.45*t);
+  return max(d,(.35+2.6*t)*gapOpen-r*sg);}
+vec2 AVb,AVa,SLb,SLa;float gapAV,gapSL,AVbelly;
+vec3 chA[${NCH}];vec3 chB[${NCH}];
+// per-frame shapes, worked out once per pixel
+void setup(){
+  float o=smoothstep(0.,1.,uBeat2.z);
+  AVa=vec2(1.,0.);
+  // open: a funnel narrowing into the ventricle, bowed a little toward the wall; shut: the leaflets meet just below the
+  // annulus plane, their bodies level with it (normal coaptation, no billowing into the atrium)
+  AVb=mix(vec2(.06,.12),vec2(.74,.94),o);
+  AVbelly=mix(.1,-.06,o);
+  gapAV=o;
+  float s=smoothstep(0.,1.,uBeat2.w);
+  SLa=vec2(1.,.55);
+  SLb=mix(vec2(.03,0.),vec2(.92,1.2),s);
+  gapSL=s;
+  // chordae: from each papillary tip to the free edges of the leaflets it holds
+  ${PAPS.map((pm, i) =>
+    pm.phis
+      .map((phi, j) => {
+        const v = VALVES[pm.valve];
+        const k = PAPS.slice(0, i).reduce((s, p) => s + p.phis.length, 0) + j;
+        const V = pm.valve.toUpperCase();
+        return `{float sg=abs(sin(${f(v.n)}*${f(phi)}*.5));vec2 b=AVa+(AVb-AVa)*(.68+.32*sg);chA[${k}]=${V}_C+${V}_AX*(b.y*${f(v.len)})+(${V}_E1*${f(Math.cos(phi))}+${V}_E2*${f(Math.sin(phi))})*(b.x*${f(v.ra)});chA[${k}].y+=uBeat.x;chB[${k}]=uPap[${i}].xyz;}`;
+      })
+      .join(""),
+  ).join("")}
+}
+// material bookkeeping for the hit point
+float gBody,gCav,gCavSide,gVA,gVV,gLum,gValve,gChord,gPap,gCut,gCorA,gCorV;
+float map(vec3 q0,bool keep){
+  vec3 q=q0;q.y-=uBeat.x*wDesc(q0.y);
+  // the cut: everything in front of the cut plane, inside the outline, is taken away; deep in that space,
+  // the cut plane is all there is
+  float cut=cutOf(q);
+  if(cut<-5.&&!keep)return -cut;
+  // ventricles scale (walls thicken as the cavities shrink), the atria about their own centres
+  float wv=smoothstep(AVY-26.,AVY+18.,q.y);
+  vec3 ca=mix(RA_C,LA_C,smoothstep(270.,350.,q.x));
+  float sO=mix(uBeat2.y,uBeat2.x,wv);
+  vec3 cc=mix(ca,CV,wv);
+  vec3 qv=cc+(q-cc)/sO;
+  float body=bodyOf(qv)*sO;
+  // vessels
+  float vA=1e5,vV=1e5,lum=1e5;
+${vesselCalls}
+  float ves=min(vA,vV);
+  float solid=smin(body,ves,10.);
+  // outside the outer wall there are no chambers, cords or valves (coronaries stand at most 5 proud of it)
+  if(body>7.&&!keep)return smax(max(min(solid,body-5.),-lum),-cut,1.5);
+  // coronaries on the outer wall (they ride the ventricles' squeeze)
+  float cA=1e5,cV=1e5;
+  if(body<26.){
+${corCalls}
+  }
+  solid=smin(solid,min(cA,cV),2.5);
+  // cavities: atria, ventricles (ridged), the two inflow channels, and the lumens
+  float sc=uBeat.w;
+  float rac=sdE((q-${v3(RAc.c)})/sc,${v3(RAc.r)})*sc;
+  float lac=sdE((q-${v3(LAc.c)})/sc,${v3(LAc.r)})*sc;
+  vec3 sv=vec3(uBeat.y,uBeat.z,uBeat.y);
+  float lvc=sdE(inLVc(q)/sv,${v3(LVc.r)})*min(sv.x,sv.y);
+  float rvc=sdE(inRVc(q)/sv,${v3(RVc.r)})*min(sv.x,sv.y);
+  if(min(lvc,rvc)<8.&&q.y>AVY+18.){
+    float tr=noise3(q*vec3(.07,.022,.07));
+    float ridge=smoothstep(.52,.8,tr)*smoothstep(AVY+18.,AVY+70.,q.y);
+    lvc+=3.2*ridge;rvc+=2.6*ridge;
+  }
+  if(rac<6.){rac+=1.8*pow(abs(sin(q.x*.17+q.y*.06)),10.)*step(q.x,200.);}
+  float tric=sdRC(q,vec3(226.,246.,12.),vec3(238.,300.,6.),40.,40.);
+  float mitc=sdRC(q,vec3(384.,234.,14.),vec3(382.,286.,8.),43.,43.);
+  float cavR=min(min(rac,rvc),tric);
+  float cavL=min(min(lac,lvc),mitc);
+  float cav=min(min(cavR,cavL),lum);
+  solid=smax(solid,-min(cavR,cavL),4.);
+  solid=max(solid,-lum);
+  // papillary muscles and their cords, valves
+  float pap=1e5;
+  for(int i=0;i<3;i++){pap=smin(pap,sdRC(q0,uPapB[i].xyz,uPap[i].xyz,uPapB[i].w,uPap[i].w),2.);}
+  float chord=1e5;
+  vec3 cb=abs(q0-vec3(318.,320.,26.))-vec3(118.,90.,44.);if(max(cb.x,max(cb.y,cb.z))<2.){for(int i=0;i<${NCH};i++){chord=min(chord,sdCap(q0,chA[i],chB[i],.85));}}
+  float valve=(
+    min(valveOf(q,TRI_C,TRI_AX,TRI_E1,TRI_E2,${f(VALVES.tri.ra)},AVa*vec2(${f(VALVES.tri.ra)},${f(VALVES.tri.len)}),AVb*vec2(${f(VALVES.tri.ra)},${f(VALVES.tri.len)}),3.,${f(VALVES.tri.th)},gapAV,AVbelly),
+        valveOf(q,MIT_C,MIT_AX,MIT_E1,MIT_E2,${f(VALVES.mit.ra)},AVa*vec2(${f(VALVES.mit.ra)},${f(VALVES.mit.len)}),AVb*vec2(${f(VALVES.mit.ra)},${f(VALVES.mit.len)}),2.,${f(VALVES.mit.th)},gapAV,AVbelly)));
+  float inner=min(min(smin(pap,solid,6.),chord),valve);
+  float d=smax(inner,-cut,1.5);
+  if(keep){gBody=body;gCav=cav;gCavSide=cavR<cavL?0.:1.;gVA=vA;gVV=vV;gLum=lum;gValve=valve;gChord=chord;gPap=pap;gCut=cut;gCorA=cA;gCorV=cV;}
+  return d;
+}
+vec3 normalOf(vec3 p){const vec2 e=vec2(.3,-.3);return normalize(e.xyy*map(p+e.xyy,false)+e.yyx*map(p+e.yyx,false)+e.yxy*map(p+e.yxy,false)+e.xxx*map(p+e.xxx,false));}
+float aoOf(vec3 p,vec3 n){float o=0.;float s=1.;for(int i=1;i<=4;i++){float h=float(i*i)*3.2;o+=(h-map(p+n*h,false))*s;s*=.62;}return clamp(1.-o*.011,0.,1.);}
+// light blocked toward the lamp: two wide samples along the light, smooth by construction
+float shadowOf(vec3 p,vec3 L){return clamp(.45+map(p+L*12.,false)/22.,0.,1.)*clamp(.5+map(p+L*34.,false)/60.,0.,1.);}
+float sphOcc(vec3 p,vec3 c,float r){vec3 d=c-p;float l=length(d);return r*r/(l*l)*max(-d.y/l,0.);}
+float sphShadow(vec3 p,vec3 L,vec3 c,float r){vec3 oc=p-c;float b=dot(oc,L);float h=dot(oc,oc)-b*b;float dd=sqrt(max(h,0.))-r;float t=-b;return t<0.?1.:smoothstep(0.,1.,clamp(dd/(t*.35+6.),0.,1.));}
+vec3 toModel(vec3 w){vec3 s=vec3(w.x,-w.z,DEP-w.y);vec2 r=s.xz-PIVOT.xz;r=vec2(r.x*uTurn.x+r.y*uTurn.y,-r.x*uTurn.y+r.y*uTurn.x);return vec3(PIVOT.x+r.x,s.y,PIVOT.z+r.y);}
+vec3 dirToModel(vec3 v){vec3 s=vec3(v.x,-v.z,-v.y);return vec3(s.x*uTurn.x+s.z*uTurn.y,s.y,-s.x*uTurn.y+s.z*uTurn.x);}
+vec2 boxHit(vec3 ro,vec3 rd,vec3 lo,vec3 hi){vec3 ir=1./rd;vec3 t0=(lo-ro)*ir;vec3 t1=(hi-ro)*ir;vec3 a=min(t0,t1);vec3 b=max(t0,t1);return vec2(max(max(a.x,a.y),a.z),min(min(b.x,b.y),b.z));}
+vec3 lin(vec3 c){return pow(c,vec3(2.2));}
+vec3 gCellC;float gCellK;
+float cellHit(vec3 ro,vec3 rd,float tMax){
+  float best=tMax;
+  for(int i=0;i<24;i++){vec4 c=uCell[i];if(c.w==0.)continue;
+    vec3 oc=ro-c.xyz;float b=dot(oc,rd);float r=abs(c.w);float h=b*b-dot(oc,oc)+r*r;if(h<0.)continue;float t=-b-sqrt(h);
+    if(t>0.&&t<best){best=t;gCellC=c.xyz;gCellK=c.w;}}
+  return best;}
+void main(){
+  vec2 vb=viewOf(gl_FragCoord.xy);
+  vec3 V=towardViewer();
+  vec3 roW=rayOf(vb)+V*1600.;
+  vec3 ro=toModel(roW);
+  vec3 rd=dirToModel(-V);
+  vec3 L=dirToModel(normalize(vec3(-.42,.5,.9)));
+  setup();
+  float px=pixelOf();
+  vec4 outc=vec4(0.);
+  float monFade=1.-smoothstep(uTurn.w-26.,uTurn.w-6.,vb.y);
+  // the floor: a soft contact shadow and the heart's cast shadow, both fading out well inside the canvas
+  float tf=(FLOOR-ro.y)/rd.y;
+  if(tf>0.){
+    vec3 p=ro+rd*tf;
+    float occ=0.;float sh=1.;
+    ${casterCode}
+    float reach=1.-smoothstep(150.,260.,length(p.xz-vec2(330.,60.)));
+    float a=clamp(occ*.55+(1.-sh)*.32,0.,.62)*reach*monFade;
+    vec3 ink=mix(vec3(.02,.03,.02),PAL_11,uLight);
+    a*=mix(1.,.55,uLight);
+    outc=vec4(ink*a,a);
+  }
+  vec2 tb=boxHit(ro,rd,vec3(60.,-40.,-120.),vec3(592.,532.,190.));
+  if(tb.x<tb.y&&tb.y>0.){
+    float t=max(tb.x,0.);float dmin=1e5;float tmin=t;bool hit=false;float eps=max(.15,.3*px);
+    for(int i=0;i<150;i++){
+      vec3 p=ro+rd*t;float d=map(p,false);
+      if(d<dmin){dmin=d;tmin=t;}
+      if(d<eps){hit=true;break;}
+      t+=d*.9;if(t>tb.y)break;
+    }
+    float cover=hit?1.:1.-smoothstep(.15*px,1.1*px,dmin);
+    float tH=hit?t:tmin;
+    if(cover>0.){
+      float tc=hit?cellHit(ro,rd,tH):1e9;
+      vec3 col;float alpha=cover;
+      if(tc<tH){
+        // a red cell, a little dished
+        vec3 p=ro+rd*tc;vec3 n=normalize(p-gCellC);
+        vec3 alb=lin(gCellK>0.?PAL_12:PAL_13);
+        float dif=clamp(dot(n,L)*.5+.6,0.,1.);
+        float dish=1.-.35*smoothstep(.6,1.,dot(n,-rd));
+        col=alb*(.35+.75*dif)*dish+pow(max(dot(n,normalize(L-rd)),0.),30.)*.25;
+        alpha=1.;
+      }else{
+        vec3 p=ro+rd*tH;
+        map(p,true);
+        vec3 n=normalOf(p);
+        // materials
+        vec3 alb;float gloss=.35;float rough=40.;
+        float onCut=1.-smoothstep(.3,1.6,abs(gCut));
+        vec3 muscle=lin(PAL_0);
+        if(gValve<.8){alb=lin(PAL_6);gloss=.45;rough=30.;}
+        else if(gChord<.6){alb=lin(PAL_7);gloss=.3;}
+        else if(onCut>.5){
+          bool inVes=min(gVA,gVV)<gBody-1.;
+          alb=inVes?lin(mix(gVA<gVV?PAL_4:PAL_5,vec3(1.),.28)):lin(PAL_1);
+          if(!inVes){
+            // cut muscle: fibres wrap the left ventricle, finer grain elsewhere
+            vec2 lc=(p.xy-vec2(394.,372.))/vec2(1.,1.7);
+            float fib=.5+.5*sin(length(lc)*.36+noise2(p.xy*.05)*3.);
+            alb*=.965+.035*fib+.05*(noise2(p.xy*.3)-.5);
+          }
+          gloss=.18;rough=18.;
+        }
+        else if(gPap<.8){alb=lin(mix(PAL_0,PAL_1,.35));gloss=.3;}
+        else if(gCav<1.2&&gLum>gCav-.5&&gLum>1.){alb=lin(gCavSide<.5?PAL_2:PAL_3);gloss=.4;}
+        else if(gLum<1.2){alb=lin(gVA<gVV?PAL_9:PAL_10);gloss=.3;}
+        else if(min(gCorA,gCorV)<.8){alb=lin(gCorA<gCorV?PAL_4:PAL_5)*.85;gloss=.6;rough=60.;}
+        else if(min(gVA,gVV)<gBody-1.){alb=lin(gVA<gVV?PAL_4:PAL_5);gloss=.55;rough=50.;}
+        else{
+          // the outer wall, with fat in the grooves
+          float groove=1.-smoothstep(4.,16.,abs(p.y-uBeat.x*wDesc(p.y)-AVY+4.));
+          float fat=clamp(groove*(.35+.7*noise2(p.xz*.09))+smoothstep(8.,2.5,min(gCorA,gCorV))*.4,0.,1.);
+          alb=mix(muscle*(.95+.08*fbm2(p.xy*.025+p.z*.012)),lin(PAL_8),fat*.8);
+          gloss=mix(.45,.25,fat);rough=mix(46.,20.,fat);
+        }
+        float occl=aoOf(p,n);
+        float sh=uTurn.z>.5?mix(1.,shadowOf(p+n*1.5,L),.75):1.;
+        vec3 Vd=-rd;vec3 H=normalize(L+Vd);
+        float dif=clamp((dot(n,L)+.25)/1.25,0.,1.);
+        float sky=.5+.5*(-n.y);
+        float spec=pow(max(dot(n,H),0.),rough)*gloss*(.4+.6*sh);
+        float fres=pow(1.-max(dot(n,Vd),0.),3.);
+        col=alb*(.30*occl*(.6+.4*sky)+.92*dif*sh*(.35+.65*occl))+alb*alb*.22*(1.-dif)*occl+spec*vec3(1.,.96,.93)*(.5+.5*occl)+fres*.06*occl*alb;
+      }
+      col=pow(max(col,0.),vec3(1./2.2));
+      col=min(col,vec3(1.));
+      col*=monFade;alpha*=monFade;
+      outc=vec4(col*alpha,alpha)+outc*(1.-alpha);
+    }
+  }
+  float dn=(hash12(gl_FragCoord.xy+fract(uTime*.61)*91.)-.5)/255.;
+  outc.rgb=clamp(outc.rgb+dn*step(.004,outc.a),vec3(0.),vec3(outc.a));
+  gl_FragColor=outc;
+}`;
+  const LIGHT = (fig.closest("[data-theme]")?.getAttribute("data-theme") || document.body.dataset.theme) === "light" ? 1 : 0;
+  const coarse = matchMedia("(pointer: coarse)").matches;
+  let ratio = coarse ? 1.25 : 1.5;
+  let quality = coarse ? 0 : 1;
+  const uniforms = ["uBeat", "uBeat2", "uTurn", "uPap", "uPapB", "uCell"];
+  const make = () =>
+    glLayer({ canvas, fragment: FRAG, view: D.view, camera: D.camera, uniforms, fixed: { uLight: LIGHT }, maxRatio: ratio, onError: onError || ((m) => console.error(m)) });
+  let layer = make();
+  if (!layer) return null;
+
+  // ---------------------------------------------------------------- per frame
+  const cellBuf = new Float32Array(24 * 4);
+  const papT = new Float32Array(12);
+  const papB = new Float32Array(12);
+  // cavities a cell can be in (rest shapes; scaled with the beat below)
+  const ROOMS = { RA: RAc, LA: LAc, RV: RVc, LV: LVc };
+  const inFrame = (E, q) => (E.f ? E.f.map((ax) => dot(sub(q, E.c), ax)) : sub(q, E.c));
+  const outFrame = (E, l) => (E.f ? add(E.c, add(add(mul(E.f[0], l[0]), mul(E.f[1], l[1])), mul(E.f[2], l[2]))) : add(E.c, l));
+  const keepIn = (room, q, s) => {
+    // pull a cell inside its cavity (at 0.8 of the way to the wall)
+    const E = ROOMS[room];
+    const l = inFrame(E, q);
+    const r = E.r.map((v, i) => v * s[i]);
+    const k = Math.hypot(l[0] / r[0], l[1] / r[1], l[2] / r[2]);
+    return k > 0.8 ? outFrame(E, mul(l, 0.8 / k)) : q;
+  };
+  let times = [];
+  let lastNow = 0;
+  return {
+    get ratio() {
+      return ratio;
+    },
+    draw({ def, sV, sLong, sAt, sO, sAo, av, semi, yaw, cells, monTop, time }) {
+      const sc = [sV, sLong, sV];
+      PAPS.forEach((pm, i) => {
+        // papillary muscles shorten and move in with their ventricle
+        const E = pm.cav;
+        const base = outFrame(E, inFrame(E, pm.base).map((v, j) => v * [sV, sLong, sV][j]));
+        const tip = outFrame(E, inFrame(E, pm.tip).map((v, j) => v * [sV, 0.94 + 0.06 * sLong, sV][j]));
+        const w = (y) => (y < AVY ? 1 : Math.max(0, Math.min(1, (APEX - y) / (APEX - AVY))));
+        base[1] += def * w(base[1]);
+        tip[1] += def * w(tip[1]);
+        papB.set([...base, pm.r[0] * (0.9 + 0.1 / sV)], i * 4);
+        papT.set([...tip, pm.r[1] * (0.9 + 0.1 / sV)], i * 4);
+      });
+      cellBuf.fill(0);
+      let k = 0;
+      for (const c of cells) {
+        if (k >= 24) break;
+        if (c.stage < 1 || c.stage > 4) continue;
+        // every cell in the heart is kept inside its chamber: atrium until it passes the valve plane, then ventricle
+        const ring = VALVES[c.side === "R" ? "tri" : "mit"].c[1] + def;
+        const inAtrium = c.stage === 1 || (c.stage === 2 && c.p[1] < ring);
+        const room = c.side === "R" ? (inAtrium ? "RA" : "RV") : inAtrium ? "LA" : "LV";
+        let q = [c.p[0], c.p[1], Math.max(9, c.d + 9)];
+        q = keepIn(room, q, room[1] === "A" ? [sAt, sAt, sAt] : sc);
+        cellBuf.set([q[0], q[1], q[2], (c.side === "L" ? 1 : -1) * 4.2], k * 4);
+        k++;
+      }
+      const t0 = performance.now();
+      layer.draw(
+        {
+          uBeat: [def, sV, sLong, sAt],
+          uBeat2: [sO, sAo, av, semi],
+          uTurn: [Math.cos(yaw), Math.sin(yaw), quality, monTop],
+          uPap: papT,
+          uPapB: papB,
+          uCell: cellBuf,
+        },
+        time,
+      );
+      // a light governor: if frames run long, render fewer pixels (then drop the soft shadows)
+      if (lastNow) times.push(t0 - lastNow);
+      lastNow = t0;
+      if (times.length >= 40) {
+        times.sort((a, b) => a - b);
+        const med = times[20];
+        times = [];
+        if (med > 26 && (ratio > 0.75 || quality > 0)) {
+          if (quality > 0) quality = 0;
+          else {
+            ratio = Math.max(0.75, ratio - 0.25);
+            layer = make() || layer;
+          }
+        }
+      }
+    },
+    resetClock() {
+      lastNow = 0;
+      times = [];
+    },
+  };
+}
+
 // A4 model: one heartbeat at a chosen heart rate → phase, valve states, chamber volumes,
 // stroke volume and cardiac output. Typical adult values, not a prediction.
 //
 // At 75 bpm a beat lasts 0.8 s: about 0.3 s of ventricular systole and 0.5 s of diastole;
 // as the rate rises, diastole shortens much more than systole [A4-1][A4-2]. Left ventricle
-// 120 ml at the end of filling, 50 ml at the end of ejection (stroke volume 70 ml, EF ≈ 58 %)
-// [A4-1]; in hard exercise stroke volume rises toward ≈ 120 ml as filling rises and emptying
+// 120 mL at the end of filling, 50 mL at the end of ejection (stroke volume 70 mL, EF ≈ 58 %)
+// [A4-1]; in hard exercise stroke volume rises toward ≈ 120 mL as filling rises and emptying
 // deepens [A4-2]. Maximum heart rate for a 45-year-old: 208 − 0.7 × 45 ≈ 176 bpm [16].
 const HEART = {
   rates: [60, 100, 140, 176],
   rest: { edv: 120, esv: 50 },
-  hard: { edv: 135, esv: 22 }, // SV 113 ml at full effort (LOW: inside the "toward 120" range)
+  hard: { edv: 135, esv: 22 }, // SV 113 mL at full effort (LOW: inside the "toward 120" range)
   systole75: 0.3, // s at 75 bpm [A4-1]
   atrial75: 0.1, //  s, atrial contraction just before ventricular systole (LOW: textbook)
   ivc: 0.05, //      s, isovolumic contraction (LOW)
@@ -962,7 +1761,7 @@ function roundBack({ w, A = 62, E = 24, dep = 0, light = [-0.35, 0.55, 0.76] }) 
 // run to 3-D valve leaflets that swing open and shut, blood cells move at their own depths (the
 // left ventricle's filling swirls), and the heart's back half keeps its round, vessel-lined
 // outer wall. A monitor below runs the ECG, the left ventricle's volume and the valves' timing.
-const DATA = {"geo":{"AVY":262,"APEXY":522,"OUT":[[140,150],[121,190],[116,236],[128,272],[148,302],[156,342],[176,394],[214,442],[268,482],[326,510],[378,524],[420,510],[452,472],[474,412],[484,342],[482,290],[490,250],[492,200],[480,158],[450,136],[405,130],[360,142],[330,168],[300,182],[262,176],[230,158],[196,140],[164,138]],"RA":[[150,162],[133,198],[134,240],[152,268],[190,282],[228,276],[244,240],[236,198],[212,168],[180,156]],"LA":[[378,170],[398,150],[430,144],[460,156],[470,190],[460,226],[432,246],[400,250],[380,234],[372,202]],"RV":[[204,290],[182,322],[186,382],[216,430],[262,460],[304,466],[318,440],[316,380],[306,322],[298,272],[292,232],[286,218],[260,218],[262,248],[250,288]],"LV":[[332,254],[360,258],[396,268],[430,274],[446,312],[446,372],[434,428],[410,468],[384,476],[358,450],[342,398],[334,330],[330,290]],"TRI":[[206,288],[248,288]],"MIT":[[374,266],[428,274]],"PUL":[[260,218],[286,218]],"AOR":[[332,254],[360,258]],"TRIc":[227,292],"MITc":[400,272],"PULc":[273,214],"AORc":[346,252],"RAin":[186,214],"LAin":[412,196],"PAPR":[236,418],"PAPL":[[376,432],[422,424]],"PULout":[[[284,142],[362,120],[398,127]],[[284,142],[196,116],[156,120]]],"AORout":[[[338,120],[356,72],[410,52],[452,70],[470,112],[478,160]],[[338,120],[356,72],[376,58],[373,18]],[[338,120],[356,72],[408,50],[411,14]]]},"mon":{"top":606,"x0":168,"w":392,"span":2.4,"ecg":{"y":650,"h":28},"vol":{"y":718,"h":48,"lo":15,"hi":145},"inR":{"y":734,"h":9},"outR":{"y":752,"h":9}},"lines":["Resting: about one beat a second, most of it spent filling.","Walking briskly: faster beats, and each beat empties more fully.","Running: the filling time shrinks; the squeeze barely does.","All out, about the top rate for a 45-year-old: little time to fill, but each beat is near its biggest."],"far":{"w":[0.5317,-0.5043],"A":62,"E":24,"dep":200}};
+const DATA = {"geo":{"AVY":262,"APEXY":522,"OUT":[[140,150],[121,190],[116,236],[128,272],[148,302],[156,342],[176,394],[214,442],[268,482],[326,510],[378,524],[420,510],[452,472],[474,412],[484,342],[482,290],[490,250],[492,200],[480,158],[450,136],[405,130],[360,142],[330,168],[300,182],[262,176],[230,158],[196,140],[164,138]],"RA":[[150,162],[133,198],[134,240],[152,268],[190,282],[228,276],[244,240],[236,198],[212,168],[180,156]],"LA":[[378,170],[398,150],[430,144],[460,156],[470,190],[460,226],[432,246],[400,250],[380,234],[372,202]],"RV":[[204,290],[182,322],[186,382],[216,430],[262,460],[304,466],[318,440],[316,380],[306,322],[298,272],[292,232],[286,218],[260,218],[262,248],[250,288]],"LV":[[332,254],[360,258],[396,268],[430,274],[446,312],[446,372],[434,428],[410,468],[384,476],[358,450],[342,398],[334,330],[330,290]],"TRI":[[206,288],[248,288]],"MIT":[[374,266],[428,274]],"PUL":[[260,218],[286,218]],"AOR":[[332,254],[360,258]],"TRIc":[227,292],"MITc":[400,272],"PULc":[273,214],"AORc":[346,252],"RAin":[186,214],"LAin":[412,196],"PAPR":[236,418],"PAPL":[[376,432],[422,424]],"PULout":[[[284,142],[362,120],[398,127]],[[284,142],[196,116],[156,120]]],"AORout":[[[338,120],[356,72],[410,52],[452,70],[470,112],[478,160]],[[338,120],[356,72],[376,58],[373,18]],[[338,120],[356,72],[408,50],[411,14]]]},"v3":[{"name":"desc","cls":"art","r":[17,16],"caps":[false,true],"behind":true,"pts":[[470,112,128],[480,160,146],[488,260,156],[494,380,158],[496,470,158]]},{"name":"rpa","cls":"ven","r":[12,11],"caps":[false,true],"pts":[[296,128,24],[262,118,52],[214,114,72],[156,120,86]]},{"name":"rspv","cls":"art","r":[9,9],"caps":[true,false],"pts":[[568,168,74],[520,170,68],[466,178,60]]},{"name":"ripv","cls":"art","r":[9,9],"caps":[true,false],"pts":[[568,214,74],[520,214,68],[464,212,60]]},{"name":"ivc","cls":"ven","r":[20,19],"caps":[true,false],"pts":[[84,388,48],[106,334,46],[140,280,44]]},{"name":"aorta","cls":"art","r":[20,18],"caps":[false,false],"pts":[[346,252,40],[342,196,40],[338,132,42],[348,84,50],[392,56,74],[438,62,102],[466,98,124],[470,114,130]]},{"name":"bca","cls":"art","r":[8,7],"caps":[false,true],"pts":[[368,70,56],[366,38,56],[364,12,56]]},{"name":"lcca","cls":"art","r":[7,6.5],"caps":[false,true],"pts":[[404,60,80],[406,32,80],[408,8,80]]},{"name":"lsca","cls":"art","r":[7,6.5],"caps":[false,true],"pts":[[436,68,100],[444,42,100],[452,18,100]]},{"name":"svc","cls":"ven","r":[19,21],"caps":[true,false],"pts":[[160,-12,34],[166,60,36],[174,120,40],[180,176,42]]},{"name":"pt","cls":"ven","r":[18,16],"caps":[false,false],"pts":[[273,214,18],[276,186,16],[282,150,16],[296,128,24]]},{"name":"lpa","cls":"ven","r":[12,11],"caps":[false,true],"pts":[[296,128,24],[330,116,30],[370,114,52],[404,126,72]]}],"floorY":556,"mon":{"top":698,"x0":168,"w":392,"span":2.4,"ecg":{"y":742,"h":28},"vol":{"y":810,"h":48,"lo":15,"hi":145},"inR":{"y":826,"h":9},"outR":{"y":844,"h":9}},"lines":["Resting: about one beat a second, most of it spent filling.","Walking briskly: faster beats, and each beat empties more fully.","Running: the filling time shrinks; the squeeze barely does.","All out, about the top rate for a 45-year-old: little time to fill, but each beat is near its biggest."],"far":{"w":[1.1918,-0.7588],"A":40,"E":26,"dep":260},"gl":{"camera":{"origin":[226.96628747443503,-89.65178123288894],"k":1.1500890455216595,"cam":[0.6427876096865393,0.766044443118978,0.4383711467890774,0.898794046299167]},"view":[600,874],"dep":260,"floorY":556,"out":[[140,150],[121,190],[116,236],[128,272],[148,302],[156,342],[176,394],[214,442],[268,482],[326,510],[378,524],[420,510],[452,472],[474,412],[484,342],[482,290],[490,250],[492,200],[480,158],[450,136],[405,130],[360,142],[330,168],[300,182],[262,176],[230,158],[196,140],[164,138]]}};
 
 function mount(fig) {
   const svg = fig.querySelector("svg");
@@ -974,6 +1773,14 @@ function mount(fig) {
   const buttons = [...fig.querySelectorAll('[data-control="rate"] .opt-seg-btn')];
   const slowBtn = fig.querySelector("[data-slow]");
   const G = DATA.geo;
+  // the heart in WebGL when it can run; the SVG heart below is the fallback
+  const stage = fig.querySelector(".a4-stage");
+  const H = DATA.gl && typeof heartGL === "function" ? heartGL({ fig, canvas: fig.querySelector(".a4-gl"), data: DATA.gl }) : null;
+  if (H) {
+    stage.setAttribute("data-gl", "");
+    const hint = fig.querySelector(".opt-hint");
+    if (hint) hint.textContent += " · Drag to turn";
+  }
   const set = (sel, d) => q(sel).setAttribute("d", d);
   const f1 = (v) => v.toFixed(1);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -1024,19 +1831,6 @@ function mount(fig) {
     const closed = `${ln([...L, ...[...R].reverse()])}Z`;
     return sides ? { d: closed, edges: ln(L) + ln(R), L, R } : closed;
   }
-  /** A vessel, cut open lengthwise like the heart: a wall band each side, the blood down the middle with the
-   *  lit far wall of the half-pipe showing as a soft band. Its back half and cut ends are drawn behind the cut. */
-  const tubes = [];
-  function vessel(name, list, cls) {
-    let h = "";
-    for (const [pts, w0, w1, capA, capB] of list) {
-      tubes.push({ name, pts, w0, w1, cls, caps: [capA, capB] });
-      const t = tube(pts, w0, w1, true);
-      const lit = tube(pts, w0 * 0.28, w1 * 0.28, true);
-      h += `<path class="a4-${cls} a4-vessel a4-vessel-fill" d="${t.d}"/><path class="a4-lumen a4-lumen-${cls} a4-lumen-cut" d="${tube(pts, w0 * 0.7, w1 * 0.7)}"/><path class="a4-lumen-lit a4-lumen-lit-${cls}" d="${lit.d}" transform="translate(${f1(DATA.far.w[0] * w0 * 0.18)} ${f1(DATA.far.w[1] * w0 * 0.18)})"/><path class="a4-vessel-edge" d="${t.edges}"/>`;
-    }
-    q(`[data-v="${name}"]`).innerHTML = h;
-  }
   const centroid = (pts) => pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length], [0, 0]);
   const C = { RA: centroid(G.RA), LA: centroid(G.LA), RV: centroid(G.RV), LV: centroid(G.LV), V: [320, 392] };
   const FIB = { lv: G.LV.filter((p) => p[1] > G.AVY + 16), rv: G.RV.slice(0, 6) };
@@ -1085,6 +1879,13 @@ function mount(fig) {
     const l = dot3(n, LIGHT);
     return 0.16 + 0.95 * Math.max(0, two ? Math.abs(l) : l);
   };
+  // wet surfaces (the heart's outer wall, the vessels) also catch a specular highlight
+  const HALF = norm3([LIGHT[0] + VIEW[0], LIGHT[1] + VIEW[1], LIGHT[2] + VIEW[2]]);
+  const shine = (n, tones, k = 0.5, pw = 26) => {
+    const base = mixc(tones[0], tones[1], Math.round(clamp(lit(n), 0, 1) * 24) / 24);
+    const sp = Math.round(k * Math.pow(Math.max(0, dot3(n, HALF)), pw) * 10) / 10;
+    return rgb(mixc(base, WHITE, sp));
+  };
   const quad = (pts) => `M${pts.map((v) => `${f1(v[0])} ${f1(v[1])}`).join("L")}Z`;
   const pathOf = (pts) => `M${pts.map((v) => `${f1(v[0])} ${f1(v[1])}`).join("L")}`;
   const cssc = (name, fb) => RB.rgbOf(fig, name, fb);
@@ -1126,7 +1927,7 @@ function mount(fig) {
     });
   }
   function backHalf(outline) {
-    const pts = closedRing(outline, 72);
+    const pts = closedRing(outline, 96);
     const n = pts.length;
     let area = 0;
     for (let i = 0; i < n; i++) area += pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1];
@@ -1146,7 +1947,7 @@ function mount(fig) {
     };
     const normal = (i, ph) => norm3([Math.cos(ph) * nrm[i][0], -Math.sin(ph), -Math.cos(ph) * nrm[i][1]]);
     const facets = [];
-    const NPH = 9;
+    const NPH = 14;
     for (let i = 0; i < n; i++) {
       const i1 = (i + 1) % n;
       for (let j = 0; j < NPH; j++) {
@@ -1155,7 +1956,7 @@ function mount(fig) {
         const nn = normal(i, (p0 + p1) / 2);
         if (dot3(nn, VIEW) <= 0.01) continue;
         const a = at(i, p0), b = at(i1, p0), c = at(i1, p1), d = at(i, p1);
-        facets.push({ key: key3((a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2), d: quad([P3(...a), P3(...b), P3(...c), P3(...d)]), fill: tone(T.epi, lit(nn)) });
+        facets.push({ key: key3((a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2), d: quad([P3(...a), P3(...b), P3(...c), P3(...d)]), fill: shine(nn, T.epi, 0.42) });
       }
     }
     // surface vessels on the left side (viewer's right): the circumflex in the fat of the AV groove,
@@ -1178,11 +1979,24 @@ function mount(fig) {
       if (!groove(pts[i], nrm[i])) continue;
       const i1 = (i + 1) % n;
       if (!groove(pts[i1], nrm[i1]) || !visible(i, 0.6)) continue;
-      fat += quad([P3(...at(i, 0.18)), P3(...at(i1, 0.18)), P3(...at(i1, 1.0)), P3(...at(i, 1.0))]);
+      fat += quad([P3(...at(i, 0.85)), P3(...at(i1, 0.85)), P3(...at(i1, 1.5)), P3(...at(i, 1.5))]);
     }
-    const vein = runAlong(0.78, (p, nn) => right(p, nn) && p[1] > G.AVY - 10);
-    const artery = runAlong(0.52, (p, nn) => right(p, nn) && p[1] > G.AVY - 18);
-    const surf = `<path class="a4-epi-fat" d="${fat}" fill="${FAT}"/><path class="a4-cor-edge" d="${vein}"/><path class="a4-cor" d="${vein}" stroke="${COR_VEN}"/><path class="a4-cor-edge a4-cor-edge-a" d="${artery}"/><path class="a4-cor a4-cor-a" d="${artery}" stroke="${COR_ART}"/>`;
+    // (at this camera the back wall faces the viewer up to about 0.85 rad round from the cut)
+    const vein = runAlong(0.62, (p, nn) => right(p, nn) && p[1] > G.AVY - 10);
+    const artery = runAlong(0.4, (p, nn) => right(p, nn) && p[1] > G.AVY - 18);
+    // small branches off the marginal artery, running round the back wall
+    let twigs = "";
+    for (let i = 0; i < n; i += 8) {
+      if (!(right(pts[i], nrm[i]) && pts[i][1] > G.AVY + 20) || !visible(i, 0.4)) continue;
+      const tw = [];
+      for (let ph = 0.4; ph <= 0.8; ph += 0.05) {
+        const ii = Math.min(n - 1, i + Math.round((ph - 0.4) * 14));
+        if (visible(ii, ph)) tw.push(P3(...at(ii, ph)));
+      }
+      if (tw.length > 1) twigs += pathOf(tw);
+    }
+    void fat;
+    const surf = `<path class="a4-cor-edge" d="${vein}"/><path class="a4-cor" d="${vein}" stroke="${COR_VEN}"/><path class="a4-cor-edge a4-cor-edge-a" d="${artery}${twigs}"/><path class="a4-cor a4-cor-a" d="${artery}" stroke="${COR_ART}"/><path class="a4-cor a4-cor-twig" d="${twigs}" stroke="${COR_ART}"/>`;
     return { facets, surf };
   }
 
@@ -1368,12 +2182,16 @@ function mount(fig) {
   let spawnR = 0;
   let spawnL = 0;
   let cham = null; // this frame's chambers, for depths
+  // A new cell gets its tilt and spin when it is born. They used to be set on its first step, so a cell spawned
+  // during a step was drawn that same frame with no angle: round 5 drew those in the veins and wrote "MNaN NaN"
+  // into the cell path (the TV's console errors). Round 6 only draws cells inside the chambers, but keep it safe.
+  const born = () => ({ a: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 3 });
   function spawn(side) {
     const d = rnd(0, 8);
     if (side === "R") {
       const fromTop = Math.random() < 0.55;
-      cells.push({ side, stage: 0, p: fromTop ? [rnd(165, 188), -6] : [rnd(78, 98), 372], path: fromTop ? [[176, 120]] : [[132, 288]], j: [rnd(-16, 16), rnd(-16, 16)], d, dT: d, a: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 3 });
-    } else cells.push({ side, stage: 0, p: [560, Math.random() < 0.5 ? 168 : 214], path: [[470, 196]], j: [rnd(-16, 16), rnd(-14, 14)], d, dT: d, a: Math.random() * Math.PI, spin: (Math.random() - 0.5) * 3 });
+      cells.push({ side, stage: 0, p: fromTop ? [rnd(165, 188), -6] : [rnd(78, 98), 372], path: fromTop ? [[176, 120]] : [[132, 288]], j: [rnd(-16, 16), rnd(-16, 16)], d, dT: d, ...born() });
+    } else cells.push({ side, stage: 0, p: [560, Math.random() < 0.5 ? 168 : 214], path: [[470, 196]], j: [rnd(-16, 16), rnd(-14, 14)], d, dT: d, ...born() });
   }
   function moveTo(c, t, v, dt) {
     const dx = t[0] - c.p[0], dy = t[1] - c.p[1];
@@ -1498,7 +2316,12 @@ function mount(fig) {
     const contr = Math.min(1, Math.max(0, (b.edv - b.V) / (b.edv - b.esv)));
     def = { d: 15 * contr, sV, sA: b.A, sO: 1 - 0.22 * (1 - sV) };
     const sAt = 0.78 + 0.22 * b.A;
-    tubes.length = 0;
+    if (H) {
+      // cavities shrink mostly across and a little along (≈ the model's volume ratio), the walls thicken
+      const vr = b.V / 120;
+      H.draw({ def: def.d, sV: Math.pow(vr, 0.4), sLong: Math.pow(vr, 0.15), sAt, sO: 1 - 0.16 * (1 - Math.pow(vr, 0.4)), sAo: 0.95 + 0.05 * b.A, av: b.av, semi: b.semi, yaw: turn.yaw, cells, monTop: MON.top, time: clock });
+      return;
+    }
     const outline = outer();
     const outerD = smooth(outline);
     set('[data-part="outer"]', outerD);
@@ -1512,37 +2335,9 @@ function mount(fig) {
       LV: chamber(shapes.LV, 0.82 * (0.85 + 0.15 * sV), T.cavL, RIDGE.LV),
     };
     for (const k of ["RA", "LA", "RV", "LV"]) set(`[data-part="clip${k}"]`, cham[k].outline);
-    // vessels: tops fixed, roots ride the valve plane
-    vessel("svc", [[[[158, -12], [166, 60], [176, 120], shift([180, 176])], 38, 46, false, false]], "ven");
-    vessel("ivc", [[[[84, 384], [108, 330], shift([142, 276])], 40, 38, true, false]], "ven");
-    vessel("desc", [[[[470, 110], [480, 170], [486, 260], [492, 380], [494, 470]], 34, 32, false, true]], "art");
-    vessel("aorta", [[[shift(G.AORc), shift([342, 196]), [338, 120], [356, 72], [410, 52], [452, 70], [470, 112]], 40, 36, false, false]], "art");
-    vessel("branches", [[[[376, 60], [372, 14]], 16, 14, false, true], [[[408, 52], [412, 8]], 16, 14, false, true], [[[440, 62], [456, 18]], 16, 14, false, true]], "art");
-    vessel("pt", [[[shift(G.PULc), shift([276, 186]), [284, 140], [318, 126], [362, 120], [404, 128]], 36, 26, false, true]], "ven");
-    vessel("rpa", [[[[284, 142], [244, 124], [196, 116], [150, 120]], 26, 22, false, true]], "ven");
-    vessel("pv", [[[[566, 168], [520, 168], shift([466, 176])], 18, 18, true, false], [[[566, 214], [520, 214], shift([464, 212])], 18, 18, true, false]], "art");
     // the back half: round outer wall with its surface vessels, and the vessels' back halves
     const back = backHalf(outline);
-    const LUMEN = { ven: rgb(VEN), art: rgb(ART) };
-    const WALL = rgb(cssc("--a4-vwall", "#f3d9cf"));
-    const backOf = (t) => {
-      const c = RB.byLength(curve(t.pts), 14);
-      const Ae = [];
-      const Be = [];
-      c.forEach((p, i) => {
-        const a = c[Math.max(0, i - 1)];
-        const bb = c[Math.min(c.length - 1, i + 1)];
-        const l = Math.hypot(bb[0] - a[0], bb[1] - a[1]) || 1;
-        const nn = [-(bb[1] - a[1]) / l, (bb[0] - a[0]) / l];
-        const w = (t.w0 + (t.w1 - t.w0) * (i / (c.length - 1))) / 2;
-        Ae.push([p[0] + nn[0] * w, p[1] + nn[1] * w]);
-        Be.push([p[0] - nn[0] * w, p[1] - nn[1] * w]);
-      });
-      return RB.chords(Ae, Be, { round: 1, nphi: 10, tones: T[t.cls], caps: t.caps, capFill: WALL, lumenFill: LUMEN[t.cls] });
-    };
-    // the descending aorta runs behind the heart: its back half (and its cut face) go under the heart's back half
-    q('[data-part="behind"]').innerHTML = RB.paintObjects(tubes.filter((t) => t.name === "desc").map(backOf));
-    q('[data-part="far"]').innerHTML = RB.paintObjects([back.facets, ...tubes.filter((t) => t.name !== "desc").map(backOf)]) + back.surf;
+    q('[data-part="far"]').innerHTML = RB.paintObjects([back.facets]) + back.surf;
     // inside the cavities: walls and ridges, valves, papillary muscles, chordae and cells
     const tri = avValve(G.TRI[0], G.TRI[1], b.av, C.RV, 27);
     const mit = avValve(G.MIT[0], G.MIT[1], b.av, C.LV, 31);
@@ -1589,18 +2384,28 @@ function mount(fig) {
     ]
       .map(([a, p]) => [-2.2, 0, 2.2].map((o) => `M${P3(...a).map(f1).join(" ")}L${P3(p[0] + o, p[1] - 3, p[2]).map(f1).join(" ")}`).join(""))
       .join("");
-    const side = (s) => chamberCells.filter((c) => c.side === s);
+    // each cell is clipped to the opening of the chamber it is in (deep cells would otherwise show outside the heart)
+    const roomOf = (c) => (c.stage === 1 ? (c.side === "R" ? "RA" : "LA") : c.side === "R" ? "RV" : "LV");
+    const cellsIn = (deep) =>
+      ["RA", "LA", "RV", "LV"]
+        .map((k) => {
+          const list = chamberCells.filter((c) => roomOf(c) === k);
+          const cls = k[0] === "R" ? "a4-cell-ven" : "a4-cell-art";
+          return list.length ? `<g clip-path="url(#a4-clip${k})"><path class="a4-cell ${cls}${deep ? " a4-cell-deep" : ""}" d="${cellPath(list, deep)}"/></g>` : "";
+        })
+        .join("");
     cavSvg +=
-      `<path class="a4-cell a4-cell-ven a4-cell-deep" d="${cellPath(side("R"), true)}"/><path class="a4-cell a4-cell-art a4-cell-deep" d="${cellPath(side("L"), true)}"/>` +
-      `<path class="a4-annulus-ring" d="${tri.ring}${mit.ring}"/>` +
+      cellsIn(true) +
+      `<g clip-path="url(#a4-clipAll)"><path class="a4-annulus-ring" d="${tri.ring}${mit.ring}"/>` +
       RB.paint(papFacets) +
       leafFacets.map((f) => `<path d="${f.d}" fill="${f.fill}" stroke="${f.fill}" stroke-width="0.6" class="a4-leaf"/>`).join("") +
       `<path class="a4-leaf-edge" d="${tri.edgeD}${mit.edgeD}"/>` +
-      `<path class="a4-chordae" d="${chordD}"/>` +
-      `<path class="a4-cell a4-cell-ven" d="${cellPath(side("R"), false)}"/><path class="a4-cell a4-cell-art" d="${cellPath(side("L"), false)}"/>`;
+      `<path class="a4-chordae" d="${chordD}"/></g>` +
+      cellsIn(false);
     q('[data-part="cav"]').innerHTML = cavSvg;
     // the cut face: muscle with the chamber openings (and the AV orifices) cut out of it
     set('[data-part="holes"]', ["RA", "LA", "RV", "LV"].map((k) => cham[k].outline).join("") + orifice(tri) + orifice(mit));
+    set('[data-part="clipAll"]', ["RA", "LA", "RV", "LV"].map((k) => cham[k].outline).join("") + orifice(tri) + orifice(mit));
     set('[data-part="rims"]', ["RA", "LA", "RV", "LV"].map((k) => cham[k].outline).join(""));
     set('[data-part="annuli"]', [...tri.ends, ...mit.ends].map((p) => `M${f1(p[0] - 4.5)} ${f1(p[1])}a4.5 3.2 0 1 0 9 0a4.5 3.2 0 1 0 -9 0Z`).join(""));
     // muscle fibres in the cut wall wrap the ventricles and squeeze with them
@@ -1608,16 +2413,132 @@ function mount(fig) {
     const sMid = (sV + def.sO) / 2;
     set('[data-part="fibres"]', [1.12, 1.24, 1.36, 1.48].map((k) => fib(FIB.lv, C.LV, k, sMid)).join("") + [1.1, 1.2].map((k) => fib(FIB.rv, C.RV, k, sMid)).join(""));
     set('[data-part="valves"]', semilunar(b));
-    // cells in the vessels (on the cut, in the open half-pipes)
-    const vesselCells = cells.filter((c) => c.stage === 0 || c.stage === 5);
-    for (const s of ["R", "L"]) {
-      const list = vesselCells.filter((c) => c.side === s);
-      set(`[data-part="vcells${s}"]`, list.map((c) => { const p = P3(c.p[0], c.p[1], c.d * 0.6); return disc(p[0], p[1], c.a, 4, 2.7); }).join(""));
+  }
+
+
+  // ---------------------------------------------------------------- the great vessels: whole tubes in 3-D (drawn once)
+  // Their visible parts (outside the heart) don't move with the beat, so they are built once. Each is a tube round
+  // a Catmull-Rom centreline in depth, framed by parallel transport, culled, lit with a specular highlight and
+  // painted back to front; a cut end shows as a ring of wall round the blood.
+  function tube3(ctrl, r0, r1, tones, caps) {
+    const cr = (p0, p1, p2, p3, t) => {
+      const t2 = t * t, t3 = t2 * t;
+      return [0, 1, 2].map((c) => 0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3));
+    };
+    const dense = [];
+    for (let i = 0; i < ctrl.length - 1; i++) {
+      const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+      for (let k = 0; k < 12; k++) dense.push(cr(p0, p1, p2, p3, k / 12));
     }
+    dense.push(ctrl[ctrl.length - 1]);
+    const acc = [0];
+    for (let i = 1; i < dense.length; i++) acc.push(acc[i - 1] + Math.hypot(dense[i][0] - dense[i - 1][0], dense[i][1] - dense[i - 1][1], dense[i][2] - dense[i - 1][2]));
+    const L = acc[acc.length - 1];
+    const M = Math.max(6, Math.round(L / 7));
+    const cs = [];
+    for (let q = 0, j = 0; q < M; q++) {
+      const want = (L * q) / (M - 1);
+      while (j < acc.length - 2 && acc[j + 1] < want) j++;
+      const t = (want - acc[j]) / (acc[j + 1] - acc[j] || 1);
+      cs.push(dense[j].map((v, c) => v + (dense[j + 1][c] - v) * t));
+    }
+    const tan = cs.map((p, i) => {
+      const a = cs[Math.max(0, i - 1)];
+      const b = cs[Math.min(cs.length - 1, i + 1)];
+      return norm3(toW([b[0] - a[0], b[1] - a[1], b[2] - a[2]]));
+    });
+    let nrm = norm3(cross3(cross3(tan[0], [0, 0, 1]), tan[0]));
+    if (!isFinite(nrm[0]) || Math.hypot(...nrm) < 0.5) nrm = norm3(cross3(cross3(tan[0], [1, 0, 0]), tan[0]));
+    const N = 16;
+    const rings = cs.map((c, i) => {
+      if (i) {
+        const d = dot3(nrm, tan[i]);
+        nrm = norm3([nrm[0] - d * tan[i][0], nrm[1] - d * tan[i][1], nrm[2] - d * tan[i][2]]);
+      }
+      const bin = cross3(tan[i], nrm);
+      const r = r0 + (r1 - r0) * (i / (cs.length - 1));
+      return Array.from({ length: N }, (_, j) => {
+        const a = (j / N) * 2 * Math.PI;
+        const v = [nrm[0] * Math.cos(a) + bin[0] * Math.sin(a), nrm[1] * Math.cos(a) + bin[1] * Math.sin(a), nrm[2] * Math.cos(a) + bin[2] * Math.sin(a)];
+        return { p: [c[0] + v[0] * r, c[1] - v[2] * r, c[2] - v[1] * r], v };
+      });
+    });
+    const facets = [];
+    for (let i = 0; i < rings.length - 1; i++)
+      for (let j = 0; j < N; j++) {
+        const a = rings[i][j], b = rings[i][(j + 1) % N], c = rings[i + 1][(j + 1) % N], d = rings[i + 1][j];
+        const nn = norm3([a.v[0] + b.v[0] + c.v[0] + d.v[0], a.v[1] + b.v[1] + c.v[1] + d.v[1], a.v[2] + b.v[2] + c.v[2] + d.v[2]]);
+        if (dot3(nn, VIEW) <= 0) continue;
+        facets.push({ key: key3((a.p[0] + c.p[0]) / 2, (a.p[1] + c.p[1]) / 2, (a.p[2] + c.p[2]) / 2), d: quad([P3(...a.p), P3(...b.p), P3(...c.p), P3(...d.p)]), fill: shine(nn, tones) });
+      }
+    [0, rings.length - 1].forEach((i, e) => {
+      if (!caps[e]) return;
+      const out = e ? tan[i] : tan[i].map((v) => -v);
+      if (dot3(out, VIEW) <= 0.02) return;
+      const c = cs[i];
+      const k = key3(c[0], c[1], c[2]) + 1;
+      facets.push({ key: k, d: quad(rings[i].map((x) => P3(...x.p))), fill: rgb(cssc("--a4-vwall", "#f3d9cf")) });
+      facets.push({ key: k + 0.01, d: quad(rings[i].map((x) => P3(c[0] + (x.p[0] - c[0]) * 0.72, c[1] + (x.p[1] - c[1]) * 0.72, c[2] + (x.p[2] - c[2]) * 0.72))), fill: rgb(mixc(tones[0], BLACK, 0.15)) });
+    });
+    facets.sort((x, y) => x.key - y.key);
+    return facets.map((f) => `<path d="${f.d}" fill="${f.fill}" stroke="${f.fill}" stroke-width="0.6" stroke-linejoin="round"/>`).join("");
+  }
+  {
+    const svgOf = (list) => list.map((v) => tube3(v.pts, v.r[0], v.r[1], T[v.cls], v.caps)).join("");
+    q('[data-part="behind"]').innerHTML = svgOf(DATA.v3.filter((v) => v.behind));
+    q('[data-part="vessels"]').innerHTML = svgOf(DATA.v3.filter((v) => !v.behind));
+    // a soft shadow on the floor under the heart (its outline and back half dropped straight down)
+    const pts = [];
+    const ring = closedRing(G.OUT, 48, 2);
+    const [cx, cy] = centroid(ring);
+    ring.forEach((p) => {
+      const r = 0.92 * Math.hypot(p[0] - cx, p[1] - cy);
+      for (const ph of [0, 0.6, 1.2, Math.PI / 2]) {
+        const u = [(p[0] - cx) / (r / 0.92), (p[1] - cy) / (r / 0.92)];
+        pts.push(P3(p[0] - u[0] * (1 - Math.cos(ph)) * r, DATA.floorY, Math.sin(ph) * r * 0.85));
+      }
+    });
+    const hull = (P) => {
+      const a = [...P].sort((m, n) => m[0] - n[0] || m[1] - n[1]);
+      const cr2 = (o, m, n) => (m[0] - o[0]) * (n[1] - o[1]) - (m[1] - o[1]) * (n[0] - o[0]);
+      const lo = [];
+      for (const v of a) {
+        while (lo.length >= 2 && cr2(lo[lo.length - 2], lo[lo.length - 1], v) <= 0) lo.pop();
+        lo.push(v);
+      }
+      const up = [];
+      for (const v of [...a].reverse()) {
+        while (up.length >= 2 && cr2(up[up.length - 2], up[up.length - 1], v) <= 0) up.pop();
+        up.push(v);
+      }
+      return [...lo.slice(0, -1), ...up.slice(0, -1)];
+    };
+    set('[data-part="floor"]', smooth(hull(pts), true, 0.8));
   }
 
   // ---------------------------------------------------------------- state, input, tour
   let rateAt = 0;
+  // turning the heart: a slow sway, and a horizontal drag takes over (vertical drags still scroll the page)
+  const turn = { yaw: 0.12, drag: null, held: -1e9, offset: 0 };
+  const swayAt = (s) => 0.12 + 0.4 * Math.sin((s * 2 * Math.PI) / 15);
+  if (H) {
+    stage.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      turn.drag = { x: e.clientX, yaw: turn.yaw, id: e.pointerId };
+      stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener("pointermove", (e) => {
+      if (!turn.drag || e.pointerId !== turn.drag.id) return;
+      turn.yaw = turn.drag.yaw + ((e.clientX - turn.drag.x) / Math.max(200, stage.clientWidth)) * 3.2;
+      turn.held = performance.now();
+      if (still.matches && stillBeat) draw(stillBeat, hr);
+    });
+    const end = (e) => {
+      if (turn.drag && e.pointerId === turn.drag.id) turn.drag = null;
+    };
+    stage.addEventListener("pointerup", end);
+    stage.addEventListener("pointercancel", end);
+  }
   let hr = HEART.rates[0];
   let hrShown = hr;
   let t = 0.6;
@@ -1663,6 +2584,7 @@ function mount(fig) {
     slowBtn.setAttribute("aria-pressed", speed < 1 ? "true" : "false");
     slowBtn.textContent = speed < 1 ? "Real time" : "Slow";
   });
+  let stillBeat = null;
   function renderStill() {
     // mid-ejection: aortic and pulmonary valves open, the base pulled down, the traces filled in
     hrShown = hr;
@@ -1679,9 +2601,11 @@ function mount(fig) {
       trace.push([tt, ecgAt(hr, bb.u), bb.V, bb.av > 0.5 ? 1 : 0, bb.semi > 0.5 ? 1 : 0]);
     }
     trace.pop();
-    draw(beatAt(hr, u), hr);
-    monitorDraw(0, beatAt(hr, u), hr);
+    stillBeat = beatAt(hr, u);
+    draw(stillBeat, hr);
+    monitorDraw(0, stillBeat, hr);
   }
+  if (H) new ResizeObserver(() => still.matches && stillBeat && draw(stillBeat, hr)).observe(stage);
   let touring = true;
   let idle = -1e9;
   let tourClock = 0;
@@ -1706,6 +2630,9 @@ function mount(fig) {
     t = phase * T1 + dt;
     clock += dt;
     const b = beatAt(hrShown, t);
+    // the sway resumes a few seconds after a drag, easing back from wherever the hand left it
+    turn.offset += dt;
+    if (!turn.drag && now - turn.held > 3500) turn.yaw += (swayAt(turn.offset) - turn.yaw) * (1 - Math.exp(-dt / speed / 1.2));
     stepCells(b, dt, hrShown);
     draw(b, hrShown);
     monitorDraw(clock, b, hrShown);
@@ -1741,7 +2668,7 @@ class Fig extends HTMLElement {
     if (this.shadowRoot) return;
     const root = this.attachShadow({ mode: "open" });
     const theme = this.getAttribute("theme") === "dark" ? "dark" : "light";
-    root.innerHTML = "<style>" + "\n.iso{\n  --anatomy-page:#0b0b0b;--anatomy-card:#131313;--anatomy-text:#a3a3a3;--anatomy-strong:#e6e6e6;--anatomy-muted:#6e6e6e;\n  --anatomy-paper:#131313;--anatomy-face:#1b1b1b;--anatomy-top:#1c1c1c;\n  --anatomy-shade-0:#0f0f0f;--anatomy-shade-1:#121212;--anatomy-shade-2:#151515;--anatomy-shade-3:#181818;\n  --anatomy-lit-top:#262626;--anatomy-lit-shade:#1d1d1d;\n  --anatomy-hi:#d4d4d4;--anatomy-mid:#6a6a6a;--anatomy-lo:#3e3e3e;--anatomy-faint:#2a2a2a;--anatomy-lit:#ffffff;\n  --anatomy-halo:#050505;--anatomy-halo-opacity:.9;--anatomy-dot:#e6e6e6;\n  --anatomy-red:#ff6b6b;--anatomy-green:#6be0a0;--anatomy-blue:#6b9bff;\n  --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);\n  --anatomy-mono:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;\n  --anatomy-lift:inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;\n}\n.iso[data-theme=\"light\"]{\n  --anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#8c8c90;\n  --anatomy-paper:#fbfbfa;--anatomy-face:#ffffff;--anatomy-top:#ffffff;\n  --anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;\n  --anatomy-lit-top:#ffffff;--anatomy-lit-shade:#eeeeeb;\n  --anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#000000;\n  --anatomy-halo:#8a8a80;--anatomy-halo-opacity:.32;--anatomy-dot:#3a3a3e;\n  --anatomy-red:#e5484d;--anatomy-green:#30a46c;--anatomy-blue:#3e63dd;\n  --anatomy-lift:inset 0 1px 0 0 #ffffff,0 0 0 1px #0000000f,0 1px 1px -.5px #0000000a,0 3px 3px -1.5px #0000000a,0 6px 6px -3px #0000000a,0 12px 12px -6px #0000000a;\n}\n.iso-svg{display:block;width:100%;height:auto;overflow:visible}\n.iso-svg path,.iso-svg circle{vector-effect:non-scaling-stroke}\n.iso-fill{fill:var(--anatomy-paper);stroke:none}\n.iso-solid[data-lit]>.iso-fill{fill:var(--anatomy-face)}\n.iso-shade,.iso-top{stroke:none}\n.iso-shade[data-shade=\"0\"]{fill:var(--anatomy-shade-0)}\n.iso-shade[data-shade=\"1\"]{fill:var(--anatomy-shade-1)}\n.iso-shade[data-shade=\"2\"]{fill:var(--anatomy-shade-2)}\n.iso-shade[data-shade=\"3\"]{fill:var(--anatomy-shade-3)}\n.iso-top{fill:var(--anatomy-top)}\n.iso-solid[data-lit]>.iso-top{fill:var(--anatomy-lit-top)}\n.iso-solid[data-lit]>.iso-shade{fill:var(--anatomy-lit-shade)}\n.iso-solid[data-seamless]>.iso-shade,.iso-solid[data-seamless]>.iso-top{stroke-width:.4;stroke-linejoin:round}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"0\"]{stroke:var(--anatomy-shade-0)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"1\"]{stroke:var(--anatomy-shade-1)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"2\"]{stroke:var(--anatomy-shade-2)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"3\"]{stroke:var(--anatomy-shade-3)}\n.iso-solid[data-seamless]>.iso-top{stroke:var(--anatomy-top)}\n.iso-solid[data-seamless][data-lit]>.iso-top{stroke:var(--anatomy-lit-top)}\n.iso-solid[data-seamless][data-lit]>.iso-shade{stroke:var(--anatomy-lit-shade)}\n.iso-solid[data-lit]>.iso-edge{stroke:var(--anatomy-lit)}\n.iso-halo{fill:var(--anatomy-halo);stroke:none;filter:blur(9px);opacity:var(--anatomy-halo-opacity);transform:translateY(3px)}\n.iso-line{fill:none;stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight);stroke-linecap:round;stroke-linejoin:round}\n.iso-line[data-tone=\"hi\"]{stroke:var(--anatomy-hi)}\n.iso-line[data-tone=\"mid\"]{stroke:var(--anatomy-mid)}\n.iso-line[data-tone=\"lo\"]{stroke:var(--anatomy-lo)}\n.iso-line[data-tone=\"faint\"]{stroke:var(--anatomy-faint)}\n.iso-line[data-tone=\"lit\"]{stroke:var(--anatomy-lit)}\n.iso-line[data-tone=\"red\"]{stroke:var(--anatomy-red)}\n.iso-line[data-tone=\"green\"]{stroke:var(--anatomy-green)}\n.iso-line[data-tone=\"blue\"]{stroke:var(--anatomy-blue)}\n.iso-line[data-dotted]{stroke-dasharray:.01 3.5;stroke-width:1}\n.iso-line[data-dashed]{stroke-dasharray:3 3}\n.iso-line[data-flow]{stroke-dasharray:2 6}\n.iso-wire-end{fill:var(--anatomy-paper);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}\n.iso-wire[data-tone=\"hi\"] .iso-wire-end{stroke:var(--anatomy-hi)}\n.iso-wire[data-tone=\"mid\"] .iso-wire-end{stroke:var(--anatomy-mid)}\n.iso-wire[data-tone=\"faint\"] .iso-wire-end{stroke:var(--anatomy-faint)}\n.iso-wire[data-tone=\"lit\"] .iso-wire-end{stroke:var(--anatomy-lit)}\n.iso-dots circle{fill:var(--anatomy-dot);stroke:none;opacity:.32}\n.iso-dots[data-tone=\"hi\"] circle{opacity:.85}\n.iso-dots[data-tone=\"mid\"] circle{opacity:.45}\n.iso-dots[data-tone=\"lo\"] circle{opacity:.22}\n.iso-dots[data-tone=\"faint\"] circle{opacity:.12}\n.iso-face-text{fill:var(--anatomy-mid);font-family:var(--anatomy-mono);letter-spacing:.04em}\n.iso-face-text[data-tone=\"hi\"]{fill:var(--anatomy-hi)}\n.iso-face-text[data-tone=\"lo\"]{fill:var(--anatomy-lo)}\n.iso-face-text[data-tone=\"faint\"]{fill:var(--anatomy-faint)}\n.tb-body{fill:var(--anatomy-shade-2);stroke:none}\n.tb-shine{fill:var(--anatomy-top);stroke:none}\n.tb-shade{fill:var(--anatomy-shade-0);stroke:none}\n.tb-ring{fill:none;stroke:var(--anatomy-lo);stroke-width:.45;stroke-linecap:butt;stroke-linejoin:round}\n.tb-ring[data-tone=\"mid\"]{stroke:var(--anatomy-mid)}\n.tb-ring[data-tone=\"faint\"]{stroke:var(--anatomy-faint)}\n.tb-ring[data-tone=\"hi\"]{stroke:var(--anatomy-hi)}\n@keyframes iso-flow{to{stroke-dashoffset:-32}}\n@keyframes iso-pulse{0%,100%{opacity:.18}12%{opacity:1}40%{opacity:.18}}\n.iso-line[data-flow]{animation:iso-flow 1600ms linear infinite}\n.iso-dots circle[data-pulse]{animation:iso-pulse 1600ms steps(1,end) infinite;animation-delay:var(--pulse-at,0ms)}\n.iso-figure{margin:32px 0 36px}\n.iso-plate{position:relative;padding:52px 24px;border-radius:0;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-mid);--anatomy-paper:var(--anatomy-card)}\n.iso-plate-corners{position:absolute;inset:18px 20px;pointer-events:none}\n.iso-plate-corner{position:absolute;color:var(--anatomy-muted);font-family:var(--anatomy-mono);font-size:10.5px;line-height:1;letter-spacing:.04em;white-space:nowrap}\n.iso-plate-corner[data-corner=\"fig\"]{top:0;left:0;color:var(--anatomy-text)}\n.iso-plate-corner[data-corner=\"title\"]{top:0;right:0;text-transform:uppercase;letter-spacing:.1em}\n.iso-plate-corner[data-corner=\"hint\"]{bottom:0;left:0;text-transform:uppercase;letter-spacing:.1em}\n.iso-plate-corner[data-corner=\"readout\"]{right:0;bottom:0;color:var(--anatomy-text);font-variant-numeric:tabular-nums}\n.iso-plate .iso-svg{margin:0 auto}\n.iso-legend{display:grid;gap:8px;margin-top:12px;color:var(--anatomy-muted);font-size:13px;line-height:1.55}\n.iso-keys{display:flex;flex-wrap:wrap;gap:6px 18px}\n.iso-key{display:inline-flex;align-items:center;gap:7px}\n.iso-swatch{width:16px;height:10px;flex:none;overflow:visible}\n.iso-swatch path{fill:none;stroke:var(--anatomy-hi);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}\n.iso-swatch[data-mark=\"raised\"] path,.iso-swatch[data-mark=\"flat\"] path{stroke:var(--anatomy-mid)}\n.iso-swatch[data-mark=\"lit\"] path{stroke:var(--anatomy-lit)}\n.iso-swatch[data-mark=\"dim\"] path{stroke:var(--anatomy-lo)}\n.iso-swatch[data-mark=\"dotted\"] path{stroke-dasharray:.01 3;stroke-width:1.4}\n.iso-swatch[data-mark=\"dashed\"] path{stroke-dasharray:3 2.5}\n.iso-swatch[data-mark=\"red\"] path{stroke:var(--anatomy-red)}\n.iso-swatch[data-mark=\"green\"] path{stroke:var(--anatomy-green)}\n.iso-swatch[data-mark=\"blue\"] path{stroke:var(--anatomy-blue)}\n.iso-swatch-crease{stroke:var(--anatomy-lo)!important}\n@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner=\"hint\"]{bottom:18px}}\n@media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}\n/*\n * Optimal theme for Anatomy figures.\n *\n * Load AFTER the kit's ISO_CSS. Put `class=\"iso optimal\"` on the wrapper:\n *   - no data-theme  -> \"Forest night\"  (exam-room TV, dark)\n *   - data-theme=\"light\" -> \"Cream\"     (beoptimal.ca, the primary target)\n *\n * Values come from the live site (beoptimal-landing src/index.css), the\n * Performance package design and the ALE visualizer spec. The kit's grey\n * ramps are warmed so solids sit on the site's cream paper, and the single\n * \"lit\" accent is Optimal forest green instead of pure black/white.\n */\n\n.iso.optimal {\n  /* Forest night (dark) */\n  --anatomy-page: #152511;\n  --anatomy-card: #1c3118;\n  --anatomy-text: #c9cdbf;\n  --anatomy-strong: #fffcf7;\n  --anatomy-muted: #8e9884;\n  --anatomy-paper: #1c3118;\n  --anatomy-face: #253821;\n  --anatomy-top: #283c24;\n  --anatomy-shade-0: #172812;\n  --anatomy-shade-1: #1a2c16;\n  --anatomy-shade-2: #1e321a;\n  --anatomy-shade-3: #22371e;\n  --anatomy-lit-top: #34492f;\n  --anatomy-lit-shade: #2a3f26;\n  --anatomy-hi: #e9e6dc;\n  --anatomy-mid: #7e8a74;\n  --anatomy-lo: #4d5c46;\n  --anatomy-faint: #33452e;\n  --anatomy-lit: #fffcf7;\n  --anatomy-halo: #0b1508;\n  --anatomy-halo-opacity: 0.9;\n  --anatomy-dot: #e9e6dc;\n  --anatomy-red: #e0745f;\n  --anatomy-green: #8cc67f;\n  --anatomy-blue: #7fa8d9;\n  --anatomy-mono: \"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace;\n\n  /* Optimal extras (use sparingly; colour only when colour is the subject) */\n  --opt-display: \"Castoro\", Georgia, serif;\n  --opt-ui: \"Public Sans\", system-ui, sans-serif;\n  --opt-forest: #2c4e25;\n  --opt-forest-light: #519044;\n  --opt-sage: #5e7a59;\n  --opt-borderline: #c97b2d;\n  --opt-out: #b3402f;\n  --opt-heat: #ff9776;\n}\n\n.iso.optimal[data-theme=\"light\"] {\n  /* Cream (light) */\n  --anatomy-page: #fef8f1;\n  --anatomy-card: #fffcf7;\n  --anatomy-text: #3e3d39;\n  --anatomy-strong: #252525;\n  --anatomy-muted: #76736d;\n  --anatomy-paper: #fffcf7;\n  --anatomy-face: #fffefb;\n  --anatomy-top: #fffefb;\n  --anatomy-shade-0: #ddd7cc;\n  --anatomy-shade-1: #e7e2d9;\n  --anatomy-shade-2: #f0ede5;\n  --anatomy-shade-3: #f6f3ec;\n  --anatomy-lit-top: #fffefb;\n  --anatomy-lit-shade: #efebe2;\n  --anatomy-hi: #252525;\n  --anatomy-mid: #8a867e;\n  --anatomy-lo: #b9b4aa;\n  --anatomy-faint: #d9d3c8;\n  --anatomy-lit: #2c4e25;\n  --anatomy-halo: #8a8070;\n  --anatomy-halo-opacity: 0.3;\n  --anatomy-dot: #3a3833;\n  --anatomy-red: #b3402f;\n  --anatomy-green: #3f7a35;\n  --anatomy-blue: #3e6a8f;\n}\n\n/* Card typography: brand fonts for titles and readouts, kit mono for plate corners */\n.iso.optimal .iso-plate-title,\n.iso.optimal [data-role=\"title\"] {\n  font-family: var(--opt-display);\n  letter-spacing: -0.02em;\n}\n.iso.optimal [data-role=\"readout\"],\n.iso.optimal .iso-readout {\n  font-family: var(--opt-ui);\n  font-feature-settings: \"tnum\" 1, \"ss01\" 1;\n}\n\n/*\n * Card layout for Optimal figures (shared/page.mjs `plate`).\n * Phone first: the drawing, then a row of real buttons (>=44 px), then a footer\n * where the hint and the readout wrap instead of overlapping at 320 px.\n */\n.iso.optimal {\n  --opt-rule: rgba(233, 230, 220, 0.16);\n  --opt-btn: rgba(233, 230, 220, 0.06);\n  --opt-btn-on: #e9e6dc;\n  --opt-btn-on-text: #1c3118;\n  --opt-title: #fffcf7;\n  --opt-fig: #8cc67f;\n  --opt-heat-ink: #ff9776;\n  --opt-heat-glow: rgba(255, 151, 118, 0.55);\n  --opt-heat-wash: rgba(255, 151, 118, 0.16);\n  --opt-cold-ink: #9cc3e6;\n}\n.iso.optimal[data-theme=\"light\"] {\n  --opt-rule: rgba(44, 78, 37, 0.2);\n  --opt-btn: #fffcf7;\n  --opt-btn-on: #2c4e25;\n  --opt-btn-on-text: #fffcf7;\n  --opt-title: #2c4e25;\n  --opt-fig: #5e7a59;\n  --opt-heat-ink: #c8552e;\n  --opt-heat-glow: rgba(232, 108, 64, 0.42);\n  --opt-heat-wash: rgba(255, 151, 118, 0.22);\n  --opt-cold-ink: #3e6a8f;\n}\n.iso.optimal .opt-plate {\n  padding: 52px 24px 20px;\n  box-shadow: 0 0 0 1px var(--opt-rule);\n  border-radius: 2px;\n}\n.iso.optimal .iso-plate-corner[data-corner=\"fig\"] {\n  font-family: var(--opt-display);\n  font-style: italic;\n  font-size: 15px;\n  letter-spacing: 0;\n  color: var(--opt-fig);\n  top: -2px;\n}\n.iso.optimal .iso-plate-corner[data-corner=\"title\"] {\n  font-family: var(--opt-display);\n  font-size: 17px;\n  text-transform: none;\n  letter-spacing: -0.01em;\n  color: var(--opt-title);\n  top: -4px;\n}\n.iso.optimal .opt-controls {\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: center;\n  gap: 8px 12px;\n  margin: 10px 0 0;\n}\n.iso.optimal .opt-seg {\n  display: inline-flex;\n  border-radius: 999px;\n  box-shadow: inset 0 0 0 1px var(--opt-rule);\n  padding: 3px;\n  gap: 2px;\n  max-width: 100%;\n}\n.iso.optimal .opt-seg-btn {\n  appearance: none;\n  border: 0;\n  margin: 0;\n  min-height: 44px;\n  min-width: min-content; /* never shrink a label below its longest word (with the padding, always ≥ 44 px) */\n  padding: 0 16px;\n  border-radius: 999px;\n  background: transparent;\n  color: var(--anatomy-text);\n  font: 500 14px/1.1 var(--opt-ui);\n  letter-spacing: 0;\n  cursor: pointer;\n  touch-action: manipulation;\n  -webkit-tap-highlight-color: transparent;\n  transition: background-color 240ms var(--anatomy-ease), color 240ms var(--anatomy-ease);\n}\n.iso.optimal .opt-seg-btn[aria-checked=\"true\"] {\n  background: var(--opt-btn-on);\n  color: var(--opt-btn-on-text);\n}\n.iso.optimal .opt-seg-btn:focus-visible {\n  outline: 2px solid var(--opt-fig);\n  outline-offset: 2px;\n}\n.iso.optimal .opt-foot {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: flex-end;\n  justify-content: space-between;\n  gap: 10px 20px;\n  margin-top: 16px;\n}\n.iso.optimal .opt-hint {\n  font-family: var(--anatomy-mono);\n  font-size: 10.5px;\n  line-height: 1.4;\n  letter-spacing: 0.1em;\n  text-transform: uppercase;\n  color: var(--anatomy-muted);\n  flex: 1 1 160px;\n  min-width: 0;\n}\n.iso.optimal .opt-readout {\n  display: grid;\n  grid-auto-flow: column;\n  gap: 4px 18px;\n  margin: 0;\n  font-family: var(--opt-ui);\n  font-feature-settings: \"tnum\" 1;\n}\n.iso.optimal .opt-stat { margin: 0; min-width: 0; }\n.iso.optimal .opt-stat dt {\n  font-size: 10px;\n  font-weight: 600;\n  letter-spacing: 0.12em;\n  text-transform: uppercase;\n  color: var(--anatomy-muted);\n  white-space: nowrap;\n}\n.iso.optimal .opt-stat dd {\n  margin: 1px 0 0;\n  font-size: 15px;\n  font-weight: 500;\n  color: var(--anatomy-strong);\n  white-space: nowrap;\n}\n.iso.optimal .iso-legend { font-family: var(--opt-ui); font-size: 13.5px; }\n.iso.optimal .iso-caption { color: var(--anatomy-text); }\n.iso.optimal .iso-caption em { font-style: italic; }\n.iso.optimal .iso-swatch[data-mark=\"heat\"] path { stroke: var(--opt-heat-ink); stroke-width: 2; }\n.iso.optimal .iso-stage { outline: none; border-radius: 4px; touch-action: pan-y; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }\n.iso.optimal .iso-stage:focus-visible { outline: 1px solid var(--anatomy-muted); outline-offset: 6px; }\n@media (max-width: 560px) {\n  .iso.optimal .opt-plate { padding: 44px 10px 14px; }\n  .iso.optimal .iso-plate-corners { inset: 16px 12px; }\n  .iso.optimal .opt-readout { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, auto)); width: 100%; justify-content: space-between; gap: 4px 10px; order: -1; }\n  .iso.optimal .opt-stat dd { font-size: 14px; }\n  /* a long label wraps onto two lines instead of running into its neighbour; values stay on one baseline */\n  .iso.optimal .opt-stat { display: flex; flex-direction: column; justify-content: space-between; }\n  .iso.optimal .opt-stat dt { white-space: normal; line-height: 1.25; }\n  .iso.optimal .opt-seg-btn { padding: 0 12px; font-size: 13.5px; }\n}\n@media (max-width: 350px) {\n  .iso.optimal .opt-seg-btn { padding: 0 7px; font-size: 12.5px; }\n  .iso.optimal .opt-stat dt { font-size: 9px; letter-spacing: 0.08em; }\n  .iso.optimal .opt-stat dd { font-size: 13px; }\n}\n\n:host{display:block}\n.opt-host{background:transparent;color:var(--anatomy-text);font:15px/1.6 var(--opt-ui);-webkit-font-smoothing:antialiased}\n.opt-host *{box-sizing:border-box}\n.opt-host .iso-figure{margin:0}\n/* A4 · the heart: muscle in a soft rose gradient, textbook blue and red pools, cream valves. */\n.iso.optimal {\n  --a4-m0: #9a4a3f; --a4-m1: #7a3530; --a4-m2: #5e2622; --a4-edge: #e2a99a;\n  --a4-ven: #4f5a97; --a4-art: #b9473c; --a4-ven-cell: #a9b4ec; --a4-art-cell: #ffc2b4;\n  --a4-valve: #f3e6d6; --a4-valve-edge: #c9a99a; --a4-chord: #e9d8c6; --a4-wall: #e2a99a;\n  --a4-g0: rgba(255, 151, 118, 0.22); --a4-g1: rgba(255, 151, 118, 0);\n  --a4-ecg-bg: #0f1b0c; --a4-ecg: #c9e3c1; --a4-ecg-dim: #33452e;\n  --a4-ven-pal: #d6dcff; --a4-art-pal: #ffe4dc; --a4-sheen: rgba(255, 240, 232, 0.22); --a4-lumen-ven: #262c55; --a4-lumen-art: #5e1c18; --a4-fibre: rgba(255, 200, 186, 0.16);\n}\n.iso.optimal[data-theme=\"light\"] {\n  --a4-m0: #e7a594; --a4-m1: #cf7f6e; --a4-m2: #b0604f; --a4-edge: #7a3a30;\n  --a4-ven: #8892cc; --a4-art: #dc6656; --a4-ven-cell: #3f4a96; --a4-art-cell: #8f261c;\n  --a4-valve: #fffaf2; --a4-valve-edge: #8a6a5e; --a4-chord: #8a6a5e; --a4-wall: #7a3a30;\n  --a4-g0: rgba(220, 102, 86, 0.18); --a4-g1: rgba(220, 102, 86, 0);\n  --a4-ecg-bg: #1d2a1a; --a4-ecg: #d9efd2; --a4-ecg-dim: #3d5436;\n  --a4-ven-pal: #7a84cf; --a4-art-pal: #d4604f; --a4-sheen: rgba(255, 255, 255, 0.4); --a4-lumen-ven: #3a427f; --a4-lumen-art: #7d2219; --a4-fibre: rgba(122, 58, 48, 0.2);\n}\n.a4-svg path, .a4-svg rect, .a4-svg circle { vector-effect: non-scaling-stroke; }\n.a4-m0 { stop-color: var(--a4-m0); } .a4-m1 { stop-color: var(--a4-m1); } .a4-m2 { stop-color: var(--a4-m2); }\n.a4-g0 { stop-color: var(--a4-g0); } .a4-g1 { stop-color: var(--a4-g1); }\n.a4-muscle { stroke: var(--a4-edge); stroke-width: 1.6; }\n.a4-pool { stroke: var(--a4-edge); stroke-width: 1.1; }\n.a4-ven { fill: var(--a4-ven); }\n.a4-art { fill: var(--a4-art); }\n.a4-vessel { stroke: var(--a4-wall); stroke-width: 1.4; stroke-linejoin: round; }\n.a4-valve { fill: var(--a4-valve); stroke: var(--a4-valve-edge); stroke-width: 0.9; }\n.a4-chordae { fill: none; stroke: var(--a4-chord); stroke-width: 0.7; opacity: 0.85; }\n.a4-pap { fill: url(#a4-muscle); stroke: var(--a4-edge); stroke-width: 1; }\n.a4-cell { stroke: rgba(0, 0, 0, 0.25); stroke-width: 0.5; }\n.a4-cell-ven { fill: var(--a4-ven-cell); } .a4-pal-ven { fill: var(--a4-ven-pal); }\n.a4-cell-art { fill: var(--a4-art-cell); } .a4-pal-art { fill: var(--a4-art-pal); }\n.a4-sheen { fill: none; stroke: var(--a4-sheen); stroke-linecap: round; }\n.a4-cap { stroke: var(--a4-wall); stroke-width: 1.2; }\n.a4-cap-ven { fill: var(--a4-ven); } .a4-cap-art { fill: var(--a4-art); }\n.a4-lumen-ven { fill: var(--a4-lumen-ven); } .a4-lumen-art { fill: var(--a4-lumen-art); }\n.a4-fibre { fill: none; stroke: var(--a4-fibre); stroke-width: 1.3; stroke-linecap: round; }\n.a4-glow { pointer-events: none; }\n.a4-ecg-bg { fill: var(--a4-ecg-bg); }\n.a4-ecg-base { fill: none; stroke: var(--a4-ecg-dim); stroke-width: 0.8; stroke-dasharray: 2 3; }\n.a4-ecg { fill: none; stroke: var(--a4-ecg); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }\n.a4-ecg-dot { fill: var(--a4-ecg); }\n.a4-row { display: flex; align-items: center; gap: 12px; margin: 10px 4px 0; }\n.a4-scene { flex: 1; margin: 0; font: 500 14px/1.4 var(--opt-ui); color: var(--anatomy-text); min-height: 2.8em; }\n.a4-slow { appearance: none; border: 0; min-height: 44px; min-width: 64px; padding: 0 14px; border-radius: 999px; background: transparent; box-shadow: inset 0 0 0 1px var(--opt-rule); color: var(--anatomy-text); font: 500 14px/1 var(--opt-ui); cursor: pointer; touch-action: manipulation; }\n.a4-slow[aria-pressed=\"true\"] { background: var(--opt-btn-on); color: var(--opt-btn-on-text); box-shadow: none; }\n.a4-slow:focus-visible { outline: 2px solid var(--opt-fig); outline-offset: 2px; }\n.a4-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }\n.a4-par { display: block; margin-top: 6px; }\n.a4-par:first-child { margin-top: 0; }\n.a4-par small { font-size: 12.5px; color: var(--anatomy-muted); }\n\n/* round 2: cut open front to back; vessels show wall bands and blood, the back half rounds away behind */\n.iso.optimal { --a4-vwall: #a8695f; }\n.iso.optimal[data-theme=\"light\"] { --a4-vwall: #f3d9cf; }\n.a4-front .a4-vessel { fill: var(--a4-vwall); }\n.a4-front .a4-lumen-cut.a4-lumen-ven { fill: var(--a4-ven); }\n.a4-front .a4-lumen-cut.a4-lumen-art { fill: var(--a4-art); }\n.a4-lumen-cut { stroke: var(--a4-wall); stroke-width: 0.5; stroke-opacity: 0.5; }\n.a4-front .a4-vessel-fill { stroke: none; }\n.a4-vessel-edge { fill: none; stroke: var(--a4-wall); stroke-width: 1.4; stroke-linejoin: round; }\n.a4-front .a4-lumen-cut { stroke: none; }\n\n/* round 4: the heart in 3-D: cut muscle, deep chambers, papillary muscles, 3-D leaflets, a vessel-lined back half */\n.iso.optimal { --a4-c0: #a9564d; --a4-c1: #7c3631; --a4-neck: #2c1012; --a4-fat: #b8963e; --a4-ridge-lit: rgba(255, 220, 210, 0.16); --a4-ridge-shade: rgba(0, 0, 0, 0.32); --a4-lumen-lit: rgba(255, 235, 228, 0.12); --a4-bar-in: #9ad38d; --a4-bar-out: #ffb86b; --a4-vol: #ff8b7b; }\n.iso.optimal[data-theme=\"light\"] { --a4-c0: #eca898; --a4-c1: #d07f6d; --a4-neck: #8c4239; --a4-fat: #f2d27a; --a4-ridge-lit: rgba(255, 245, 240, 0.38); --a4-ridge-shade: rgba(90, 30, 25, 0.22); --a4-lumen-lit: rgba(255, 255, 255, 0.24); --a4-bar-in: #9ad38d; --a4-bar-out: #ffb86b; --a4-vol: #ff9a8b; }\n.a4-c0 { stop-color: var(--a4-c0); } .a4-c1 { stop-color: var(--a4-c1); }\n.a4-cut { stroke: var(--a4-edge); stroke-width: 1.6; }\n.a4-open-rim { fill: none; stroke: var(--a4-edge); stroke-width: 1.2; stroke-linejoin: round; opacity: 0.85; }\n.a4-annulus { fill: var(--a4-valve); stroke: var(--a4-valve-edge); stroke-width: 0.8; }\n.a4-annulus-ring { fill: none; stroke: var(--a4-valve); stroke-width: 3.2; stroke-linecap: round; opacity: 0.9; }\n.a4-neck { fill: var(--a4-neck); }\n.a4-ridge-shade { fill: none; stroke: var(--a4-ridge-shade); stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-ridge-lit { fill: none; stroke: var(--a4-ridge-lit); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-leaf { stroke-linejoin: round; }\n.a4-leaf-edge { fill: none; stroke: var(--a4-valve-edge); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }\n.a4-cell-deep { opacity: 0.5; }\n.a4-epi-fat { opacity: 0.88; }\n.a4-cor { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-cor-edge { fill: none; stroke: rgba(0, 0, 0, 0.22); stroke-width: 5.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-cor-a { stroke-width: 2.6; }\n.a4-cor-edge.a4-cor-edge-a { stroke-width: 4.4; }\n.a4-lumen-lit { stroke: none; }\n.a4-lumen-lit-ven, .a4-lumen-lit-art { fill: var(--a4-lumen-lit); }\n.a4-mon-label { fill: var(--a4-ecg); font: 600 17px/1 var(--opt-ui); opacity: 0.85; }\n.a4-mon-num { fill: var(--a4-ecg); font: 500 17px/1 var(--opt-ui); font-variant-numeric: tabular-nums; }\n.a4-bar-track { fill: var(--a4-ecg-dim); opacity: 0.55; }\n.a4-bar-in { fill: var(--a4-bar-in); }\n.a4-bar-out { fill: var(--a4-bar-out); }\n.a4-vol { fill: none; stroke: var(--a4-vol); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }\n.a4-vol-dot { fill: var(--a4-vol); }\n" + "</style><div class=\"iso optimal opt-host\" data-theme=\"" + theme + "\">" + "<figure class=\"iso-figure opt-figure \"><div class=\"iso-plate opt-plate\"><div class=\"iso-plate-corners\" aria-hidden=\"true\"><span class=\"iso-plate-corner\" data-corner=\"fig\">A4</span><span class=\"iso-plate-corner\" data-corner=\"title\">The beating heart</span></div><div class=\"iso-stage a4-stage\"><svg class=\"iso-svg a4-svg\" viewBox=\"0 0 600 782\" role=\"img\" aria-label=\"The heart cut open front to back and seen in 3-D, beating: deep chambers with ridged walls, papillary muscles and cords holding the valve leaflets, and a round back half lined with its own vessels. Oxygen-poor blood (blue) comes in through the venae cavae to the right atrium, passes the tricuspid valve into the right ventricle and leaves through the pulmonary valve for the lungs. Oxygen-rich blood (red) returns through the pulmonary veins to the left atrium, passes the mitral valve into the thick-walled left ventricle and leaves through the aortic valve into the aorta. A monitor underneath runs the ECG, the left ventricle's volume and when the valves are open.\">\n<defs>\n  <radialGradient id=\"a4-muscle\" cx=\"38%\" cy=\"34%\" r=\"72%\"><stop offset=\"0\" class=\"a4-m0\"/><stop offset=\"0.65\" class=\"a4-m1\"/><stop offset=\"1\" class=\"a4-m2\"/></radialGradient>\n  <radialGradient id=\"a4-glow-g\" cx=\"50%\" cy=\"50%\" r=\"50%\"><stop offset=\"0\" class=\"a4-g0\"/><stop offset=\"1\" class=\"a4-g1\"/></radialGradient>\n</defs>\n<g transform=\"matrix(0.8672 0.1875 0.0000 0.8972 -14.07 12.83)\"><g data-part=\"behind\"></g><g data-v=\"desc\"></g></g>\n<g transform=\"matrix(0.8672 0.1875 0.0000 0.8972 -14.07 12.83)\"><g class=\"a4-far\" data-part=\"far\"></g></g>\n<g class=\"a4-front\" transform=\"matrix(0.8672 0.1875 0.0000 0.8972 -14.07 12.83)\">\n<defs>\n  <mask id=\"a4-cutmask\" maskUnits=\"userSpaceOnUse\" x=\"-200\" y=\"-200\" width=\"1000\" height=\"1000\"><rect x=\"-200\" y=\"-200\" width=\"1000\" height=\"1000\" fill=\"#fff\"/><path data-part=\"holes\" fill=\"#000\"/></mask>\n  <clipPath id=\"a4-muscleclip\"><path data-part=\"outerClip\"/></clipPath>\n  <clipPath id=\"a4-clipRA\"><path data-part=\"clipRA\"/></clipPath><clipPath id=\"a4-clipLA\"><path data-part=\"clipLA\"/></clipPath>\n  <clipPath id=\"a4-clipRV\"><path data-part=\"clipRV\"/></clipPath><clipPath id=\"a4-clipLV\"><path data-part=\"clipLV\"/></clipPath>\n  <radialGradient id=\"a4-cutg\" gradientUnits=\"userSpaceOnUse\" cx=\"300\" cy=\"300\" r=\"260\"><stop offset=\"0\" class=\"a4-c0\"/><stop offset=\"1\" class=\"a4-c1\"/></radialGradient>\n</defs>\n<g data-v=\"rpa\"></g><g data-v=\"pv\"></g><g data-v=\"ivc\"></g><g data-v=\"svc\"></g>\n<g class=\"a4-cav\" data-part=\"cav\"></g>\n<g mask=\"url(#a4-cutmask)\">\n  <path class=\"a4-cut\" data-part=\"outer\" fill=\"url(#a4-cutg)\"/>\n  <g clip-path=\"url(#a4-muscleclip)\"><path class=\"a4-fibre\" data-part=\"fibres\"/></g>\n</g>\n<path class=\"a4-open-rim\" data-part=\"rims\"/>\n<path class=\"a4-annulus\" data-part=\"annuli\"/>\n<path class=\"a4-valve\" data-part=\"valves\"/>\n<g data-v=\"branches\"></g><g data-v=\"aorta\"></g><g data-v=\"pt\"></g>\n<path class=\"a4-cell a4-cell-ven\" data-part=\"vcellsR\"/><path class=\"a4-cell a4-cell-art\" data-part=\"vcellsL\"/>\n</g>\n<g class=\"a4-mon\">\n<rect class=\"a4-ecg-bg\" x=\"24\" y=\"606\" width=\"552\" height=\"170\" rx=\"10\"/>\n<text class=\"a4-mon-label\" x=\"40\" y=\"644\">ECG</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"692\">Left ventricle</text>\n<text class=\"a4-mon-num\" x=\"40\" y=\"714\" data-part=\"volnow\">120 mL</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"743\">Valves in</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"761\">Valves out</text>\n<path class=\"a4-ecg-base\" d=\"M168 650H560M168 718H560M168 670H560\"/>\n<path class=\"a4-bar-track\" d=\"M168 734H560V743H168ZM168 752H560V761H168Z\"/>\n<path class=\"a4-bar-in\" data-part=\"barIn\"/><path class=\"a4-bar-out\" data-part=\"barOut\"/>\n<path class=\"a4-vol\" data-part=\"vol\"/><circle class=\"a4-vol-dot\" data-part=\"voldot\" r=\"3.2\"/>\n<path class=\"a4-ecg\" data-part=\"ecg\"/><circle class=\"a4-ecg-dot\" data-part=\"ecgdot\" r=\"3\"/>\n</g>\n</svg></div><div class=\"a4-row\"><p class=\"a4-scene\" data-scene>Resting: about one beat a second, most of it spent filling.</p><button type=\"button\" class=\"a4-slow\" data-slow aria-pressed=\"false\">Slow</button></div><span class=\"a4-sr\" role=\"status\" aria-live=\"polite\" data-status></span><div class=\"opt-controls\"><div class=\"opt-seg\" role=\"radiogroup\" aria-label=\"Heart rate\" data-control=\"rate\"><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"60\" aria-checked=\"true\" tabindex=\"0\">Rest</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"100\" aria-checked=\"false\" tabindex=\"-1\">Walk</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"140\" aria-checked=\"false\" tabindex=\"-1\">Run</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"176\" aria-checked=\"false\" tabindex=\"-1\">All out</button></div></div><div class=\"opt-foot\"><span class=\"opt-hint\">Pick a heart rate · Slow to watch the valves</span><dl class=\"opt-readout\" data-readout aria-hidden=\"true\"><div class=\"opt-stat\" data-stat=\"hr\"><dt>Heart rate</dt><dd data-r=\"hr\">60 bpm</dd></div><div class=\"opt-stat\" data-stat=\"sv\"><dt>Per beat</dt><dd data-r=\"sv\">70 mL</dd></div><div class=\"opt-stat\" data-stat=\"co\"><dt>Per minute</dt><dd data-r=\"co\">4.2 L/min</dd></div></dl></div></div><figcaption class=\"iso-legend\"><span class=\"iso-keys\"><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"lit\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z\"/><path class=\"iso-swatch-crease\" d=\"M2 4.5 8 7.5 14 4.5\"/></svg>Valves</span><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"heat\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M1.5 5h13\"/></svg>Oxygen-rich blood, left side</span><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"raised\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z\"/><path class=\"iso-swatch-crease\" d=\"M2 4.5 8 7.5 14 4.5\"/></svg>Heart muscle</span></span><span class=\"iso-caption\"><span class=\"a4-par\">Each beat starts with a small squeeze of the two upper chambers, the atria. Then the two lower chambers, the ventricles, contract together: the valves between upper and lower chambers snap shut, pressure builds, and the outflow valves open. The right side sends oxygen-poor blood (blue) to the lungs; the thick-walled left side sends oxygen-rich blood (red) to the whole body. Cords inside the ventricles (chordae) tie the valve leaflets to small muscles in the walls, so the valves hold shut instead of blowing back into the atria. The monitor below tracks the ECG, the left ventricle's volume and when each set of valves is open.</span><span class=\"a4-par\">At rest, about 70 mL leaves each ventricle per beat, 4.2 litres a minute. Flat out, the heart beats about three times as often and empties more fully with each beat, so its output rises to roughly 20 litres a minute. That is the delivery side of VO₂max.</span><span class=\"a4-par\"><small>Typical adult values (end of filling ≈ 120 mL, end of ejection ≈ 50 mL at rest); individual hearts differ. Blue and red follow the textbook convention: venous blood is dark red, not blue. As the ventricles squeeze, the valve plane is pulled toward the tip of the heart, which draws blood into the atria at the same time. The ECG is a drawing timed to the beat. The chambers' depth, the muscle ridges and the swirl of blood as the left ventricle fills are drawn, not measured.</small></span></span></figcaption></figure>" + "</div>";
+    root.innerHTML = "<style>" + "\n.iso{\n  --anatomy-page:#0b0b0b;--anatomy-card:#131313;--anatomy-text:#a3a3a3;--anatomy-strong:#e6e6e6;--anatomy-muted:#6e6e6e;\n  --anatomy-paper:#131313;--anatomy-face:#1b1b1b;--anatomy-top:#1c1c1c;\n  --anatomy-shade-0:#0f0f0f;--anatomy-shade-1:#121212;--anatomy-shade-2:#151515;--anatomy-shade-3:#181818;\n  --anatomy-lit-top:#262626;--anatomy-lit-shade:#1d1d1d;\n  --anatomy-hi:#d4d4d4;--anatomy-mid:#6a6a6a;--anatomy-lo:#3e3e3e;--anatomy-faint:#2a2a2a;--anatomy-lit:#ffffff;\n  --anatomy-halo:#050505;--anatomy-halo-opacity:.9;--anatomy-dot:#e6e6e6;\n  --anatomy-red:#ff6b6b;--anatomy-green:#6be0a0;--anatomy-blue:#6b9bff;\n  --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);\n  --anatomy-mono:ui-monospace,\"SF Mono\",Menlo,Consolas,monospace;\n  --anatomy-lift:inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;\n}\n.iso[data-theme=\"light\"]{\n  --anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#8c8c90;\n  --anatomy-paper:#fbfbfa;--anatomy-face:#ffffff;--anatomy-top:#ffffff;\n  --anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;\n  --anatomy-lit-top:#ffffff;--anatomy-lit-shade:#eeeeeb;\n  --anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#000000;\n  --anatomy-halo:#8a8a80;--anatomy-halo-opacity:.32;--anatomy-dot:#3a3a3e;\n  --anatomy-red:#e5484d;--anatomy-green:#30a46c;--anatomy-blue:#3e63dd;\n  --anatomy-lift:inset 0 1px 0 0 #ffffff,0 0 0 1px #0000000f,0 1px 1px -.5px #0000000a,0 3px 3px -1.5px #0000000a,0 6px 6px -3px #0000000a,0 12px 12px -6px #0000000a;\n}\n.iso-svg{display:block;width:100%;height:auto;overflow:visible}\n.iso-svg path,.iso-svg circle{vector-effect:non-scaling-stroke}\n.iso-fill{fill:var(--anatomy-paper);stroke:none}\n.iso-solid[data-lit]>.iso-fill{fill:var(--anatomy-face)}\n.iso-shade,.iso-top{stroke:none}\n.iso-shade[data-shade=\"0\"]{fill:var(--anatomy-shade-0)}\n.iso-shade[data-shade=\"1\"]{fill:var(--anatomy-shade-1)}\n.iso-shade[data-shade=\"2\"]{fill:var(--anatomy-shade-2)}\n.iso-shade[data-shade=\"3\"]{fill:var(--anatomy-shade-3)}\n.iso-top{fill:var(--anatomy-top)}\n.iso-solid[data-lit]>.iso-top{fill:var(--anatomy-lit-top)}\n.iso-solid[data-lit]>.iso-shade{fill:var(--anatomy-lit-shade)}\n.iso-solid[data-seamless]>.iso-shade,.iso-solid[data-seamless]>.iso-top{stroke-width:.4;stroke-linejoin:round}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"0\"]{stroke:var(--anatomy-shade-0)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"1\"]{stroke:var(--anatomy-shade-1)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"2\"]{stroke:var(--anatomy-shade-2)}\n.iso-solid[data-seamless]>.iso-shade[data-shade=\"3\"]{stroke:var(--anatomy-shade-3)}\n.iso-solid[data-seamless]>.iso-top{stroke:var(--anatomy-top)}\n.iso-solid[data-seamless][data-lit]>.iso-top{stroke:var(--anatomy-lit-top)}\n.iso-solid[data-seamless][data-lit]>.iso-shade{stroke:var(--anatomy-lit-shade)}\n.iso-solid[data-lit]>.iso-edge{stroke:var(--anatomy-lit)}\n.iso-halo{fill:var(--anatomy-halo);stroke:none;filter:blur(9px);opacity:var(--anatomy-halo-opacity);transform:translateY(3px)}\n.iso-line{fill:none;stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight);stroke-linecap:round;stroke-linejoin:round}\n.iso-line[data-tone=\"hi\"]{stroke:var(--anatomy-hi)}\n.iso-line[data-tone=\"mid\"]{stroke:var(--anatomy-mid)}\n.iso-line[data-tone=\"lo\"]{stroke:var(--anatomy-lo)}\n.iso-line[data-tone=\"faint\"]{stroke:var(--anatomy-faint)}\n.iso-line[data-tone=\"lit\"]{stroke:var(--anatomy-lit)}\n.iso-line[data-tone=\"red\"]{stroke:var(--anatomy-red)}\n.iso-line[data-tone=\"green\"]{stroke:var(--anatomy-green)}\n.iso-line[data-tone=\"blue\"]{stroke:var(--anatomy-blue)}\n.iso-line[data-dotted]{stroke-dasharray:.01 3.5;stroke-width:1}\n.iso-line[data-dashed]{stroke-dasharray:3 3}\n.iso-line[data-flow]{stroke-dasharray:2 6}\n.iso-wire-end{fill:var(--anatomy-paper);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}\n.iso-wire[data-tone=\"hi\"] .iso-wire-end{stroke:var(--anatomy-hi)}\n.iso-wire[data-tone=\"mid\"] .iso-wire-end{stroke:var(--anatomy-mid)}\n.iso-wire[data-tone=\"faint\"] .iso-wire-end{stroke:var(--anatomy-faint)}\n.iso-wire[data-tone=\"lit\"] .iso-wire-end{stroke:var(--anatomy-lit)}\n.iso-dots circle{fill:var(--anatomy-dot);stroke:none;opacity:.32}\n.iso-dots[data-tone=\"hi\"] circle{opacity:.85}\n.iso-dots[data-tone=\"mid\"] circle{opacity:.45}\n.iso-dots[data-tone=\"lo\"] circle{opacity:.22}\n.iso-dots[data-tone=\"faint\"] circle{opacity:.12}\n.iso-face-text{fill:var(--anatomy-mid);font-family:var(--anatomy-mono);letter-spacing:.04em}\n.iso-face-text[data-tone=\"hi\"]{fill:var(--anatomy-hi)}\n.iso-face-text[data-tone=\"lo\"]{fill:var(--anatomy-lo)}\n.iso-face-text[data-tone=\"faint\"]{fill:var(--anatomy-faint)}\n.tb-body{fill:var(--anatomy-shade-2);stroke:none}\n.tb-shine{fill:var(--anatomy-top);stroke:none}\n.tb-shade{fill:var(--anatomy-shade-0);stroke:none}\n.tb-ring{fill:none;stroke:var(--anatomy-lo);stroke-width:.45;stroke-linecap:butt;stroke-linejoin:round}\n.tb-ring[data-tone=\"mid\"]{stroke:var(--anatomy-mid)}\n.tb-ring[data-tone=\"faint\"]{stroke:var(--anatomy-faint)}\n.tb-ring[data-tone=\"hi\"]{stroke:var(--anatomy-hi)}\n@keyframes iso-flow{to{stroke-dashoffset:-32}}\n@keyframes iso-pulse{0%,100%{opacity:.18}12%{opacity:1}40%{opacity:.18}}\n.iso-line[data-flow]{animation:iso-flow 1600ms linear infinite}\n.iso-dots circle[data-pulse]{animation:iso-pulse 1600ms steps(1,end) infinite;animation-delay:var(--pulse-at,0ms)}\n.iso-figure{margin:32px 0 36px}\n.iso-plate{position:relative;padding:52px 24px;border-radius:0;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-mid);--anatomy-paper:var(--anatomy-card)}\n.iso-plate-corners{position:absolute;inset:18px 20px;pointer-events:none}\n.iso-plate-corner{position:absolute;color:var(--anatomy-muted);font-family:var(--anatomy-mono);font-size:10.5px;line-height:1;letter-spacing:.04em;white-space:nowrap}\n.iso-plate-corner[data-corner=\"fig\"]{top:0;left:0;color:var(--anatomy-text)}\n.iso-plate-corner[data-corner=\"title\"]{top:0;right:0;text-transform:uppercase;letter-spacing:.1em}\n.iso-plate-corner[data-corner=\"hint\"]{bottom:0;left:0;text-transform:uppercase;letter-spacing:.1em}\n.iso-plate-corner[data-corner=\"readout\"]{right:0;bottom:0;color:var(--anatomy-text);font-variant-numeric:tabular-nums}\n.iso-plate .iso-svg{margin:0 auto}\n.iso-legend{display:grid;gap:8px;margin-top:12px;color:var(--anatomy-muted);font-size:13px;line-height:1.55}\n.iso-keys{display:flex;flex-wrap:wrap;gap:6px 18px}\n.iso-key{display:inline-flex;align-items:center;gap:7px}\n.iso-swatch{width:16px;height:10px;flex:none;overflow:visible}\n.iso-swatch path{fill:none;stroke:var(--anatomy-hi);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}\n.iso-swatch[data-mark=\"raised\"] path,.iso-swatch[data-mark=\"flat\"] path{stroke:var(--anatomy-mid)}\n.iso-swatch[data-mark=\"lit\"] path{stroke:var(--anatomy-lit)}\n.iso-swatch[data-mark=\"dim\"] path{stroke:var(--anatomy-lo)}\n.iso-swatch[data-mark=\"dotted\"] path{stroke-dasharray:.01 3;stroke-width:1.4}\n.iso-swatch[data-mark=\"dashed\"] path{stroke-dasharray:3 2.5}\n.iso-swatch[data-mark=\"red\"] path{stroke:var(--anatomy-red)}\n.iso-swatch[data-mark=\"green\"] path{stroke:var(--anatomy-green)}\n.iso-swatch[data-mark=\"blue\"] path{stroke:var(--anatomy-blue)}\n.iso-swatch-crease{stroke:var(--anatomy-lo)!important}\n@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner=\"hint\"]{bottom:18px}}\n@media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}\n/*\n * Optimal theme for Anatomy figures.\n *\n * Load AFTER the kit's ISO_CSS. Put `class=\"iso optimal\"` on the wrapper:\n *   - no data-theme  -> \"Forest night\"  (exam-room TV, dark)\n *   - data-theme=\"light\" -> \"Cream\"     (beoptimal.ca, the primary target)\n *\n * Values come from the live site (beoptimal-landing src/index.css), the\n * Performance package design and the ALE visualizer spec. The kit's grey\n * ramps are warmed so solids sit on the site's cream paper, and the single\n * \"lit\" accent is Optimal forest green instead of pure black/white.\n */\n\n.iso.optimal {\n  /* Forest night (dark) */\n  --anatomy-page: #152511;\n  --anatomy-card: #1c3118;\n  --anatomy-text: #c9cdbf;\n  --anatomy-strong: #fffcf7;\n  --anatomy-muted: #8e9884;\n  --anatomy-paper: #1c3118;\n  --anatomy-face: #253821;\n  --anatomy-top: #283c24;\n  --anatomy-shade-0: #172812;\n  --anatomy-shade-1: #1a2c16;\n  --anatomy-shade-2: #1e321a;\n  --anatomy-shade-3: #22371e;\n  --anatomy-lit-top: #34492f;\n  --anatomy-lit-shade: #2a3f26;\n  --anatomy-hi: #e9e6dc;\n  --anatomy-mid: #7e8a74;\n  --anatomy-lo: #4d5c46;\n  --anatomy-faint: #33452e;\n  --anatomy-lit: #fffcf7;\n  --anatomy-halo: #0b1508;\n  --anatomy-halo-opacity: 0.9;\n  --anatomy-dot: #e9e6dc;\n  --anatomy-red: #e0745f;\n  --anatomy-green: #8cc67f;\n  --anatomy-blue: #7fa8d9;\n  --anatomy-mono: \"JetBrains Mono\", ui-monospace, \"SF Mono\", Menlo, Consolas, monospace;\n\n  /* Optimal extras (use sparingly; colour only when colour is the subject) */\n  --opt-display: \"Castoro\", Georgia, serif;\n  --opt-ui: \"Public Sans\", system-ui, sans-serif;\n  --opt-forest: #2c4e25;\n  --opt-forest-light: #519044;\n  --opt-sage: #5e7a59;\n  --opt-borderline: #c97b2d;\n  --opt-out: #b3402f;\n  --opt-heat: #ff9776;\n}\n\n.iso.optimal[data-theme=\"light\"] {\n  /* Cream (light) */\n  --anatomy-page: #fef8f1;\n  --anatomy-card: #fffcf7;\n  --anatomy-text: #3e3d39;\n  --anatomy-strong: #252525;\n  --anatomy-muted: #716e68; /* 4.97:1 on the cream card (was 4.46:1 for the legend) */\n  --anatomy-paper: #fffcf7;\n  --anatomy-face: #fffefb;\n  --anatomy-top: #fffefb;\n  --anatomy-shade-0: #ddd7cc;\n  --anatomy-shade-1: #e7e2d9;\n  --anatomy-shade-2: #f0ede5;\n  --anatomy-shade-3: #f6f3ec;\n  --anatomy-lit-top: #fffefb;\n  --anatomy-lit-shade: #efebe2;\n  --anatomy-hi: #252525;\n  --anatomy-mid: #8a867e;\n  --anatomy-lo: #b9b4aa;\n  --anatomy-faint: #d9d3c8;\n  --anatomy-lit: #2c4e25;\n  --anatomy-halo: #8a8070;\n  --anatomy-halo-opacity: 0.3;\n  --anatomy-dot: #3a3833;\n  --anatomy-red: #b3402f;\n  --anatomy-green: #3f7a35;\n  --anatomy-blue: #3e6a8f;\n}\n\n/* Card typography: brand fonts for titles and readouts, kit mono for plate corners */\n.iso.optimal .iso-plate-title,\n.iso.optimal [data-role=\"title\"] {\n  font-family: var(--opt-display);\n  letter-spacing: -0.02em;\n}\n.iso.optimal [data-role=\"readout\"],\n.iso.optimal .iso-readout {\n  font-family: var(--opt-ui);\n  font-feature-settings: \"tnum\" 1, \"ss01\" 1;\n}\n\n/*\n * Card layout for Optimal figures (shared/page.mjs `plate`).\n * Phone first: the drawing, then a row of real buttons (>=44 px), then a footer\n * where the hint and the readout wrap instead of overlapping at 320 px.\n */\n.iso.optimal {\n  --opt-rule: rgba(233, 230, 220, 0.16);\n  --opt-btn: rgba(233, 230, 220, 0.06);\n  --opt-btn-on: #e9e6dc;\n  --opt-btn-on-text: #1c3118;\n  --opt-title: #fffcf7;\n  --opt-fig: #8cc67f;\n  --opt-heat-ink: #ff9776;\n  --opt-heat-glow: rgba(255, 151, 118, 0.55);\n  --opt-heat-wash: rgba(255, 151, 118, 0.16);\n  --opt-cold-ink: #9cc3e6;\n}\n.iso.optimal[data-theme=\"light\"] {\n  --opt-rule: rgba(44, 78, 37, 0.2);\n  --opt-btn: #fffcf7;\n  --opt-btn-on: #2c4e25;\n  --opt-btn-on-text: #fffcf7;\n  --opt-title: #2c4e25;\n  --opt-fig: #5e7a59;\n  --opt-heat-ink: #c8552e;\n  --opt-heat-glow: rgba(232, 108, 64, 0.42);\n  --opt-heat-wash: rgba(255, 151, 118, 0.22);\n  --opt-cold-ink: #3e6a8f;\n}\n.iso.optimal .opt-plate {\n  padding: 52px 24px 20px;\n  box-shadow: 0 0 0 1px var(--opt-rule);\n  border-radius: 2px;\n}\n.iso.optimal .iso-plate-corner[data-corner=\"fig\"] {\n  font-family: var(--opt-display);\n  font-style: italic;\n  font-size: 15px;\n  letter-spacing: 0;\n  color: var(--opt-fig);\n  top: -2px;\n}\n.iso.optimal .iso-plate-corner[data-corner=\"title\"] {\n  font-family: var(--opt-display);\n  font-size: 17px;\n  text-transform: none;\n  letter-spacing: -0.01em;\n  color: var(--opt-title);\n  top: -4px;\n}\n.iso.optimal .opt-controls {\n  display: flex;\n  flex-wrap: wrap;\n  justify-content: center;\n  gap: 8px 12px;\n  margin: 10px 0 0;\n}\n.iso.optimal .opt-seg {\n  display: inline-flex;\n  border-radius: 999px;\n  box-shadow: inset 0 0 0 1px var(--opt-rule);\n  padding: 3px;\n  gap: 2px;\n  max-width: 100%;\n}\n.iso.optimal .opt-seg-btn {\n  appearance: none;\n  border: 0;\n  margin: 0;\n  min-height: 44px;\n  min-width: min-content; /* never shrink a label below its longest word (with the padding, always ≥ 44 px) */\n  padding: 0 16px;\n  border-radius: 999px;\n  background: transparent;\n  color: var(--anatomy-text);\n  font: 500 14px/1.1 var(--opt-ui);\n  letter-spacing: 0;\n  cursor: pointer;\n  touch-action: manipulation;\n  -webkit-tap-highlight-color: transparent;\n  transition: background-color 240ms var(--anatomy-ease), color 240ms var(--anatomy-ease);\n}\n/* A zero-height 30 px strut keeps every option at least 44 px wide, even \"Arm\", \"Leg\" or \"+5%\" with the\n   7 px padding below 350 px (min-content alone let them shrink to 36 px). */\n.iso.optimal .opt-seg-btn::after {\n  content: \"\";\n  display: block;\n  width: 30px;\n  height: 0;\n  margin: 0 auto;\n}\n.iso.optimal .opt-seg-btn[aria-checked=\"true\"] {\n  background: var(--opt-btn-on);\n  color: var(--opt-btn-on-text);\n}\n.iso.optimal .opt-seg-btn:focus-visible {\n  outline: 2px solid var(--opt-fig);\n  outline-offset: 2px;\n}\n.iso.optimal .opt-foot {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: flex-end;\n  justify-content: space-between;\n  gap: 10px 20px;\n  margin-top: 16px;\n}\n.iso.optimal .opt-hint {\n  font-family: var(--anatomy-mono);\n  font-size: 10.5px;\n  line-height: 1.4;\n  letter-spacing: 0.1em;\n  text-transform: uppercase;\n  color: var(--anatomy-muted);\n  flex: 1 1 160px;\n  min-width: 0;\n}\n.iso.optimal .opt-readout {\n  display: grid;\n  grid-auto-flow: column;\n  gap: 4px 18px;\n  margin: 0;\n  font-family: var(--opt-ui);\n  font-feature-settings: \"tnum\" 1;\n}\n.iso.optimal .opt-stat { margin: 0; min-width: 0; }\n.iso.optimal .opt-stat dt {\n  font-size: 10px;\n  font-weight: 600;\n  letter-spacing: 0.12em;\n  text-transform: uppercase;\n  color: var(--anatomy-muted);\n  white-space: nowrap;\n}\n.iso.optimal .opt-stat dd {\n  margin: 1px 0 0;\n  font-size: 15px;\n  font-weight: 500;\n  color: var(--anatomy-strong);\n  white-space: nowrap;\n}\n.iso.optimal .iso-legend { font-family: var(--opt-ui); font-size: 13.5px; }\n.iso.optimal .iso-caption { color: var(--anatomy-text); }\n.iso.optimal .iso-caption em { font-style: italic; }\n.iso.optimal .iso-swatch[data-mark=\"heat\"] path { stroke: var(--opt-heat-ink); stroke-width: 2; }\n.iso.optimal .iso-stage { outline: none; border-radius: 4px; touch-action: pan-y; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }\n.iso.optimal .iso-stage:focus-visible { outline: 1px solid var(--anatomy-muted); outline-offset: 6px; }\n@media (max-width: 560px) {\n  .iso.optimal .opt-plate { padding: 44px 10px 14px; }\n  .iso.optimal .iso-plate-corners { inset: 16px 12px; }\n  .iso.optimal .opt-readout { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, auto)); width: 100%; justify-content: space-between; gap: 4px 10px; order: -1; }\n  .iso.optimal .opt-stat dd { font-size: 14px; }\n  /* a long label wraps onto two lines instead of running into its neighbour; values stay on one baseline */\n  .iso.optimal .opt-stat { display: flex; flex-direction: column; justify-content: space-between; }\n  .iso.optimal .opt-stat dt { white-space: normal; line-height: 1.25; }\n  .iso.optimal .opt-seg-btn { padding: 0 12px; font-size: 13.5px; }\n}\n@media (max-width: 350px) {\n  .iso.optimal .opt-seg-btn { padding: 0 7px; font-size: 12.5px; }\n  .iso.optimal .opt-stat dt { font-size: 9px; letter-spacing: 0.08em; }\n  .iso.optimal .opt-stat dd { font-size: 13px; }\n}\n\n:host{display:block}\n.opt-host{background:transparent;color:var(--anatomy-text);font:15px/1.6 var(--opt-ui);-webkit-font-smoothing:antialiased}\n.opt-host *{box-sizing:border-box}\n.opt-host .iso-figure{margin:0}\n/* A4 · the heart: muscle in a soft rose gradient, textbook blue and red pools, cream valves. */\n.iso.optimal {\n  --a4-m0: #9a4a3f; --a4-m1: #7a3530; --a4-m2: #5e2622; --a4-edge: #e2a99a;\n  --a4-ven: #4f5a97; --a4-art: #b9473c; --a4-ven-cell: #a9b4ec; --a4-art-cell: #ffc2b4;\n  --a4-valve: #f3e6d6; --a4-valve-edge: #c9a99a; --a4-chord: #e9d8c6; --a4-wall: #e2a99a;\n  --a4-g0: rgba(255, 151, 118, 0.22); --a4-g1: rgba(255, 151, 118, 0);\n  --a4-ecg-bg: #0f1b0c; --a4-ecg: #c9e3c1; --a4-ecg-dim: #33452e;\n  --a4-ven-pal: #d6dcff; --a4-art-pal: #ffe4dc; --a4-sheen: rgba(255, 240, 232, 0.22); --a4-lumen-ven: #262c55; --a4-lumen-art: #5e1c18; --a4-fibre: rgba(255, 200, 186, 0.16);\n}\n.iso.optimal[data-theme=\"light\"] {\n  --a4-m0: #e7a594; --a4-m1: #cf7f6e; --a4-m2: #b0604f; --a4-edge: #7a3a30;\n  --a4-ven: #8892cc; --a4-art: #dc6656; --a4-ven-cell: #3f4a96; --a4-art-cell: #8f261c;\n  --a4-valve: #fffaf2; --a4-valve-edge: #8a6a5e; --a4-chord: #8a6a5e; --a4-wall: #7a3a30;\n  --a4-g0: rgba(220, 102, 86, 0.18); --a4-g1: rgba(220, 102, 86, 0);\n  --a4-ecg-bg: #1d2a1a; --a4-ecg: #d9efd2; --a4-ecg-dim: #3d5436;\n  --a4-ven-pal: #7a84cf; --a4-art-pal: #d4604f; --a4-sheen: rgba(255, 255, 255, 0.4); --a4-lumen-ven: #3a427f; --a4-lumen-art: #7d2219; --a4-fibre: rgba(122, 58, 48, 0.2);\n}\n.a4-svg path, .a4-svg rect, .a4-svg circle { vector-effect: non-scaling-stroke; }\n.a4-m0 { stop-color: var(--a4-m0); } .a4-m1 { stop-color: var(--a4-m1); } .a4-m2 { stop-color: var(--a4-m2); }\n.a4-g0 { stop-color: var(--a4-g0); } .a4-g1 { stop-color: var(--a4-g1); }\n.a4-muscle { stroke: var(--a4-edge); stroke-width: 1.6; }\n.a4-pool { stroke: var(--a4-edge); stroke-width: 1.1; }\n.a4-ven { fill: var(--a4-ven); }\n.a4-art { fill: var(--a4-art); }\n.a4-vessel { stroke: var(--a4-wall); stroke-width: 1.4; stroke-linejoin: round; }\n.a4-valve { fill: var(--a4-valve); stroke: var(--a4-valve-edge); stroke-width: 0.9; }\n.a4-chordae { fill: none; stroke: var(--a4-chord); stroke-width: 0.7; opacity: 0.85; }\n.a4-pap { fill: url(#a4-muscle); stroke: var(--a4-edge); stroke-width: 1; }\n.a4-cell { stroke: rgba(0, 0, 0, 0.25); stroke-width: 0.5; }\n.a4-cell-ven { fill: var(--a4-ven-cell); } .a4-pal-ven { fill: var(--a4-ven-pal); }\n.a4-cell-art { fill: var(--a4-art-cell); } .a4-pal-art { fill: var(--a4-art-pal); }\n.a4-sheen { fill: none; stroke: var(--a4-sheen); stroke-linecap: round; }\n.a4-cap { stroke: var(--a4-wall); stroke-width: 1.2; }\n.a4-cap-ven { fill: var(--a4-ven); } .a4-cap-art { fill: var(--a4-art); }\n.a4-lumen-ven { fill: var(--a4-lumen-ven); } .a4-lumen-art { fill: var(--a4-lumen-art); }\n.a4-fibre { fill: none; stroke: var(--a4-fibre); stroke-width: 1.3; stroke-linecap: round; }\n.a4-glow { pointer-events: none; }\n.a4-ecg-bg { fill: var(--a4-ecg-bg); }\n.a4-ecg-base { fill: none; stroke: var(--a4-ecg-dim); stroke-width: 0.8; stroke-dasharray: 2 3; }\n.a4-ecg { fill: none; stroke: var(--a4-ecg); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }\n.a4-ecg-dot { fill: var(--a4-ecg); }\n.a4-row { display: flex; align-items: center; gap: 12px; margin: 10px 4px 0; }\n.a4-scene { flex: 1; margin: 0; font: 500 14px/1.4 var(--opt-ui); color: var(--anatomy-text); min-height: 2.8em; }\n.a4-slow { appearance: none; border: 0; min-height: 44px; min-width: 64px; padding: 0 14px; border-radius: 999px; background: transparent; box-shadow: inset 0 0 0 1px var(--opt-rule); color: var(--anatomy-text); font: 500 14px/1 var(--opt-ui); cursor: pointer; touch-action: manipulation; }\n.a4-slow[aria-pressed=\"true\"] { background: var(--opt-btn-on); color: var(--opt-btn-on-text); box-shadow: none; }\n.a4-slow:focus-visible { outline: 2px solid var(--opt-fig); outline-offset: 2px; }\n.a4-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }\n.a4-par { display: block; margin-top: 6px; }\n.a4-par:first-child { margin-top: 0; }\n.a4-par small { font-size: 12.5px; color: var(--anatomy-muted); }\n\n/* round 2: cut open front to back; vessels show wall bands and blood, the back half rounds away behind */\n.iso.optimal { --a4-vwall: #a8695f; }\n.iso.optimal[data-theme=\"light\"] { --a4-vwall: #f3d9cf; }\n.a4-front .a4-vessel { fill: var(--a4-vwall); }\n.a4-front .a4-lumen-cut.a4-lumen-ven { fill: var(--a4-ven); }\n.a4-front .a4-lumen-cut.a4-lumen-art { fill: var(--a4-art); }\n.a4-lumen-cut { stroke: var(--a4-wall); stroke-width: 0.5; stroke-opacity: 0.5; }\n.a4-front .a4-vessel-fill { stroke: none; }\n.a4-vessel-edge { fill: none; stroke: var(--a4-wall); stroke-width: 1.4; stroke-linejoin: round; }\n.a4-front .a4-lumen-cut { stroke: none; }\n\n/* round 4: the heart in 3-D: cut muscle, deep chambers, papillary muscles, 3-D leaflets, a vessel-lined back half */\n.iso.optimal { --a4-c0: #a9564d; --a4-c1: #7c3631; --a4-neck: #2c1012; --a4-fat: #b8963e; --a4-ridge-lit: rgba(255, 220, 210, 0.16); --a4-ridge-shade: rgba(0, 0, 0, 0.32); --a4-lumen-lit: rgba(255, 235, 228, 0.12); --a4-bar-in: #9ad38d; --a4-bar-out: #ffb86b; --a4-vol: #ff8b7b; }\n.iso.optimal[data-theme=\"light\"] { --a4-c0: #eca898; --a4-c1: #d07f6d; --a4-neck: #8c4239; --a4-fat: #f2d27a; --a4-ridge-lit: rgba(255, 245, 240, 0.38); --a4-ridge-shade: rgba(90, 30, 25, 0.22); --a4-lumen-lit: rgba(255, 255, 255, 0.24); --a4-bar-in: #9ad38d; --a4-bar-out: #ffb86b; --a4-vol: #ff9a8b; }\n.a4-c0 { stop-color: var(--a4-c0); } .a4-c1 { stop-color: var(--a4-c1); }\n.a4-cut { stroke: var(--a4-edge); stroke-width: 1.6; }\n.a4-open-rim { fill: none; stroke: var(--a4-edge); stroke-width: 1.2; stroke-linejoin: round; opacity: 0.85; }\n.a4-annulus { fill: var(--a4-valve); stroke: var(--a4-valve-edge); stroke-width: 0.8; }\n.a4-annulus-ring { fill: none; stroke: var(--a4-valve); stroke-width: 3.2; stroke-linecap: round; opacity: 0.9; }\n.a4-neck { fill: var(--a4-neck); }\n.a4-ridge-shade { fill: none; stroke: var(--a4-ridge-shade); stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-ridge-lit { fill: none; stroke: var(--a4-ridge-lit); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }\n.a4-leaf { stroke-linejoin: round; }\n.a4-leaf-edge { fill: none; stroke: var(--a4-valve-edge); stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }\n.a4-cell-deep { opacity: 0.5; }\n.a4-epi-fat { opacity: 0.88; }\n.a4-cor { fill: none; stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }\n.a4-cor-edge { fill: none; stroke: rgba(0, 0, 0, 0.22); stroke-width: 6.6; stroke-linecap: round; stroke-linejoin: round; }\n.a4-cor-a { stroke-width: 3.6; }\n.a4-cor-twig { stroke-width: 1.8; }\n.a4-cor-edge.a4-cor-edge-a { stroke-width: 5.4; }\n.a4-lumen-lit { stroke: none; }\n.a4-lumen-lit-ven, .a4-lumen-lit-art { fill: var(--a4-lumen-lit); }\n.a4-mon-label { fill: var(--a4-ecg); font: 600 17px/1 var(--opt-ui); opacity: 0.85; }\n.a4-mon-num { fill: var(--a4-ecg); font: 500 17px/1 var(--opt-ui); font-variant-numeric: tabular-nums; }\n.a4-bar-track { fill: var(--a4-ecg-dim); opacity: 0.55; }\n.a4-bar-in { fill: var(--a4-bar-in); }\n.a4-bar-out { fill: var(--a4-bar-out); }\n.a4-vol { fill: none; stroke: var(--a4-vol); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }\n.a4-vol-dot { fill: var(--a4-vol); }\n.a4-floor { fill: var(--a4-floor); filter: blur(10px); }\n.iso.optimal { --a4-floor: rgba(0, 0, 0, 0.45); }\n.iso.optimal[data-theme=\"light\"] { --a4-floor: rgba(90, 40, 30, 0.16); }\n\n/* round 6: the heart as a solid in WebGL (gl-heart.js); the SVG heart is its fallback */\n.a4-stage { position: relative; touch-action: pan-y; }\n.a4-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }\n.a4-stage[data-gl] { cursor: grab; }\n.a4-stage[data-gl] .a4-heart-svg { display: none; }\n.iso.optimal { --a4-gl-muscle: #8e3a32; --a4-gl-cut: #b8574c; --a4-gl-chord: #e9d8c6; --a4-gl-shadow: #000000; --a4-gl-fat: #b39550; --a4-gl-valve: #e8d6c0; }\n.iso.optimal[data-theme=\"light\"] { --a4-gl-muscle: #bb5f50; --a4-gl-cut: #e59c8a; --a4-gl-chord: #f1e2d0; --a4-gl-shadow: #5a2a20; --a4-gl-fat: #ecd39a; --a4-gl-valve: #f3e2cc; }\n" + "</style><div class=\"iso optimal opt-host\" data-theme=\"" + theme + "\">" + "<figure class=\"iso-figure opt-figure \"><div class=\"iso-plate opt-plate\"><div class=\"iso-plate-corners\" aria-hidden=\"true\"><span class=\"iso-plate-corner\" data-corner=\"fig\">A4</span><span class=\"iso-plate-corner\" data-corner=\"title\">The beating heart</span></div><div class=\"iso-stage a4-stage\"><svg class=\"iso-svg a4-svg\" viewBox=\"0 0 600 874\" role=\"img\" aria-label=\"The heart cut open front to back and seen in 3-D, beating: deep chambers with ridged walls, papillary muscles and cords holding the valve leaflets, and a round back half lined with its own vessels. Oxygen-poor blood (blue) comes in through the venae cavae to the right atrium, passes the tricuspid valve into the right ventricle and leaves through the pulmonary valve for the lungs. Oxygen-rich blood (red) returns through the pulmonary veins to the left atrium, passes the mitral valve into the thick-walled left ventricle and leaves through the aortic valve into the aorta. A monitor underneath runs the ECG, the left ventricle's volume and when the valves are open.\">\n<defs>\n  <radialGradient id=\"a4-muscle\" cx=\"38%\" cy=\"34%\" r=\"72%\"><stop offset=\"0\" class=\"a4-m0\"/><stop offset=\"0.65\" class=\"a4-m1\"/><stop offset=\"1\" class=\"a4-m2\"/></radialGradient>\n  <radialGradient id=\"a4-glow-g\" cx=\"50%\" cy=\"50%\" r=\"50%\"><stop offset=\"0\" class=\"a4-g0\"/><stop offset=\"1\" class=\"a4-g1\"/></radialGradient>\n</defs>\n<g class=\"a4-heart-svg\">\n<g transform=\"matrix(0.7393 0.3862 0.0000 1.0337 -2.10 -5.39)\"><path class=\"a4-floor\" data-part=\"floor\"/><g data-part=\"behind\"></g></g>\n<g transform=\"matrix(0.7393 0.3862 0.0000 1.0337 -2.10 -5.39)\"><g class=\"a4-far\" data-part=\"far\"></g></g>\n<g transform=\"matrix(0.7393 0.3862 0.0000 1.0337 -2.10 -5.39)\"><g data-part=\"vessels\"></g></g>\n<g class=\"a4-front\" transform=\"matrix(0.7393 0.3862 0.0000 1.0337 -2.10 -5.39)\">\n<defs>\n  <mask id=\"a4-cutmask\" maskUnits=\"userSpaceOnUse\" x=\"-200\" y=\"-200\" width=\"1000\" height=\"1000\"><rect x=\"-200\" y=\"-200\" width=\"1000\" height=\"1000\" fill=\"#fff\"/><path data-part=\"holes\" fill=\"#000\"/></mask>\n  <clipPath id=\"a4-muscleclip\"><path data-part=\"outerClip\"/></clipPath>\n  <clipPath id=\"a4-clipRA\"><path data-part=\"clipRA\"/></clipPath><clipPath id=\"a4-clipLA\"><path data-part=\"clipLA\"/></clipPath>\n  <clipPath id=\"a4-clipRV\"><path data-part=\"clipRV\"/></clipPath><clipPath id=\"a4-clipLV\"><path data-part=\"clipLV\"/></clipPath>\n  <clipPath id=\"a4-clipAll\"><path data-part=\"clipAll\"/></clipPath>\n  <radialGradient id=\"a4-cutg\" gradientUnits=\"userSpaceOnUse\" cx=\"300\" cy=\"300\" r=\"260\"><stop offset=\"0\" class=\"a4-c0\"/><stop offset=\"1\" class=\"a4-c1\"/></radialGradient>\n</defs>\n<g class=\"a4-cav\" data-part=\"cav\"></g>\n<g mask=\"url(#a4-cutmask)\">\n  <path class=\"a4-cut\" data-part=\"outer\" fill=\"url(#a4-cutg)\"/>\n  <g clip-path=\"url(#a4-muscleclip)\"><path class=\"a4-fibre\" data-part=\"fibres\"/></g>\n</g>\n<path class=\"a4-open-rim\" data-part=\"rims\"/>\n<path class=\"a4-annulus\" data-part=\"annuli\"/>\n<g clip-path=\"url(#a4-clipAll)\"><path class=\"a4-valve\" data-part=\"valves\"/></g>\n</g>\n</g>\n<g class=\"a4-mon\">\n<rect class=\"a4-ecg-bg\" x=\"24\" y=\"698\" width=\"552\" height=\"170\" rx=\"10\"/>\n<text class=\"a4-mon-label\" x=\"40\" y=\"736\">ECG</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"784\">Left ventricle</text>\n<text class=\"a4-mon-num\" x=\"40\" y=\"806\" data-part=\"volnow\">120 mL</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"835\">Valves in</text>\n<text class=\"a4-mon-label\" x=\"40\" y=\"853\">Valves out</text>\n<path class=\"a4-ecg-base\" d=\"M168 742H560M168 810H560M168 762H560\"/>\n<path class=\"a4-bar-track\" d=\"M168 826H560V835H168ZM168 844H560V853H168Z\"/>\n<path class=\"a4-bar-in\" data-part=\"barIn\"/><path class=\"a4-bar-out\" data-part=\"barOut\"/>\n<path class=\"a4-vol\" data-part=\"vol\"/><circle class=\"a4-vol-dot\" data-part=\"voldot\" r=\"3.2\"/>\n<path class=\"a4-ecg\" data-part=\"ecg\"/><circle class=\"a4-ecg-dot\" data-part=\"ecgdot\" r=\"3\"/>\n</g>\n</svg><canvas class=\"a4-gl\" aria-hidden=\"true\"></canvas></div><div class=\"a4-row\"><p class=\"a4-scene\" data-scene>Resting: about one beat a second, most of it spent filling.</p><button type=\"button\" class=\"a4-slow\" data-slow aria-pressed=\"false\">Slow</button></div><span class=\"a4-sr\" role=\"status\" aria-live=\"polite\" data-status></span><div class=\"opt-controls\"><div class=\"opt-seg\" role=\"radiogroup\" aria-label=\"Heart rate\" data-control=\"rate\"><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"60\" aria-checked=\"true\" tabindex=\"0\">Rest</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"100\" aria-checked=\"false\" tabindex=\"-1\">Walk</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"140\" aria-checked=\"false\" tabindex=\"-1\">Run</button><button type=\"button\" role=\"radio\" class=\"opt-seg-btn\" data-value=\"176\" aria-checked=\"false\" tabindex=\"-1\">All out</button></div></div><div class=\"opt-foot\"><span class=\"opt-hint\">Pick a heart rate · Slow to watch the valves</span><dl class=\"opt-readout\" data-readout aria-hidden=\"true\"><div class=\"opt-stat\" data-stat=\"hr\"><dt>Heart rate</dt><dd data-r=\"hr\">60 bpm</dd></div><div class=\"opt-stat\" data-stat=\"sv\"><dt>Per beat</dt><dd data-r=\"sv\">70 mL</dd></div><div class=\"opt-stat\" data-stat=\"co\"><dt>Per minute</dt><dd data-r=\"co\">4.2 L/min</dd></div></dl></div></div><figcaption class=\"iso-legend\"><span class=\"iso-keys\"><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"lit\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z\"/><path class=\"iso-swatch-crease\" d=\"M2 4.5 8 7.5 14 4.5\"/></svg>Valves</span><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"heat\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M1.5 5h13\"/></svg>Oxygen-rich blood, left side</span><span class=\"iso-key\"><svg class=\"iso-swatch\" data-mark=\"raised\" viewBox=\"0 0 16 10\" aria-hidden=\"true\"><path d=\"M2 4.5 8 1.5 14 4.5 14 6 8 9 2 6Z\"/><path class=\"iso-swatch-crease\" d=\"M2 4.5 8 7.5 14 4.5\"/></svg>Heart muscle</span></span><span class=\"iso-caption\"><span class=\"a4-par\">Each beat starts with a small squeeze of the two upper chambers, the atria. Then the two lower chambers, the ventricles, contract together: the valves between upper and lower chambers snap shut, pressure builds, and the outflow valves open. The right side sends oxygen-poor blood (blue) to the lungs; the thick-walled left side sends oxygen-rich blood (red) to the whole body. Cords inside the ventricles (chordae) tie the valve leaflets to small muscles in the walls, so the valves hold shut instead of blowing back into the atria. The monitor below tracks the ECG, the left ventricle's volume and when each set of valves is open.</span><span class=\"a4-par\">At rest, about 70 mL leaves each ventricle per beat, 4.2 litres a minute. Flat out, the heart beats about three times as often and empties more fully with each beat, so its output rises to roughly 20 litres a minute. That is the delivery side of VO₂max.</span><span class=\"a4-par\"><small>Typical adult values (end of filling ≈ 120 mL, end of ejection ≈ 50 mL at rest); individual hearts differ. Blue and red follow the textbook convention: venous blood is dark red, not blue. As the ventricles squeeze, the valve plane is pulled toward the tip of the heart, which draws blood into the atria at the same time. The ECG is a drawing timed to the beat. The heart's 3-D shape, the chambers' depth, the muscle ridges and the swirl of blood as the left ventricle fills are drawn from textbook anatomy, not measured.</small></span></span></figcaption></figure>" + "</div>";
     mount(root.querySelector(".opt-figure"));
   }
 }

@@ -1,16 +1,11 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "c04551d",
+  "commit": "6d742ed",
   "dirty": false,
-  "syncedAt": "2026-10-21T19:22:47.840Z",
+  "syncedAt": "2026-10-23T22:06:02.294Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
-  "pinned": {
-    "a4-heart": {
-      "commit": "3077669",
-      "why": "Round 6 (the WebGL heart, c5c99a7) awaits Peter's OK; the TV keeps round 5."
-    }
-  },
+  "pinned": {},
   "figures": [
     {
       "folder": "01-menopause-thermostat",
@@ -58,7 +53,7 @@
       "folder": "a2-hypothalamus",
       "element": "optimal-fig-hypothalamus",
       "script": "figures/a2-hypothalamus/optimal-fig-hypothalamus.js",
-      "bytes": 256119,
+      "bytes": 256242,
       "extra": [
         "hypothalamus-3d.js"
       ]
@@ -73,8 +68,7 @@
       "folder": "a4-heart",
       "element": "optimal-fig-heart",
       "script": "figures/a4-heart/optimal-fig-heart.js",
-      "bytes": 122063,
-      "pinned": "3077669"
+      "bytes": 173130
     },
     {
       "folder": "a5-alveolus",
