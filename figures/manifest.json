@@ -1,8 +1,8 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "6d742ed",
+  "commit": "f588396",
   "dirty": false,
-  "syncedAt": "2026-10-23T22:06:02.294Z",
+  "syncedAt": "2026-10-24T14:33:05.709Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
   "pinned": {},
