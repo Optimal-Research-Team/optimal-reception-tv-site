@@ -7,19 +7,19 @@
   <meta name="theme-color" content="#FFFCF7">
   <title>Optimal · TV remote</title>
   <link rel="icon" href="media/favicon.png">
-  <script type="module" crossorigin src="./assets/remote-iw1w05Oo.js"></script>
+  <script type="module" crossorigin src="./assets/remote-CQZwzY9k.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/optimal-logo-BEcy5AzM.js">
-  <link rel="modulepreload" crossorigin href="./assets/bus-DcTce-xw.js">
-  <link rel="modulepreload" crossorigin href="./assets/typo-DXgK7h_q.js">
-  <link rel="modulepreload" crossorigin href="./assets/opentv-BStHPJbb.js">
+  <link rel="modulepreload" crossorigin href="./assets/types-Z0Hq0B_Q.js">
+  <link rel="modulepreload" crossorigin href="./assets/typo-YszSq3ym.js">
+  <link rel="modulepreload" crossorigin href="./assets/opentv-QtG4Ihod.js">
   <link rel="stylesheet" crossorigin href="./assets/optimal-logo-CWjZz7vM.css">
-  <link rel="stylesheet" crossorigin href="./assets/remote-DYdldnQM.css">
+  <link rel="stylesheet" crossorigin href="./assets/remote-D96xDFtf.css">
 </head>
 <body>
   <main class="r">
     <header class="r-top">
       <optimal-logo variant="inline" theme="light" play="manual"></optimal-logo>
-      <span class="r-title">Reception TV<small id="hours"></small></span>
+      <span class="r-title"><span>Clinic TV · <span id="roomName">Reception room</span></span><small id="hours"></small></span>
       <span class="status" id="status" data-s="wait"><i></i><b>Looking for the TV…</b></span>
     </header>
 
@@ -50,6 +50,12 @@
       <button class="btn" id="bCalm" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9c3-2.6 6-2.6 9 0s6 2.6 9 0M3 15c3-2.6 6-2.6 9 0s6 2.6 9 0"/></svg><span>Calm</span></button>
     </div>
     <p class="hint">Calm keeps the TV on quiet footage only, for example during a hard conversation at the desk. <span class="keys">Keys: <kbd>Space</kbd> pause <kbd>→</kbd> skip <kbd>C</kbd> calm</span></p>
+
+    <div class="rooms" role="group" aria-labelledby="roomLbl">
+      <p class="rooms-lbl" id="roomLbl">Room</p>
+      <div class="rooms-row" id="roomRow"></div>
+      <p class="hint" id="roomLine">&nbsp;</p>
+    </div>
 
     <div class="note-live" id="noteLive" hidden><i></i><p><b>On the TV now</b><span id="noteLiveText"></span></p><button type="button" class="chip" id="bNoteLiveClear">Clear</button></div>
 

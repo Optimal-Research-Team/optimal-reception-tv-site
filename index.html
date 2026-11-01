@@ -5,23 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#FFFCF7">
-  <title>Optimal · Reception TV</title>
+  <title>Optimal · Clinic TV</title>
   <link rel="icon" href="media/favicon.png">
-  <script type="module" crossorigin src="./assets/index-YHeqLpAY.js"></script>
+  <script type="module" crossorigin src="./assets/index-R1xD_M66.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/optimal-logo-BEcy5AzM.js">
-  <link rel="modulepreload" crossorigin href="./assets/opentv-BStHPJbb.js">
-  <link rel="modulepreload" crossorigin href="./assets/bus-DcTce-xw.js">
+  <link rel="modulepreload" crossorigin href="./assets/opentv-QtG4Ihod.js">
+  <link rel="modulepreload" crossorigin href="./assets/types-Z0Hq0B_Q.js">
   <link rel="stylesheet" crossorigin href="./assets/optimal-logo-CWjZz7vM.css">
-  <link rel="stylesheet" crossorigin href="./assets/index-CYen11SK.css">
+  <link rel="stylesheet" crossorigin href="./assets/index-DhoTWxFc.css">
 </head>
 <body>
   <main class="l">
     <div class="l-copy">
       <optimal-logo variant="inline" theme="light" play="load"></optimal-logo>
-      <p class="eyebrow">Reception TV</p>
+      <p class="eyebrow">Clinic TV</p>
       <h1>Start the <em>TV</em></h1>
-      <p class="lede">Use this on the Mac mini at the front desk. One click puts the picture on the waiting-room screen and turns this window into the remote.</p>
+      <p class="lede">Use this on the computer beside the room’s TV. Pick the room, and one click puts the picture on its screen and turns this window into the remote.</p>
       <p class="running" id="running" hidden><i></i>The TV is already playing on this computer.</p>
+      <fieldset class="room-pick" id="roomPick">
+        <legend>Which room is this TV in?</legend>
+        <label><input type="radio" name="room" value="reception" checked><span><b>Reception room</b><small>Everything on air: calm footage, education, members and the desk cards.</small></span></label>
+        <label><input type="radio" name="room" value="iv"><span><b>IV &amp; infusion room</b><small>For patients being infused: calm footage, the iron explainers and what to expect today. No ads.</small></span></label>
+        <label><input type="radio" name="room" value="fitness"><span><b>Fitness room</b><small>VO₂ max, gait and InBody: the figures, the machines taken apart and test prep.</small></span></label>
+      </fieldset>
       <button class="start" id="start" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span>Start the TV</span></button>
       <p class="blocked" id="blocked" hidden>Chrome blocked the TV window. Click the blocked-pop-up icon at the right of the address bar, choose <b>Always allow</b>, then click Start the TV again.</p>
       <ol class="steps">
