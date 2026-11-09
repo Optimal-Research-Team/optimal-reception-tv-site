@@ -158,6 +158,7 @@
 
     HF.rise(tl, $('nt-eb'), 0.15);
     HF.reveal(tl, $('nt-hl'), 0.3);
+    if (HF.shape === 'tv') document.getElementById('root').classList.add('hf-full'); // v2: the layout spans the frame
     HF.rise(tl, $('nt-foot'), 1.2);
 
     // beat 1: the lab's reference range draws on as a wide cream band

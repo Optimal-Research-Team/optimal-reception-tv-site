@@ -6,6 +6,8 @@
   var root = document.querySelector('[data-composition-id]');
   var shape = root && root.classList.contains('shape-reel') ? 'reel' : root && root.classList.contains('shape-post') ? 'post' : 'tv';
   var EASE = 'power3.out';
+  // Live on the reception TV (the TV loads index.html?live): the page goes see-through over the TV's film ground.
+  if (/[?&]live\b/.test(location.search)) document.documentElement.classList.add('tv-live');
 
   // Declared defaults from <html data-composition-variables>, overlaid by the runtime's values when it has them
   // (render --variables / per-row batch), so a composition also plays correctly in a bare iframe.
@@ -44,6 +46,18 @@
     if (out != null) tl.to(el, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, out);
   }
 
+  /** A pane settles in (the TV follows its box and opacity with real glass). */
+  function pane(tl, el, at) {
+    tl.fromTo(el, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 1.2, ease: EASE }, at == null ? 0.3 : at);
+  }
+  /** Where a plate lives, and how it sits: photographs and micrograph fields are round. */
+  function plate(img, name) {
+    if (!img || !name) return false;
+    img.src = (document.querySelector('script[src*="kit/kit.js"]').getAttribute('src').replace('kit.js', '')) + 'plates/' + name + '.webp';
+    if (/^on-|-field$/.test(name)) img.classList.add('round');
+    return true;
+  }
+
   /** Social cuts draw their own hairline strip: one segment per [start, end) span, filled as it plays. */
   function strip(tl, spans) {
     var s = document.querySelector('.hf-strip');
@@ -78,7 +92,7 @@
     });
   }
 
-  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, strip: strip, smart: smart, hang: hang, EASE: EASE,
+  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, pane: pane, plate: plate, strip: strip, smart: smart, hang: hang, EASE: EASE,
     /** Pixel value per shape: HF.px({ tv: 120, reel: 90, post: 90 }). */
     px: function (m) { return m[shape] != null ? m[shape] : m.tv; } };
   logo();

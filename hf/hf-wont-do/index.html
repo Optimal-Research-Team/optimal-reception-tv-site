@@ -20,6 +20,9 @@
   .ww-end { position: absolute; left: 0; right: 0; top: 48px; margin: 0; font: italic 400 76px/1.08 var(--display); letter-spacing: -0.035em; color: var(--cream); text-wrap: balance; opacity: 0; }
   .ww-end em { color: var(--leaf-300); }
   .ww-ring { position: absolute; right: 150px; top: 290px; width: 520px; height: 520px; overflow: visible; }
+  /* v2 (TV, Nov 9): the seven dots sit on a glass pane over the film ground */
+  .ww-pane { left: 1160px; top: 230px; width: 640px; height: 640px; }
+  .shape-tv .ww-ring { right: 180px; }
   .ww-ring .halo { fill: none; stroke: var(--leaf-300); }
 
   .shape-reel .ww-ring { left: 24px; right: auto; top: 440px; width: 340px; height: 340px; }
@@ -46,6 +49,7 @@
   <div class="hf-grain"></div>
   <div class="hf-strip social-only"></div>
 
+  <div class="hf-pane ww-pane tv-only" id="ww-pane"></div>
   <svg class="ww-ring" viewBox="-28.5 14.2 460 460" aria-hidden="true">
     <circle id="ww-rim" cx="201.5" cy="244.2" r="104.9" fill="none" stroke="rgba(255,252,247,.16)" stroke-width="1.6"/>
     <g id="ww-dots"></g>
@@ -106,6 +110,7 @@
 
     HF.rise(tl, $('ww-eb'), 0.15);
     HF.reveal(tl, $('ww-hl'), 0.3);
+    if (HF.shape === 'tv') HF.pane(tl, document.getElementById('ww-pane'), 0.3);
     tl.fromTo('.ww-ring', { opacity: 0, scale: 0.94, transformOrigin: '50% 50%' }, { opacity: 1, scale: 1, duration: 1.2, ease: HF.EASE }, 0.5);
     HF.rise(tl, $('ww-anchor'), 1.4);
     HF.rise(tl, $('ww-foot'), 1.2);

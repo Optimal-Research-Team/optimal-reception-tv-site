@@ -20,6 +20,9 @@
   .gp-endsub { position: absolute; left: 0; right: 0; top: 246px; margin: 0; font: 400 32px/1.35 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
 
   .gp-chart { position: absolute; left: 840px; top: 300px; width: 960px; height: 600px; overflow: visible; }
+  /* v2 (TV, Nov 9): the chart sits on a glass pane over the film ground */
+  .shape-tv .gp-chart { left: 856px; top: 340px; width: 888px; height: 560px; }
+  .gp-pane { left: 800px; top: 284px; width: 1000px; height: 652px; }
   .gp-chart text { font-family: var(--sans); letter-spacing: -0.01em; }
   .gp-head { font-size: 32px; font-weight: 600; fill: var(--cream); letter-spacing: -0.02em; }
   .gp-unit { font-size: 22px; fill: var(--fg-muted); }
@@ -53,6 +56,7 @@
   <div class="hf-grain"></div>
   <div class="hf-strip social-only"></div>
 
+  <div class="hf-pane gp-pane tv-only" id="gp-pane"></div>
   <svg class="gp-chart" id="gp-chart" aria-hidden="true"></svg>
 
   <div class="hf-frame">
@@ -155,6 +159,7 @@
 
     HF.rise(tl, $('gp-eb'), 0.15);
     HF.reveal(tl, $('gp-hl'), 0.3);
+    if (HF.shape === 'tv') HF.pane(tl, $('gp-pane'), 0.3);
     HF.rise(tl, $('gp-foot'), 1.2);
     parts.forEach((p, pi) => {
       tl.fromTo(p.head, { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power2.out' }, 0.9 + pi * 0.15);

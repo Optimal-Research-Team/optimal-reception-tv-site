@@ -20,6 +20,9 @@
   .pl-endsub { position: absolute; left: 0; right: 0; top: 182px; margin: 0; font: 400 32px/1.35 var(--sans); color: var(--fg); text-wrap: balance; opacity: 0; }
 
   .pl-chart { position: absolute; left: 840px; top: 300px; width: 960px; height: 600px; overflow: visible; }
+  /* v2 (TV, Nov 9): the chart sits on a glass pane over the film ground */
+  .shape-tv .pl-chart { left: 856px; top: 340px; width: 888px; height: 560px; }
+  .pl-pane { left: 800px; top: 284px; width: 1000px; height: 652px; }
   .pl-chart text { font-family: var(--sans); letter-spacing: -0.01em; }
   .pl-axislab { font-size: 22px; fill: var(--fg-muted); }
   .pl-curvelab { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; }
@@ -50,6 +53,7 @@
   <div class="hf-grain"></div>
   <div class="hf-strip social-only"></div>
 
+  <div class="hf-pane pl-pane tv-only" id="pl-pane"></div>
   <svg class="pl-chart" id="pl-chart" aria-hidden="true"></svg>
 
   <div class="hf-frame">
@@ -189,6 +193,7 @@
 
     HF.rise(tl, $('pl-eb'), 0.15);
     HF.reveal(tl, $('pl-hl'), 0.3);
+    if (HF.shape === 'tv') HF.pane(tl, $('pl-pane'), 0.3);
     HF.rise(tl, $('pl-foot'), 1.2);
     tl.fromTo(plate, { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0.9);
     tl.fromTo(plate, { scale: 0.96, svgOrigin: `${cx} ${cy}` }, { scale: 1, svgOrigin: `${cx} ${cy}`, duration: 1.4, ease: HF.EASE }, 0.9);

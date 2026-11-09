@@ -186,6 +186,7 @@
 
     HF.rise(tl, $('ff-eb'), 0.15);
     HF.reveal(tl, $('ff-hl'), 0.3);
+    if (HF.shape === 'tv') document.getElementById('root').classList.add('hf-full'); // v2: the layout spans the frame
     tl.to([gMax[0], g100[0]], { attr: { opacity: 1 }, duration: 0.8, stagger: 0.15 }, 0.7);
     tl.to([cap, gMax[1], g100[1]], { attr: { opacity: 1 }, duration: 0.6, stagger: 0.1 }, 1.0);
     tl.to(ticks, { attr: { opacity: 1 }, duration: 0.3, stagger: 0.08 }, 1.0);

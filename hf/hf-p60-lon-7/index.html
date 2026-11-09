@@ -1,5 +1,5 @@
 ﻿<!doctype html>
-<html lang="en" data-composition-variables='[{"id":"kicker","type":"string","label":"Kicker (series + section)","default":"Longevity Protocol · §7"},{"id":"mark","type":"string","label":"Section mark in the dial","default":"§7"},{"id":"headline","type":"string","label":"Headline (*italic leaf*)","default":"Low-cost, *low-regret* exposure reduction"},{"id":"b1","type":"string","label":"Beat 1 ({number} in leaf, max 15 words)","default":"Filtered drinking water, and an air purifier in the bedroom."},{"id":"f1","type":"string","label":"Beat 1 figure","default":"Filter"},{"id":"u1","type":"string","label":"Beat 1 figure caption","default":"water, and bedroom air"},{"id":"b2","type":"string","label":"Beat 2","default":"Glass or stainless steel instead of plastic for food storage and reheating."},{"id":"f2","type":"string","label":"Beat 2 figure","default":"Glass"},{"id":"u2","type":"string","label":"Beat 2 figure caption","default":"not plastic, for food"},{"id":"b3","type":"string","label":"Beat 3","default":"“Fragrance” on a label can cover dozens of undisclosed chemicals."},{"id":"f3","type":"string","label":"Beat 3 figure","default":"Dozens"},{"id":"u3","type":"string","label":"Beat 3 figure caption","default":"of undisclosed chemicals"},{"id":"b4","type":"string","label":"Beat 4","default":"Fragrance mixtures are a common source of phthalates."},{"id":"f4","type":"string","label":"Beat 4 figure","default":"Fragrance-free"},{"id":"u4","type":"string","label":"Beat 4 figure caption","default":"where you can"},{"id":"b5","type":"string","label":"Beat 5 (leave empty for four beats)","default":"Phthalates and bisphenols are associated with lower ovarian reserve in women."},{"id":"f5","type":"string","label":"Beat 5 figure","default":"Phthalates"},{"id":"u5","type":"string","label":"Beat 5 figure caption","default":"and bisphenols"},{"id":"takeaway","type":"string","label":"Closing takeaway (*italic leaf*)","default":"The associations are cross-sectional, but the interventions *cost almost nothing*."},{"id":"foot","type":"string","label":"Footnote (sources + section)","default":"Dodson 2012; Barrett 2024. From the Optimal Longevity Protocol, v1.0, §7. Educational, not medical advice."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"}]'>
+<html lang="en" data-composition-variables='[{"id":"kicker","type":"string","label":"Kicker (series + section)","default":"Longevity Protocol · §7"},{"id":"mark","type":"string","label":"Section mark in the dial","default":"§7"},{"id":"headline","type":"string","label":"Headline (*italic leaf*)","default":"Low-cost, *low-regret* exposure reduction"},{"id":"b1","type":"string","label":"Beat 1 ({number} in leaf, max 15 words)","default":"Filtered drinking water, and an air purifier in the bedroom."},{"id":"f1","type":"string","label":"Beat 1 figure","default":"Filter"},{"id":"u1","type":"string","label":"Beat 1 figure caption","default":"water, and bedroom air"},{"id":"b2","type":"string","label":"Beat 2","default":"Glass or stainless steel instead of plastic for food storage and reheating."},{"id":"f2","type":"string","label":"Beat 2 figure","default":"Glass"},{"id":"u2","type":"string","label":"Beat 2 figure caption","default":"not plastic, for food"},{"id":"b3","type":"string","label":"Beat 3","default":"“Fragrance” on a label can cover dozens of undisclosed chemicals."},{"id":"f3","type":"string","label":"Beat 3 figure","default":"Dozens"},{"id":"u3","type":"string","label":"Beat 3 figure caption","default":"of undisclosed chemicals"},{"id":"b4","type":"string","label":"Beat 4","default":"Fragrance mixtures are a common source of phthalates."},{"id":"f4","type":"string","label":"Beat 4 figure","default":"Fragrance-free"},{"id":"u4","type":"string","label":"Beat 4 figure caption","default":"where you can"},{"id":"b5","type":"string","label":"Beat 5 (leave empty for four beats)","default":"Phthalates and bisphenols are associated with lower ovarian reserve in women."},{"id":"f5","type":"string","label":"Beat 5 figure","default":"Phthalates"},{"id":"u5","type":"string","label":"Beat 5 figure caption","default":"and bisphenols"},{"id":"takeaway","type":"string","label":"Closing takeaway (*italic leaf*)","default":"The associations are cross-sectional, but the interventions *cost almost nothing*."},{"id":"foot","type":"string","label":"Footnote (sources + section)","default":"Dodson 2012; Barrett 2024. From the Optimal Longevity Protocol, v1.0, §7. Educational, not medical advice."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"},{"id":"plate","type":"string","label":"TV: plate in the dial at the open and close (a kit/plates name; empty keeps the section mark)","default":"bronchial-tree"}]'>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920, height=1080">
@@ -31,6 +31,15 @@
   .p6-end .hf-num { font-weight: 400; }
   #p6-hl { max-width: 1040px; }
   .nw { white-space: nowrap; }
+
+  /* v2 (TV, Nov 9): the dial sits on a glass pane over the film ground, and the row's plate (an engraving, a
+     micrograph field or a photograph from kit/plates) fills the dial at the open and the close, where the section
+     mark used to stand (the kicker already carries the section). */
+  .shape-tv .p6-dial { left: 1150px; top: 240px; }
+  .p6-pane { left: 1100px; top: 190px; width: 700px; height: 700px; }
+  .p6-plate { left: 19%; top: 19%; width: 62%; height: 62%; }
+  .p6-plate.round { left: 14.5%; top: 14.5%; width: 71%; height: 71%; }
+  .shape-tv #p6-hl { max-width: 930px; }
   .sub { font-size: .6em; letter-spacing: 0; vertical-align: -0.12em; }
 
   .shape-reel .p6-dial { left: 270px; top: 530px; width: 480px; height: 480px; }
@@ -49,8 +58,10 @@
   <div class="hf-grain"></div>
   <div class="hf-strip social-only"></div>
 
+  <div class="hf-pane p6-pane tv-only" id="p6-pane"></div>
   <div class="p6-dial" id="p6-dial">
     <svg class="p6-ring" id="p6-ring" aria-hidden="true"></svg>
+    <img class="hf-plate p6-plate tv-only" id="p6-plate" alt="">
     <div class="p6-figs" id="p6-figs"><p class="p6-mark" id="p6-mark"></p></div>
   </div>
 
@@ -132,7 +143,7 @@
 
   // Type ceilings and floors per shape (px), and the dial's geometry as fractions of its box.
   const G = HF.px({
-    tv:   { hl: [84, 62], st: [58, 44], end: [72, 50], val: 190, word: 100, unit: 30, mark: 150, gap: 34, tick: [10, 18], ring: 40, sw: 6, dot: 9, inner: 0.74 },
+    tv:   { hl: [78, 58], st: [66, 46], end: [76, 50], val: 190, word: 100, unit: 32, mark: 150, gap: 34, tick: [10, 18], ring: 40, sw: 6, dot: 9, inner: 0.74 },
     reel: { hl: [92, 66], st: [54, 42], end: [64, 46], val: 170, word: 88,  unit: 28, mark: 132, gap: 28, tick: [9, 16],  ring: 34, sw: 5, dot: 8, inner: 0.76 },
     post: { hl: [78, 58], st: [48, 38], end: [56, 42], val: 150, word: 76,  unit: 25, mark: 116, gap: 26, tick: [8, 14],  ring: 30, sw: 5, dot: 7, inner: 0.76 },
   });
@@ -173,6 +184,9 @@
     });
     const mark = $('p6-mark');
     fit(mark, G.mark, 48, (e) => box(e.firstChild).width <= innerW);
+    // TV: the row's plate stands where the section mark did (open and close); the mark stays for the social cuts
+    const plated = HF.shape === 'tv' && HF.plate($('p6-plate'), String(V.plate || '').trim());
+    const lead = plated ? $('p6-plate') : mark;
 
     // --- the ring ----------------------------------------------------------------------------------------------------
     const NS = 'http://www.w3.org/2000/svg';
@@ -209,9 +223,10 @@
     HF.reveal(tl, hl, 0.3);
     tl.fromTo(ticks, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out', stagger: 0.012 }, 0.45);
     tl.fromTo(tracks, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.inOut', stagger: 0.12 }, 0.6);
-    HF.rise(tl, mark, 0.95, 1.0);
+    if (HF.shape === 'tv') HF.pane(tl, $('p6-pane'), 0.25);
+    HF.rise(tl, lead, 0.95, 1.0);
     HF.rise(tl, $('p6-foot'), 1.2);
-    tl.to(mark, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
+    tl.to(lead, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
     tl.fromTo(tip, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' }, T0 + 0.3);
 
     BEATS.forEach((b, k) => {
@@ -237,7 +252,7 @@
     tl.to(counts[N - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
     tl.to(tip, { opacity: 0, duration: 0.4, ease: 'power2.in' }, END - 0.2);
     tl.fromTo(endEl, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
-    tl.fromTo(mark, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
+    tl.fromTo(lead, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
     tl.fromTo(glint, { opacity: 0 }, { opacity: 0.9, duration: 0.3 }, END + 0.6);
     tl.fromTo(glint, { attr: { 'stroke-dashoffset': 0.06 } }, { attr: { 'stroke-dashoffset': -1.0 }, duration: 2.2, ease: 'power1.inOut' }, END + 0.6);
     tl.to(glint, { opacity: 0, duration: 0.3 }, END + 2.6);

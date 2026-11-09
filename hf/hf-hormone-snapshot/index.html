@@ -229,6 +229,7 @@
     // intro: the frame of the chart, then the line draws across the stages
     HF.rise(tl, $('hs-eb'), 0.15);
     HF.reveal(tl, $('hs-hl'), 0.3);
+    if (HF.shape === 'tv') document.getElementById('root').classList.add('hf-full'); // v2: the layout spans the frame
     HF.rise(tl, $('hs-foot'), 1.2);
     tl.fromTo([band, peri, ...edges], { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0.6);
     tl.fromTo(segs, { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power2.out', stagger: 0.08 }, 0.8);

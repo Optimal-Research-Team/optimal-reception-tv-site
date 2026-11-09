@@ -1,7 +1,8 @@
 /* Optimal kit for HyperFrames compositions: the reception TV's design rules, in three frames.
    shape-tv    1920×1080  plays live on the clinic TV, which draws its own logo bug, clock and progress strip
    shape-reel  1080×1920  Instagram/Meta Reels: content kept inside the safe area (top bar, caption, side buttons)
-   shape-post  1080×1350  4:5 feed post
+   shape-post  1080×1350  4:5 feed post (retired for Meta ads, Oct 19 2026)
+   shape-square 1080×1080 1:1 Meta feed/carousel · shape-wide 1910×1000 1.91:1 Meta feed/right column/in-stream
    Tokens match optimal-design-system v1.1.0 + forest-night.css. Fonts are local (scripts/hf-vendor.mjs). */
 @font-face { font-family: "Castoro"; src: url("../vendor/fonts/castoro-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: block; }
 @font-face { font-family: "Castoro"; src: url("../vendor/fonts/castoro-latin-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: block; }
@@ -27,17 +28,21 @@ body { color: var(--fg); font-family: var(--sans); letter-spacing: -0.02em; -web
 .hf-frame { position: absolute; inset: 0; padding: 130px 120px 60px; }
 .shape-reel .hf-frame { padding: 250px 150px 440px 90px; }
 .shape-post .hf-frame { padding: 96px 90px 84px; }
+.shape-square .hf-frame { padding: 90px 90px 84px; }
+.shape-wide .hf-frame { padding: 90px 110px 80px; }
 
 /* shape-only parts: hidden where they don't belong, so each keeps its own display (flex, block) where it does */
-.shape-reel .tv-only, .shape-post .tv-only { display: none !important; }
+.shape-reel .tv-only, .shape-post .tv-only, .shape-square .tv-only, .shape-wide .tv-only { display: none !important; }
 .shape-tv .social-only { display: none !important; }
 
 /* type */
 .hf-eyebrow { margin: 0; font: 700 26px/1.2 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--leaf-300); }
-.shape-reel .hf-eyebrow, .shape-post .hf-eyebrow { font-size: 28px; }
+.shape-reel .hf-eyebrow, .shape-post .hf-eyebrow, .shape-square .hf-eyebrow, .shape-wide .hf-eyebrow { font-size: 28px; }
 .hf-h { margin: 20px 0 0; font: 400 84px/1.02 var(--display); letter-spacing: -0.04em; color: var(--cream); text-wrap: balance; }
 .shape-reel .hf-h { font-size: 92px; }
 .shape-post .hf-h { font-size: 78px; }
+.shape-square .hf-h { font-size: 74px; }
+.shape-wide .hf-h { font-size: 80px; }
 .hf-h em, .hf-em { font-style: italic; color: var(--leaf-300); }
 .hf-body { margin: 0; font: 400 54px/1.3 var(--sans); color: var(--fg); text-wrap: pretty; }
 .hf-num { font-weight: 500; color: var(--leaf-300); white-space: nowrap; }
@@ -46,6 +51,8 @@ body { color: var(--fg); font-family: var(--sans); letter-spacing: -0.02em; -web
 .hf-foot { position: absolute; left: 120px; bottom: 60px; width: 1300px; margin: 0; font: 400 22px/1.4 var(--sans); color: var(--fg-muted); text-wrap: balance; }
 .shape-reel .hf-foot { left: 90px; right: 150px; width: auto; bottom: 440px; font-size: 22px; }
 .shape-post .hf-foot { left: 90px; right: 90px; width: auto; bottom: 84px; font-size: 21px; }
+.shape-square .hf-foot { left: 90px; right: 90px; width: auto; bottom: 70px; font-size: 21px; }
+.shape-wide .hf-foot { left: 110px; right: 110px; width: auto; bottom: 60px; font-size: 21px; }
 
 /* the one action on the TV */
 .hf-cta { position: absolute; right: 120px; bottom: 90px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
@@ -57,6 +64,8 @@ body { color: var(--fg); font-family: var(--sans); letter-spacing: -0.02em; -web
 .hf-brand { position: absolute; left: 90px; display: flex; flex-direction: column; gap: 18px; }
 .shape-reel .hf-brand { bottom: 470px; }
 .shape-post .hf-brand { bottom: 150px; }
+.shape-square .hf-brand { bottom: 120px; }
+.shape-wide .hf-brand { bottom: 100px; left: 110px; }
 .hf-logo { display: block; height: 58px; color: var(--cream); }
 .hf-logo svg { height: 100%; width: auto; display: block; }
 .hf-brand-line { margin: 0; font: 500 30px/1.3 var(--sans); color: var(--leaf-200); }
@@ -64,9 +73,35 @@ body { color: var(--fg); font-family: var(--sans); letter-spacing: -0.02em; -web
 /* social progress strip (the TV draws its own) */
 .hf-strip { position: absolute; left: 90px; right: 150px; top: 200px; height: 4px; display: flex; gap: 10px; }
 .shape-post .hf-strip { right: 90px; top: 52px; }
+.shape-square .hf-strip { right: 90px; top: 46px; }
+.shape-wide .hf-strip { left: 110px; right: 110px; top: 40px; }
 .hf-strip i { flex: 1; height: 100%; border-radius: 2px; background: rgba(255, 252, 247, .16); overflow: hidden; }
 .hf-strip b { display: block; width: 100%; height: 100%; background: rgba(255, 252, 247, .6); transform-origin: left center; transform: scaleX(0); }
 
 /* hanging punctuation (HF.hang): the TV's .hang2 / .hang1 */
 .hf-hang2 { margin-left: -.42em; }
 .hf-hang1 { margin-left: -.23em; }
+
+/* ── v2 (Nov 9 2026, the TV's "satin and glass"): shape-tv only; the social shapes are untouched.
+   Live on the reception TV (the TV loads index.html?live) the page is see-through: the TV's film ground (forest satin
+   behind fluted glass, design system v1.5) shows under this shade, with words on the shade at the left. A full-width
+   layout adds .hf-full to the root. A figure sits on a pane: mark its box with .hf-pane and the TV draws real frosted
+   glass under the page there, following the box and its opacity (an iframe's own backdrop-filter can't see the film).
+   Rendered to video (no ?live), the same box draws a still glass on the gradient ground. */
+.tv-live, .tv-live body { background: transparent; }
+.tv-live .hf-root { background:
+  linear-gradient(90deg, rgba(8, 18, 7, .96) 0%, rgba(8, 18, 7, .92) 36%, rgba(8, 18, 7, .66) 52%, rgba(8, 18, 7, .22) 74%, rgba(8, 18, 7, .1) 100%),
+  linear-gradient(180deg, rgba(8, 18, 7, .55) 0%, rgba(8, 18, 7, 0) 20%, rgba(8, 18, 7, 0) 78%, rgba(8, 18, 7, .5) 100%); }
+.tv-live .hf-root.hf-full { background:
+  radial-gradient(46% 56% at 100% 14%, rgba(8, 18, 7, 0) 0%, rgba(8, 18, 7, .56) 68%, rgba(8, 18, 7, .7) 100%),
+  linear-gradient(90deg, rgba(8, 18, 7, .66) 0%, rgba(8, 18, 7, .56) 60%, rgba(8, 18, 7, .34) 100%),
+  linear-gradient(180deg, rgba(8, 18, 7, .4) 0%, rgba(8, 18, 7, 0) 22%, rgba(8, 18, 7, .16) 60%, rgba(8, 18, 7, .55) 100%); }
+.hf-pane { position: absolute; border-radius: 36px; opacity: 0;
+  background: linear-gradient(150deg, rgba(236, 246, 230, .13), rgba(16, 34, 14, .3));
+  box-shadow: inset 0 0 0 1px rgba(236, 246, 230, .2), inset 0 1px 0 rgba(240, 248, 236, .34), 0 70px 120px -60px rgba(0, 0, 0, .7); }
+.tv-live .hf-pane { background: none; box-shadow: none; }
+.shape-reel .hf-pane, .shape-post .hf-pane, .shape-square .hf-pane, .shape-wide .hf-pane { display: none; }
+/* a plate from kit/plates (the design system's cream-ink engravings and fluorescence fields): one per frame, on a pane */
+.hf-plate { position: absolute; object-fit: contain; opacity: 0; }
+.hf-plate.round { object-fit: cover; border-radius: 50%; }
+.shape-tv .hf-eyebrow { font-size: 28px; letter-spacing: .06em; }
