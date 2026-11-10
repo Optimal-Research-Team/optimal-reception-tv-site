@@ -35,11 +35,12 @@
   /* v2 (TV, Nov 9): the dial sits on a glass pane over the film ground, and the row's plate (an engraving, a
      micrograph field or a photograph from kit/plates) fills the dial at the open and the close, where the section
      mark used to stand (the kicker already carries the section). */
-  .shape-tv .p6-dial { left: 1150px; top: 240px; }
-  .p6-pane { left: 1100px; top: 190px; width: 700px; height: 700px; }
+  .shape-tv .p6-dial { left: 1100px; top: 220px; width: 640px; height: 640px; }
+  .p6-pane { left: 1040px; top: 160px; width: 760px; height: 760px; }
+  .shape-tv .p6-block { width: 870px; }
   .p6-plate { left: 19%; top: 19%; width: 62%; height: 62%; }
   .p6-plate.round { left: 14.5%; top: 14.5%; width: 71%; height: 71%; }
-  .shape-tv #p6-hl { max-width: 930px; }
+  .shape-tv #p6-hl { max-width: 880px; }
   .sub { font-size: .6em; letter-spacing: 0; vertical-align: -0.12em; }
 
   .shape-reel .p6-dial { left: 270px; top: 530px; width: 480px; height: 480px; }
@@ -225,6 +226,10 @@
     tl.fromTo(tracks, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.inOut', stagger: 0.12 }, 0.6);
     if (HF.shape === 'tv') HF.pane(tl, $('p6-pane'), 0.25);
     HF.rise(tl, lead, 0.95, 1.0);
+    if (plated) { // the plate pushes in slowly while it is up (forward only): once at the open, once at the close
+      tl.fromTo(lead, { scale: 1 }, { scale: 1.05, duration: T0 - 0.8, ease: 'none' }, 0.95);
+      tl.fromTo(lead, { scale: 1 }, { scale: 1.07, duration: DUR - END - 0.35, ease: 'none', immediateRender: false }, END + 0.35);
+    }
     HF.rise(tl, $('p6-foot'), 1.2);
     tl.to(lead, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
     tl.fromTo(tip, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' }, T0 + 0.3);

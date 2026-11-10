@@ -290,7 +290,10 @@
     if (HF.shape === 'tv') {
       // the layout spans the frame, so the film keeps to a quiet shade; the plate holds for the whole piece
       $('root').classList.add('hf-full');
-      if (HF.plate($('bm-plate'), String(V.plate || '').trim())) { HF.pane(tl, $('bm-pane'), 0.3); HF.rise(tl, $('bm-plate'), 0.8, 1.2); }
+      if (HF.plate($('bm-plate'), String(V.plate || '').trim())) {
+        HF.pane(tl, $('bm-pane'), 0.3); HF.rise(tl, $('bm-plate'), 0.8, 1.2);
+        tl.fromTo($('bm-plate'), { scale: 1 }, { scale: 1.07, duration: DUR - 0.8, ease: 'none' }, 0.8); // a slow push in, forward only
+      }
     }
     HF.rise(tl, $('bm-foot'), 1.2);
 
