@@ -1,5 +1,5 @@
 ﻿<!doctype html>
-<html lang="en" data-composition-variables='[{"id":"kicker","type":"string","label":"Kicker (series + section)","default":"Longevity Protocol · §12"},{"id":"mark","type":"string","label":"Section mark in the dial","default":"§12"},{"id":"headline","type":"string","label":"Headline (*italic leaf*)","default":"Your annual bloodwork, *explained*"},{"id":"b1","type":"string","label":"Beat 1 ({number} in leaf, max 15 words)","default":"Lipids, {4} tests: a lipid assessment, apoB, Lp(a) and hs-CRP."},{"id":"f1","type":"string","label":"Beat 1 figure","default":"4"},{"id":"u1","type":"string","label":"Beat 1 figure caption","default":"lipid tests"},{"id":"b2","type":"string","label":"Beat 2","default":"Metabolic, {3} tests: fasting glucose, HbA1c and fasting insulin."},{"id":"f2","type":"string","label":"Beat 2 figure","default":"3"},{"id":"u2","type":"string","label":"Beat 2 figure caption","default":"metabolic tests"},{"id":"b3","type":"string","label":"Beat 3","default":"Organ function, {7} tests: kidneys, liver, electrolytes, urine and blood counts."},{"id":"f3","type":"string","label":"Beat 3 figure","default":"7"},{"id":"u3","type":"string","label":"Beat 3 figure caption","default":"organ-function tests"},{"id":"b4","type":"string","label":"Beat 4","default":"Nutrients, {4} tests: ferritin, B12, vitamin D, calcium and magnesium."},{"id":"f4","type":"string","label":"Beat 4 figure","default":"4"},{"id":"u4","type":"string","label":"Beat 4 figure caption","default":"nutrient and mineral tests"},{"id":"b5","type":"string","label":"Beat 5 (leave empty for four beats)","default":"Hormones: thyroid, plus free and total testosterone for men."},{"id":"f5","type":"string","label":"Beat 5 figure","default":"2"},{"id":"u5","type":"string","label":"Beat 5 figure caption","default":"hormone tests"},{"id":"takeaway","type":"string","label":"Closing takeaway (*italic leaf*)","default":"Ordered once a year; *twice* while a marker is being corrected."},{"id":"foot","type":"string","label":"Footnote (sources + section)","default":"Some tests are uninsured: billed to the member unless OHIP criteria are met. From the Optimal Longevity Protocol, v1.0, §12. Educational, not medical advice."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"},{"id":"plate","type":"string","label":"TV: plate in the dial at the open and close (a kit/plates name; empty keeps the section mark)","default":"plate-blood"}]'>
+<html lang="en" data-composition-variables='[{"id":"kicker","type":"string","label":"Kicker (series + section)","default":"Longevity Protocol · §12"},{"id":"mark","type":"string","label":"Section mark in the dial","default":"§12"},{"id":"headline","type":"string","label":"Headline (*italic leaf*)","default":"Your annual bloodwork, *explained*"},{"id":"b1","type":"string","label":"Beat 1 ({number} in leaf, max 15 words)","default":"Lipids, {4} tests: a lipid assessment, apoB, Lp(a) and hs-CRP."},{"id":"f1","type":"string","label":"Beat 1 figure","default":"4"},{"id":"u1","type":"string","label":"Beat 1 figure caption","default":"lipid tests"},{"id":"b2","type":"string","label":"Beat 2","default":"Metabolic, {3} tests: fasting glucose, HbA1c and fasting insulin."},{"id":"f2","type":"string","label":"Beat 2 figure","default":"3"},{"id":"u2","type":"string","label":"Beat 2 figure caption","default":"metabolic tests"},{"id":"b3","type":"string","label":"Beat 3","default":"Organ function, {7} tests: kidneys, liver, electrolytes, urine and blood counts."},{"id":"f3","type":"string","label":"Beat 3 figure","default":"7"},{"id":"u3","type":"string","label":"Beat 3 figure caption","default":"organ-function tests"},{"id":"b4","type":"string","label":"Beat 4","default":"Nutrients, {4} tests: ferritin, B12, vitamin D, calcium and magnesium."},{"id":"f4","type":"string","label":"Beat 4 figure","default":"4"},{"id":"u4","type":"string","label":"Beat 4 figure caption","default":"nutrient and mineral tests"},{"id":"b5","type":"string","label":"Beat 5 (leave empty for four beats)","default":"Hormones: thyroid, plus free and total testosterone for men."},{"id":"f5","type":"string","label":"Beat 5 figure","default":"2"},{"id":"u5","type":"string","label":"Beat 5 figure caption","default":"hormone tests"},{"id":"takeaway","type":"string","label":"Closing takeaway (*italic leaf*)","default":"Ordered once a year; *twice* while a marker is being corrected."},{"id":"foot","type":"string","label":"Footnote (sources + section)","default":"Some tests are uninsured: billed to the member unless OHIP criteria are met. From the Optimal Longevity Protocol, v1.0, §12. Educational, not medical advice."},{"id":"brandLine","type":"string","label":"Social sign-off line","default":"Free 15-minute intro call · beoptimal.ca"},{"id":"plate","type":"string","label":"TV: plate in the dial at the open and close (a kit/plates name; empty keeps the section mark)","default":"plate-blood"},{"id":"layout","type":"string","label":"TV: dial (default), plate (the plate holds, the figure reads out under it) or ledger (the figures build up as rows)","default":"dial"}]'>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920, height=1080">
@@ -41,6 +41,29 @@
   .p6-plate { left: 19%; top: 19%; width: 62%; height: 62%; }
   .p6-plate.round { left: 14.5%; top: 14.5%; width: 71%; height: 71%; }
   .shape-tv #p6-hl { max-width: 880px; }
+  .shape-tv .hf-foot { width: 880px; } /* the source line keeps to the words' column, clear of the pane */
+
+  /* v2 layouts (TV, Nov 10): the row's `layout` picks how it uses the pane, so 45 pieces don't share one frame.
+     dial    the timer dial, as above (the default; rows whose figures are mostly numbers)
+     plate   the row's plate holds on a tall pane for the whole piece, and each beat's figure reads out under it
+     ledger  the figures build up as rows on the pane, one per beat, and hold together at the close */
+  .lay-plate .p6-pane, .lay-plate.shape-tv .p6-dial { left: 1100px; top: 150px; width: 700px; height: 790px; }
+  .lay-plate .p6-ring { display: none; }
+  .lay-plate .p6-plate { left: 80px; top: 44px; width: 540px; height: 470px; }
+  .lay-plate .p6-plate.round { left: 125px; top: 52px; width: 450px; height: 450px; }
+  .lay-plate .p6-figs { left: 50px; top: 540px; width: 600px; height: 222px; border-top: 1.5px solid rgba(255, 252, 247, .2); }
+  .lay-ledger .p6-pane, .lay-ledger.shape-tv .p6-dial { left: 1040px; top: 190px; width: 760px; height: 700px; }
+  .lay-ledger .p6-ring, .lay-ledger .p6-figs { display: none; }
+  .lay-ledger .p6-plate { left: 160px; top: 130px; width: 440px; height: 440px; }
+  .p6-ledger { display: none; }
+  .lay-ledger .p6-ledger { position: absolute; left: 1090px; top: 190px; width: 660px; height: 700px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; justify-content: center; }
+  .p6-ledger li { position: relative; display: grid; grid-template-columns: 340px minmax(0, 1fr); column-gap: 30px; align-items: center; min-height: 112px; padding: 14px 0 14px 28px; border-top: 1.5px solid rgba(255, 252, 247, .16); opacity: 0; }
+  .p6-ledger li:first-child { border-top-color: transparent; }
+  .p6-ledger li i { position: absolute; left: 0; top: 20px; bottom: 20px; width: 4px; border-radius: 2px; background: var(--leaf-300); transform: scaleY(0); transform-origin: 50% 0; }
+  .p6-ledger b { font: italic 400 50px/1.04 var(--display); letter-spacing: -0.03em; color: var(--cream); text-wrap: balance; }
+  .p6-ledger b.num { font: 500 62px/1 var(--sans); letter-spacing: -0.04em; color: var(--leaf-300); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .p6-ledger li > span { font: 400 28px/1.25 var(--sans); letter-spacing: -0.01em; color: var(--fg); text-wrap: balance; }
+  .p6-ledger b .hf-num { font: inherit; color: inherit; }
   .sub { font-size: .6em; letter-spacing: 0; vertical-align: -0.12em; }
 
   .shape-reel .p6-dial { left: 270px; top: 530px; width: 480px; height: 480px; }
@@ -65,6 +88,7 @@
     <img class="hf-plate p6-plate tv-only" id="p6-plate" alt="">
     <div class="p6-figs" id="p6-figs"><p class="p6-mark" id="p6-mark"></p></div>
   </div>
+  <ol class="p6-ledger tv-only" id="p6-ledger"></ol>
 
   <div class="hf-frame">
     <p class="hf-eyebrow" id="p6-eb"></p>
@@ -113,6 +137,9 @@
     if (t) BEATS.push({ t, f: String(V['f' + i] || '').trim() || String(BEATS.length + 1).padStart(2, '0'), u: String(V['u' + i] || '').trim() });
   }
   const N = BEATS.length;
+  // TV layout (see the styles): only with a plate, and only the two named ones; anything else is the dial
+  const LAY = HF.shape === 'tv' && String(V.plate || '').trim() && ['plate', 'ledger'].indexOf(String(V.layout || '').trim()) >= 0 ? String(V.layout).trim() : 'dial';
+  if (LAY !== 'dial') $('root').classList.add('lay-' + LAY);
 
   // Timing: the row's duration is authoritative (root data-duration, baked by stage.mjs). A 3.4 s opening, a 7 s close,
   // and the beats share what's left in proportion to their length (the same weights content/protocol-60.json was sized with).
@@ -138,6 +165,7 @@
     $('p6-count').insertAdjacentHTML('beforeend', `<p class="hf-count"><b>${pad(k + 1)}</b> / ${pad(N)}</p>`);
     $('p6-slot').insertAdjacentHTML('beforeend', `<p class="p6-st">${mk(b.t)}</p>`);
     $('p6-figs').insertAdjacentHTML('beforeend', `<div class="p6-f"><p class="p6-v${isNum(b.f) ? '' : ' word'}">${mk(b.f)}</p>${b.u ? `<p class="p6-u">${mk(b.u)}</p>` : ''}</div>`);
+    if (LAY === 'ledger') $('p6-ledger').insertAdjacentHTML('beforeend', `<li><i></i><b class="${isNum(b.f) ? 'num' : ''}">${mk(b.f)}</b><span>${mk(b.u)}</span></li>`);
   });
   $('p6-slot').insertAdjacentHTML('beforeend', `<p class="p6-end" id="p6-end">${mk(V.takeaway)}</p>`);
   HF.hang('#p6-hl, .p6-st, #p6-end'); // a block that opens with a quote mark hangs it (before the type is fitted)
@@ -171,7 +199,9 @@
 
     // the dial
     const dial = $('p6-dial'), S = box(dial).width, C = S / 2, R = C - 2, r = C - G.ring;
-    const innerW = 2 * r * G.inner, innerH = 2 * r * 0.66;
+    // where a beat's figure sits: inside the dial, or (plate layout) in the readout under the plate
+    const innerW = LAY === 'plate' ? 600 : 2 * r * G.inner, innerH = LAY === 'plate' ? 200 : 2 * r * 0.66;
+    if (LAY === 'plate') { G.val = 128; G.word = 70; G.unit = 28; G.mark = 104; }
     document.querySelectorAll('.p6-f').forEach((f) => {
       const v = f.querySelector('.p6-v'), u = f.querySelector('.p6-u');
       if (u) { u.style.maxWidth = Math.round(innerW * 0.9) + 'px'; u.style.fontSize = G.unit + 'px'; if (box(u).height > G.unit * 1.25 * 2 + 2) u.style.fontSize = (G.unit - 3) + 'px'; }
@@ -226,12 +256,20 @@
     tl.fromTo(tracks, { attr: { 'stroke-dashoffset': 1 } }, { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.inOut', stagger: 0.12 }, 0.6);
     if (HF.shape === 'tv') HF.pane(tl, $('p6-pane'), 0.25);
     HF.rise(tl, lead, 0.95, 1.0);
-    if (plated) { // the plate pushes in slowly while it is up (forward only): once at the open, once at the close
+    if (plated && LAY !== 'plate') { // the plate pushes in slowly while it is up (forward only): at the open, and (dial) again at the close
       tl.fromTo(lead, { scale: 1 }, { scale: 1.05, duration: T0 - 0.8, ease: 'none' }, 0.95);
-      tl.fromTo(lead, { scale: 1 }, { scale: 1.07, duration: DUR - END - 0.35, ease: 'none', immediateRender: false }, END + 0.35);
+      if (LAY === 'dial') tl.fromTo(lead, { scale: 1 }, { scale: 1.07, duration: DUR - END - 0.35, ease: 'none', immediateRender: false }, END + 0.35);
     }
+    const rows = [...document.querySelectorAll('.p6-ledger li')];
     HF.rise(tl, $('p6-foot'), 1.2);
-    tl.to(lead, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
+    if (LAY === 'plate') {
+      tl.fromTo(lead, { scale: 1 }, { scale: 1.08, duration: DUR - 0.95, ease: 'none' }, 0.95); // the plate holds for the whole piece
+      // and the section mark holds the readout under it before the first beat and after the last
+      HF.rise(tl, mark, 1.25, 0.9);
+      tl.to(mark, { opacity: 0, y: -12, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
+      tl.fromTo(mark, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
+    }
+    else tl.to(lead, { opacity: 0, y: -16, duration: 0.4, ease: 'power2.in' }, T0 - 0.15);
     tl.fromTo(tip, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power2.out' }, T0 + 0.3);
 
     BEATS.forEach((b, k) => {
@@ -240,6 +278,11 @@
       if (k > 0) tl.set(counts[k - 1], { opacity: 0 }, at);
       HF.beat(tl, sts[k], at, next - 0.45);
       // the figure lands a beat ahead of the sentence and leaves with it
+      if (LAY === 'ledger') { // this beat's row arrives lit; when the next beat starts it steps back
+        tl.fromTo(rows[k], { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, at + 0.25);
+        tl.fromTo(rows[k].firstElementChild, { scaleY: 0 }, { scaleY: 1, duration: 0.6, ease: HF.EASE }, at + 0.45);
+        if (k < N - 1) { tl.to(rows[k], { opacity: 0.46, duration: 0.5, ease: 'power2.out' }, next - 0.2); tl.to(rows[k].firstElementChild, { scaleY: 0, duration: 0.4, ease: 'power2.in' }, next - 0.3); }
+      }
       tl.fromTo(figs[k], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: HF.EASE }, at + 0.25);
       tl.to(figs[k], { opacity: 0, y: -14, duration: 0.4, ease: 'power2.in' }, next - 0.45);
       const c = countable(b.f);
@@ -257,7 +300,11 @@
     tl.to(counts[N - 1], { opacity: 0, duration: 0.45, ease: 'power2.in' }, END - 0.45);
     tl.to(tip, { opacity: 0, duration: 0.4, ease: 'power2.in' }, END - 0.2);
     tl.fromTo(endEl, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE }, END + 0.2);
-    tl.fromTo(lead, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
+    if (LAY === 'dial') tl.fromTo(lead, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.9, ease: HF.EASE, immediateRender: false }, END + 0.35);
+    if (LAY === 'ledger') { // the close: every row comes back up together, the markers stay off
+      tl.to(rows, { opacity: 1, duration: 0.7, ease: 'power2.out', stagger: 0.06 }, END + 0.2);
+      tl.to(rows[N - 1].firstElementChild, { scaleY: 0, duration: 0.4, ease: 'power2.in' }, END);
+    }
     tl.fromTo(glint, { opacity: 0 }, { opacity: 0.9, duration: 0.3 }, END + 0.6);
     tl.fromTo(glint, { attr: { 'stroke-dashoffset': 0.06 } }, { attr: { 'stroke-dashoffset': -1.0 }, duration: 2.2, ease: 'power1.inOut' }, END + 0.6);
     tl.to(glint, { opacity: 0, duration: 0.3 }, END + 2.6);

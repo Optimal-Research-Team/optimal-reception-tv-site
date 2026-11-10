@@ -7,7 +7,8 @@
   var shape = root && root.classList.contains('shape-reel') ? 'reel' : root && root.classList.contains('shape-post') ? 'post' : 'tv';
   var EASE = 'power3.out';
   // Live on the reception TV (the TV loads index.html?live): the page goes see-through over the TV's film ground.
-  if (/[?&]live\b/.test(location.search)) document.documentElement.classList.add('tv-live');
+  var LIVE = /[?&]live\b/.test(location.search);
+  if (LIVE) document.documentElement.classList.add('tv-live');
 
   // Declared defaults from <html data-composition-variables>, overlaid by the runtime's values when it has them
   // (render --variables / per-row batch), so a composition also plays correctly in a bare iframe.
@@ -50,12 +51,40 @@
   function pane(tl, el, at) {
     tl.fromTo(el, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 1.2, ease: EASE }, at == null ? 0.3 : at);
   }
-  /** Where a plate lives, and how it sits: photographs and micrograph fields are round. */
+  // Living plates (kit/plates/motion, made by the TV's scripts/motion-plates.py): the plates that have a short looping
+  // clip, and its container. Engravings are WebM with alpha (cream ink on nothing); fields and photographs are MP4.
+  var MOTION = { 'heart': 'webm', 'bronchial-tree': 'webm', 'hand': 'webm', 'iris': 'webm', 'neuron': 'webm', 'plate-heart': 'webm', 'plate-blood': 'webm',
+    'vein-red-cells': 'webm', 'stomach-gut': 'webm', 'apob-particles': 'webm', 'neurons-field': 'mp4', 'mitochondria-field': 'mp4', 'islet-field': 'mp4',
+    'oocyte-field': 'mp4', 'retina-field': 'mp4', 'cardiomyocytes-field': 'mp4', 'muscle-field': 'mp4', 'on-moonrise': 'mp4' };
+  /** Where a plate lives, and how it sits: photographs and micrograph fields are round. Live on the TV, a plate with a
+   *  moving version plays it in place of the still: the <img> is swapped for a looping <video> with the same id and
+   *  classes (so fetch the element again after this call), and the still stays up as its poster. A render never
+   *  takes this path, so every cut stays deterministic. */
   function plate(img, name) {
     if (!img || !name) return false;
-    img.src = (document.querySelector('script[src*="kit/kit.js"]').getAttribute('src').replace('kit.js', '')) + 'plates/' + name + '.webp';
+    var base = document.querySelector('script[src*="kit/kit.js"]').getAttribute('src').replace('kit.js', '');
+    img.src = base + 'plates/' + name + '.webp';
     if (/^on-|-field$/.test(name)) img.classList.add('round');
+    if (LIVE && MOTION[name]) {
+      var v = document.createElement('video');
+      v.id = img.id; v.className = img.className + ' hf-plate-live';
+      v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+      v.poster = img.src; v.src = base + 'plates/motion/' + name + '.' + MOTION[name];
+      img.replaceWith(v);
+      var go = function () { var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+      v.addEventListener('canplay', go, { once: true });
+      // the runtime may pause media it doesn't own when it seeks: a decorative loop just carries on, unless the
+      // TV itself is holding the piece (paused from the remote, or resting behind the Closed screen: HF.hold)
+      v.addEventListener('pause', function () { if (!held && !document.hidden) setTimeout(go, 60); });
+    }
     return true;
+  }
+  var held = false;
+  /** The TV holds or releases the piece's living plates along with its timeline. */
+  function hold(on) {
+    held = !!on;
+    document.querySelectorAll('video.hf-plate').forEach(function (v) { if (held) v.pause(); else { var p = v.play(); if (p && p.catch) p.catch(function () {}); } });
   }
 
   /** Social cuts draw their own hairline strip: one segment per [start, end) span, filled as it plays. */
@@ -92,7 +121,7 @@
     });
   }
 
-  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, pane: pane, plate: plate, strip: strip, smart: smart, hang: hang, EASE: EASE,
+  window.HF = { shape: shape, vars: vars, register: register, logo: logo, reveal: reveal, rise: rise, beat: beat, pane: pane, plate: plate, hold: hold, strip: strip, smart: smart, hang: hang, EASE: EASE,
     /** Pixel value per shape: HF.px({ tv: 120, reel: 90, post: 90 }). */
     px: function (m) { return m[shape] != null ? m[shape] : m.tv; } };
   logo();

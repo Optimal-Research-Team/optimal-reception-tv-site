@@ -104,4 +104,5 @@ body { color: var(--fg); font-family: var(--sans); letter-spacing: -0.02em; -web
 /* a plate from kit/plates (the design system's cream-ink engravings and fluorescence fields): one per frame, on a pane */
 .hf-plate { position: absolute; object-fit: contain; opacity: 0; }
 .hf-plate.round { object-fit: cover; border-radius: 50%; }
+video.hf-plate { background: transparent; }
 .shape-tv .hf-eyebrow { font-size: 28px; letter-spacing: .06em; }
