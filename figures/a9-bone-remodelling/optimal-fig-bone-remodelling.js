@@ -1777,7 +1777,7 @@ function a9Scene(ctx, env) {
 // each follows depthAt(age, fill): an osteoclast digs, a pause, then osteoblasts refill. When a
 // site finishes, whatever it didn't refill stays as a permanent dip and its cavity floor stays
 // as a cement line. The readout is the strut's bone area against the start.
-const DATA = {"X0":20,"X1":580,"TOP":168,"BOT":318,"MT":36,"MB":420,"DEP":150,"P":{"origin":[113.51421851992606,318.56069774473383],"scale":0.695375250966681,"azimuth":62,"elevation":24},"W":600,"H":470,"gl3":{"parts":[],"ground":0,"bounds":[[0,0,0],[560,150,384]],"look":{"exposure":1.04,"aoRadius":9,"cast":1.3,"contact":0.9},"file":"optimal-gl3.js","v":"459c2c40"},"lines":["Before menopause: a few repair sites at a time. Each cavity an osteoclast digs is filled back in by osteoblasts, so the strut keeps its thickness.","Around and after menopause: with little estrogen, more sites start at once, and each refill falls a little short. The strut slowly thins."]};
+const DATA = {"X0":20,"X1":580,"TOP":168,"BOT":318,"MT":36,"MB":420,"DEP":150,"P":{"origin":[113.51421851992606,318.56069774473383],"scale":0.695375250966681,"azimuth":62,"elevation":24},"W":600,"H":470,"gl3":{"parts":[],"ground":0,"bounds":[[0,0,0],[560,150,384]],"look":{"exposure":1.04,"aoRadius":9,"cast":1.3,"contact":0.9},"file":"optimal-gl3.js","v":"bf10947a"},"lines":["Before menopause: a few repair sites at a time. Each cavity an osteoclast digs is filled back in by osteoblasts, so the strut keeps its thickness.","Around and after menopause: with little estrogen, more sites start at once, and each refill falls a little short. The strut slowly thins."]};
 
 function mount(fig) {
   const svg = fig.querySelector("svg");
