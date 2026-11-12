@@ -868,13 +868,14 @@ const satOf = (p) => p ** LUNG.hill / (p ** LUNG.hill + LUNG.p50 ** LUNG.hill);
 
 // A5 3-D scene: the drawing's block of lung, modelled for the shared real-time layer (shared/gl3, `build`).
 //
-// Everything is built in the page from the drawing's own geometry (DATA.g3: the foam's seeds, the sac, the duct, the
-// vessels' path, every noted point), in the block's world units (x along, y back into the lung, z up), so the render
-// lands on the drawing to the pixel and the traced-cell ring and the monitor stay in the SVG on top.
+// Everything is built in the page from the drawing's own geometry (DATA.g3: the block, the sac, the duct, the vessels'
+// path, every noted knob, nucleus and granule), in the block's world units (x along, y back into the lung, z up), so the
+// render lands on the drawing to the pixel and the traced-cell ring and the monitor stay in the SVG on top.
 //
-//   foam      each air sac is its Voronoi cell, shrunk by half a wall and rounded (a p-norm of its planes): a real
-//             hollow behind every opening on the three cut faces. The cut faces are meshed from the same field
-//             (marching squares), so openings and hollows agree, and every edge of an opening is rolled over.
+//   foam      air sacs packed for the three faces we see (centres just under a face, sizes varied, thin walls). Each
+//             is its cell among its neighbours, shrunk by half a wall and rounded (a p-norm of its planes): a real
+//             hollow behind every opening. The cut faces are meshed from the same field (marching squares), so
+//             openings and hollows agree across the block's edges, and every edge of an opening is rolled over.
 //   the sac   one half-turned surface: the bowl, the mouth and the duct with its entrance rings. The capillary net
 //             is tubes on the bowl; its blue-to-red change is a 2-texel ramp the model slides.
 //   vessels   the arteriole, the traced capillary and the venule are one open gutter in the front face.
@@ -903,13 +904,13 @@ function a5Scene(ctx, G, opt) {
   // ---------------------------------------------------------------- palette (the drawing's own, figure.css + block.css)
   const PAL = night
     ? {
-        tissue: "#9d5c5b", rim: "#532629", sheath: "#a86866", lip: "#7c4647", deep: "#3a1c20", pit: "#2a1216", web: "#b5524f",
+        tissue: "#9d5c5b", rim: "#532629", sheath: "#a86866", lip: "#7c4647", deep: "#3a1c20", pit: "#2a1216", warm: "#7a4634", cool: "#5a3350", web: "#b5524f",
         bowl: "#8a5050", bowlDeep: "#43232a", duct: "#8f5656", ductDeep: "#4c282b", capA: "#e2402f", capV: "#7a62a8", knob: "#b46e63",
         ven: "#5d63b8", art: "#d84c3f", venTube: "#4a4d8a", artTube: "#8a3a36", plasma: "#e7c4b8",
         o2: "#8ff0e6", co2: "#b3b0aa", t2: "#a8645a", gran: "#ffe3c4", mac: "#8c5a63", macNuc: "#d7a3ad", pore: "#241012", pave: "#3a1c1c",
       }
     : {
-        tissue: "#e4a9a5", rim: "#b0645f", sheath: "#d08a84", lip: "#fdefee", deep: "#eec3be", pit: "#dca39d", web: "#e2817b",
+        tissue: "#e4a9a5", rim: "#b0645f", sheath: "#d08a84", lip: "#fff1ee", deep: "#f0c1bd", pit: "#d79a9b", warm: "#f8cdb4", cool: "#e6bfd0", web: "#e2817b",
         bowl: "#fbe6e2", bowlDeep: "#e0aaa3", duct: "#fbebe8", ductDeep: "#e7b9b2", capA: "#d4382a", capV: "#6f62b0", knob: "#b8695c",
         ven: "#7880cc", art: "#da5a4c", venTube: "#c3c6ea", artTube: "#f0b8ae", plasma: "#fff4ef",
         o2: "#0f8a8f", co2: "#8c877e", t2: "#eab3a3", gran: "#8a4a3e", mac: "#cf9aa6", macNuc: "#7a3d4a", pore: "#b98374", pave: "#9a5245",
@@ -922,9 +923,9 @@ function a5Scene(ctx, G, opt) {
   const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
   // ---------------------------------------------------------------- detail
-  const HGRID = coarse ? 4 : 2.5; //   cut-face mesh step (divides 560, 340 and 180)
-  const ICO = coarse ? 2 : 3; //       air-sac hollows: icosphere detail
-  const INFL = coarse ? 1.035 : 1.012; // hollows a hair larger than their openings, so no edge shows a gap
+  const HGRID = coarse ? 2.5 : 2; //   cut-face mesh step (divides 560, 340 and 180): fine enough for the thin walls
+  const ICO = coarse ? 2 : 3; //       air-sac hollows: icosphere detail (one less for the small sacs on desktop)
+  const INFL = [0, 0, 1.035, 1.012]; // by detail: hollows a hair larger than their openings, so no edge shows a gap
   const LIP = 1.0; //                  how far an opening's edge rolls back from the cut face
   const LW = 3.2; //                   over what distance
   const OVER = 0.45;
@@ -1057,57 +1058,95 @@ function a5Scene(ctx, G, opt) {
   }
 
   // ---------------------------------------------------------------- the foam: one rounded hollow per air sac
-  const SEEDS = G.seeds;
-  const TMAX = 96;
+  // The block's air sacs are packed for the three faces we see. Their centres sit just under a face, so each face cuts
+  // its sacs near their widest: every opening is a full, rounded hollow with a thin wall to its neighbours, and none is
+  // a pin-hole, a slit or a shallow dish (what a random cut through the drawing's own packing gives, and what reads as
+  // dirt once it has depth). Sizes vary; big sacs are placed first and smaller ones fill between them. Solid tissue is
+  // left only where the anatomy has it: round the vessels in their sheaths, the opened sac's wall and the duct.
+  const SEPT = 3.1; // half a wall between two sacs
+  const SKIN = 2 * HGRID; // the block's unseen sides are closed by a skin: a hollow stops short of them
+  const EDGE = 2 * SEPT; //  and a sac under one face stops a wall short of the other two, so the block keeps its three edges
   // what the hollows keep clear of: the sac and its wall, the duct's sleeve, the vessels in their sheaths
   const keepAlv = [[CX, D, CZ, R + RING + 1.5]];
   const keepDuct = [];
   for (let z = CZ + 100; z <= HF + 40; z += 14) keepDuct.push([CX, D, z, DUCT_R + G.duct.sleeve + 1.5]);
   const keepIn = [];
   const keepOut = [];
-  for (let u = 0; u <= i0; u += 7) keepIn.push([PW[u][0], D, PW[u][1], Math.max(shR[u], lumR[u] + 6) + 2.5]);
-  for (let u = i1; u < NP; u += 7) keepOut.push([PW[u][0], D, PW[u][1], Math.max(shR[u], lumR[u] + 6) + 2.5]);
+  for (let u = 0; u <= i0; u += 5) keepIn.push([PW[u][0], D, PW[u][1], Math.max(shR[u], lumR[u] + 6) + 1.5]);
+  for (let u = i1; u < NP; u += 5) keepOut.push([PW[u][0], D, PW[u][1], Math.max(shR[u], lumR[u] + 6) + 1.5]);
   const KEEP = [keepAlv, keepDuct, keepIn, keepOut];
+  const SEEDS = []; // x, y, z, radius, the face it lies under (0 front, 1 top, 2 right end)
+  {
+    // along a face: from the skin of an unseen side to a wall's width short of the next face we see (EDGE below)
+    const span = (r, len, t) => SKIN + 0.8 * r + t * (len - EDGE - 1.6 * r - SKIN);
+    // [area, where a sac of radius r sits at depth d: (a, b) in 0..1 across the face]
+    const FACES = [
+      [L * HF, (r, d, a, b) => [span(r, L, a), D - d, span(r, HF, b)]], // front
+      [L * D, (r, d, a, b) => [span(r, L, a), span(r, D, b), HF - d]], // top
+      [D * HF, (r, d, a, b) => [L - d, span(r, D, a), span(r, HF, b)]], // right end
+    ];
+    const tryAt = (f, r, q) => {
+      for (let k = 0; k < SEEDS.length; k++) {
+        const o = SEEDS[k];
+        // sacs under two different faces may crowd each other along the edge the faces share (their common wall then
+        // runs slantwise in from the edge), so neither face is left with a blank band behind that edge
+        const lim = (r + o[3]) * (o[4] === f ? 1 : 0.62);
+        const dx = o[0] - q[0], dy = o[1] - q[1], dz = o[2] - q[2];
+        if (dx * dx + dy * dy + dz * dz < lim * lim) return;
+      }
+      for (const g of KEEP)
+        for (const bk of g) {
+          const lim = bk[3] + 0.8 * r;
+          const dx = bk[0] - q[0], dy = bk[1] - q[1], dz = bk[2] - q[2];
+          if (dx * dx + dy * dy + dz * dz < lim * lim) return;
+        }
+      SEEDS.push([q[0], q[1], q[2], r, f]);
+    };
+    const area = FACES.reduce((t, f) => t + f[0], 0);
+    const scatter = (r0, r1, tries) => {
+      for (let t = 0; t < tries; t++) {
+        const r = r0 + (r1 - r0) * rnd();
+        let pick = rnd() * area;
+        let f = 0;
+        while (f < 2 && pick > FACES[f][0]) pick -= FACES[f++][0];
+        tryAt(f, r, FACES[f][1](r, 2 + rnd() * 0.42 * r, rnd(), rnd()));
+      }
+    };
+    // First a row of sacs along each of the three edges we see, on both faces that meet there, of mixed sizes (a sac
+    // placed later, a little way in from an edge, would leave the other face blank behind that edge).
+    // [face, which of its two coordinates runs to the edge]
+    for (let t = 0; t < 9000; t++) {
+      const [f, side] = [[0, 1], [1, 1], [0, 0], [2, 0], [1, 0], [2, 1]][t % 6];
+      const r = t < 1500 ? 25 + 8 * rnd() : 17 + 10 * rnd() ** 1.4;
+      const a = side === 0 ? 1 - 0.014 * rnd() : rnd();
+      const b2 = side === 1 ? 1 - 0.014 * rnd() : rnd();
+      tryAt(f, r, FACES[f][1](r, 2 + 2.5 * rnd(), a, b2));
+    }
+    // then the faces: big sacs first, smaller and smaller ones between them
+    for (const [r0, r1, tries] of [[32, 38, 1100], [28, 33, 2600], [25, 30, 5200], [21.5, 26, 9000], [18.5, 22, 9000], [16, 19, 9000]]) scatter(r0, r1, tries);
+  }
   function cavityOf(i) {
     const s = SEEDS[i];
-    const pl = []; // planes about the seed: unit normal, distance
+    const pl = []; // planes about the seed: unit normal, distance. Each wall lies between two sacs in proportion to their sizes
     for (let j = 0; j < SEEDS.length; j++) {
       if (j === i) continue;
       const q = SEEDS[j];
       const dx = q[0] - s[0], dy = q[1] - s[1], dz = q[2] - s[2];
       const d = Math.hypot(dx, dy, dz);
-      if (d < 200) pl.push([dx / d, dy / d, dz / d, d / 2 - G.sept]);
+      if (d < 2.6 * (s[3] + q[3])) pl.push([dx / d, dy / d, dz / d, (d * s[3]) / (s[3] + q[3]) - SEPT]);
     }
-    // the block's unseen sides are closed by a skin: a hollow stops short of them
-    const SKIN = 2 * HGRID;
     pl.push([-1, 0, 0, s[0] - SKIN], [0, -1, 0, s[1] - SKIN], [0, 0, -1, s[2] - SKIN]);
-    const groups = KEEP.map((g) => g.filter((b) => Math.hypot(b[0] - s[0], b[1] - s[1], b[2] - s[2]) - b[3] < 80));
-    // Where to centre the hollow: at the seed, and, where a vessel or the duct passes through the seed's cell, on the
-    // far side of it as well (the cell then holds two hollows, one each side: alveoli do sit on both sides of a vessel)
-    const starts = [[s[0], s[1], s[2]]];
-    groups.forEach((g, gi) => {
-      if (!gi || !g.length) return;
-      let best = null;
-      let bd = 34;
-      for (const b of g) {
-        const d = Math.hypot(b[0] - s[0], b[1] - s[1], b[2] - s[2]) - b[3];
-        if (d < bd) (bd = d), (best = b);
-      }
-      if (!best) return;
-      const dx = s[0] - best[0], dy = s[1] - best[1], dz = s[2] - best[2];
-      const d = Math.hypot(dx, dy, dz);
-      const n = d > 1e-3 ? [dx / d, dy / d, dz / d] : [0, -1, 0];
-      const far = [best[0] - n[0] * (best[3] + 18), best[1] - n[1] * (best[3] + 18), best[2] - n[2] * (best[3] + 18)];
-      // (only where that far side is well inside the block: a hollow centred in the part that was cut away would
-      // show as a flat shelf against the vessel)
-      if (far[1] < D - 22 && far[0] > 12 && far[0] < L - 12 && far[2] > 12 && far[2] < HF - 12) starts.push(far);
-    });
-    const made = [];
-    for (const start of starts) {
-      const cv = settle(s, pl, groups, start);
-      if (cv && made.every((m) => Math.hypot(m.c[0] - cv.c[0], m.c[1] - cv.c[1], m.c[2] - cv.c[2]) > 26)) made.push(cv);
-    }
-    return made;
+    if (s[4] !== 0) pl.push([0, 1, 0, D - EDGE - s[1]]);
+    if (s[4] !== 1) pl.push([0, 0, 1, HF - EDGE - s[2]]);
+    if (s[4] !== 2) pl.push([1, 0, 0, L - EDGE - s[0]]);
+    const groups = KEEP.map((g) => g.filter((bk) => Math.hypot(bk[0] - s[0], bk[1] - s[1], bk[2] - s[2]) - bk[3] < 80));
+    const cv = settle(s, pl, groups, [s[0], s[1], s[2]]);
+    if (!cv) return [];
+    // where no neighbour bounds it (into the block, and in a gap of the packing) the sac is round
+    cv.cap = (1 / (1.32 * s[3])) ** 8;
+    cv.tint = rnd() * 2 - 1;
+    cv.r = s[3];
+    return [cv];
   }
   function settle(s, pl, groups, c) {
     // a centre that sits in something the hollow must keep clear of moves out of it
@@ -1117,7 +1156,7 @@ function a5Scene(ctx, G, opt) {
         for (const b of g) {
           const dx = c[0] - b[0], dy = c[1] - b[1], dz = c[2] - b[2];
           const d = Math.hypot(dx, dy, dz);
-          const want = b[3] + 14;
+          const want = b[3] + 12;
           if (d < want) {
             const k2 = ((want - d) * 0.5) / Math.max(d, 1e-3);
             c[0] += (d > 1e-3 ? dx : 0) * k2;
@@ -1128,8 +1167,8 @@ function a5Scene(ctx, G, opt) {
         }
       for (const p of pl) {
         const h = p[3] - (p[0] * (c[0] - s[0]) + p[1] * (c[1] - s[1]) + p[2] * (c[2] - s[2]));
-        if (h < 14) {
-          const k2 = (14 - h) * 0.5;
+        if (h < 11) {
+          const k2 = (11 - h) * 0.5;
           c[0] -= p[0] * k2;
           c[1] -= p[1] * k2;
           c[2] -= p[2] * k2;
@@ -1156,11 +1195,11 @@ function a5Scene(ctx, G, opt) {
       return out;
     });
     if (slack < 9.5) return null; // a sliver: leave it solid
-    return { c, planes, sets: sets.filter((q) => q.length), tmax: 0, cuts: 0 };
+    return { c, planes, sets: sets.filter((q) => q.length), tmax: 0, cuts: 0, cap: 0, tint: 0, r: 0 };
   }
   /** How far the hollow reaches from its centre along a unit direction. */
   function reach(cv, ux, uy, uz) {
-    let sum = 1 / TMAX ** 8;
+    let sum = cv.cap;
     const p = cv.planes;
     for (let q = 0; q < p.length; q += 4) {
       const a = (p[q] * ux + p[q + 1] * uy + p[q + 2] * uz) * p[q + 3];
@@ -1213,10 +1252,13 @@ function a5Scene(ctx, G, opt) {
     }
     return { v, f };
   }
-  const BALL = icosphere(ICO);
+  const BALLS = [null, null, icosphere(2), coarse ? null : icosphere(3)];
   const cavities = [];
   for (const cv of SEEDS.flatMap((_, i) => cavityOf(i))) {
     // its surface, sampled on the icosphere
+    cv.ball = BALLS[cv.r < 23 ? 2 : ICO];
+    const BALL = cv.ball;
+    const infl = INFL[cv.r < 23 ? 2 : ICO];
     const n = BALL.v.length;
     const pts = new Float32Array(n * 3);
     let tmax = 0;
@@ -1225,7 +1267,7 @@ function a5Scene(ctx, G, opt) {
       const u = BALL.v[q];
       const t = reach(cv, u[0], u[1], u[2]);
       if (t > tmax) tmax = t;
-      const x = cv.c[0] + u[0] * t * INFL, y = cv.c[1] + u[1] * t * INFL, z = cv.c[2] + u[2] * t * INFL;
+      const x = cv.c[0] + u[0] * t * infl, y = cv.c[1] + u[1] * t * infl, z = cv.c[2] + u[2] * t * infl;
       pts[q * 3] = x;
       pts[q * 3 + 1] = y;
       pts[q * 3 + 2] = z;
@@ -1241,12 +1283,39 @@ function a5Scene(ctx, G, opt) {
   }
 
   // the hollows themselves: seen from inside, clipped to the block
-  const bowlColor = (cv, x, y, z) => {
+  // A hollow's tone: bright where the open air reaches (its rim, and the part of its wall that faces up to the light),
+  // deeper and rosier further in and under its roof; each sac a little its own tint, as living tissue is.
+  // The studio's key light, as shared/gl3 places it (above, a little left of the camera and toward it).
+  const KEY = (() => {
+    const v = [-0.5 * cam.sA + 0.42 * DV[0], 0.5 * cam.cA + 0.42 * DV[1], 0.42 * DV[2] + 1.45];
+    const l = Math.hypot(v[0], v[1], v[2]);
+    return [v[0] / l, v[1] / l, v[2] / l];
+  })();
+  /** How much of the key light reaches a point of a hollow's wall: 1 where the way to the light leaves by its opening. */
+  const litOf = (cv, x, y, z) => {
+    let lit = 0;
+    for (const [bit, axis, at] of [[1, 1, D], [2, 2, HF], [4, 0, L]]) {
+      if (!(cv.cuts & bit) || KEY[axis] <= 0.02) continue;
+      const t = (at - (axis === 0 ? x : axis === 1 ? y : z)) / KEY[axis];
+      const vx = x + KEY[0] * t - cv.c[0], vy = y + KEY[1] * t - cv.c[1], vz = z + KEY[2] * t - cv.c[2];
+      const rho = Math.hypot(vx, vy, vz) || 1e-6;
+      lit = Math.max(lit, 1 - sstep(-9, 4, rho - reach(cv, vx / rho, vy / rho, vz / rho)));
+    }
+    return lit;
+  };
+  // A hollow's tone: bright where the open air and the light reach (its rim, the part of its wall the key light finds
+  // through the opening), deeper and rosier further in and under its roof; each sac a little its own tint.
+  const SHADE = night ? [0.9, 0.86, 0.88] : [0.8, 0.7, 0.73];
+  const bowlColor = (cv, x, y, z, nz) => {
     let depth = 1e9;
     if (cv.cuts & 1) depth = Math.min(depth, D - y);
     if (cv.cuts & 2) depth = Math.min(depth, HF - z);
     if (cv.cuts & 4) depth = Math.min(depth, L - x);
-    return mix3(mix3(C.lip, C.deep, sstep(0, 34, depth)), C.pit, 0.7 * sstep(30, 85, depth));
+    let c = mix3(mix3(C.lip, C.deep, sstep(0, 26, depth)), C.pit, 0.85 * sstep(20, 58, depth));
+    c = mix3(c, cv.tint > 0 ? C.warm : C.cool, 0.2 * Math.abs(cv.tint));
+    const lit = litOf(cv, x, y, z);
+    const k2 = 1 + (nz > 0 ? 0.08 * nz : 0.12 * nz) * sstep(2, 20, depth);
+    return [c[0] * k2 * (SHADE[0] + (1 - SHADE[0]) * lit), c[1] * k2 * (SHADE[1] + (1 - SHADE[1]) * lit), c[2] * k2 * (SHADE[2] + (1 - SHADE[2]) * lit)];
   };
   const BW = mk();
   {
@@ -1255,6 +1324,7 @@ function a5Scene(ctx, G, opt) {
     const inside = (p, pl) => (pl[1] > 0 ? p[pl[0]] >= pl[2] : p[pl[0]] <= pl[2]);
     for (const cv of cavities) {
       if (!cv.cuts) continue;
+      const BALL = cv.ball;
       const n = BALL.v.length;
       const pts = cv.pts;
       const nrm = new Float32Array(n * 3);
@@ -1277,7 +1347,7 @@ function a5Scene(ctx, G, opt) {
       }
       const map = new Int32Array(n).fill(-1);
       const use = (q) => {
-        if (map[q] < 0) map[q] = vtx(BW, pts[q * 3], pts[q * 3 + 1], pts[q * 3 + 2], nrm[q * 3], nrm[q * 3 + 1], nrm[q * 3 + 2], bowlColor(cv, pts[q * 3], pts[q * 3 + 1], pts[q * 3 + 2]));
+        if (map[q] < 0) map[q] = vtx(BW, pts[q * 3], pts[q * 3 + 1], pts[q * 3 + 2], nrm[q * 3], nrm[q * 3 + 1], nrm[q * 3 + 2], bowlColor(cv, pts[q * 3], pts[q * 3 + 1], pts[q * 3 + 2], nrm[q * 3 + 2]));
         return map[q];
       };
       for (const [a, b, c] of BALL.f) {
@@ -1304,7 +1374,7 @@ function a5Scene(ctx, G, opt) {
           if (poly.length < 3) break;
         }
         if (poly.length < 3) continue;
-        const ids = poly.map((p) => vtx(BW, p[0], p[1], p[2], p[3], p[4], p[5], bowlColor(cv, p[0], p[1], p[2])));
+        const ids = poly.map((p) => vtx(BW, p[0], p[1], p[2], p[3], p[4], p[5], bowlColor(cv, p[0], p[1], p[2], p[5])));
         for (let q = 1; q < ids.length - 1; q++) BW.idx.push(ids[0], ids[q], ids[q + 1]);
       }
     }
@@ -1412,7 +1482,7 @@ function a5Scene(ctx, G, opt) {
       // a hollow that only dips a little way under this face would be a shallow dish: leave the face closed over it
       let low = 1e9;
       for (let q = axis; q < cv.pts.length; q += 3) if (cv.pts[q] < low) low = cv.pts[q];
-      if (at - low < 15) continue;
+      if (at - low < 12) continue;
       const rr = Math.sqrt(cv.tmax * cv.tmax - off * off) + 1;
       const iA = Math.max(0, Math.floor((cv.c[ia] - rr) / HGRID)), iB = Math.min(nu, Math.ceil((cv.c[ia] + rr) / HGRID));
       const jA = Math.max(0, Math.floor((cv.c[ib] - rr) / HGRID)), jB = Math.min(nv, Math.ceil((cv.c[ib] + rr) / HGRID));
@@ -1436,9 +1506,9 @@ function a5Scene(ctx, G, opt) {
           hits.push(j * W1 + i, val);
         }
       // a small or a slit-like opening stays closed (the drawing drops small sections too): no pin-holes or slits in a
-      // face. Slit-like: nothing is left of it after wearing its edge back by about 7 units.
-      if (open * HGRID * HGRID < 150) continue;
-      for (let step = Math.ceil(7 / HGRID); step > 0 && open > 0; step--) {
+      // face. Slit-like: nothing is left of it after wearing its edge back by about 4 units. (The packing above leaves very few of these.)
+      if (open * HGRID * HGRID < 110) continue;
+      for (let step = Math.ceil(4 / HGRID); step > 0 && open > 0; step--) {
         const next = new Uint8Array(mask.length);
         open = 0;
         for (let j = 1; j < jB - jA; j++)
@@ -1482,6 +1552,7 @@ function a5Scene(ctx, G, opt) {
     const Hh = new Float32Array(W1 * (nv + 1)).fill(99);
     const sheath = new Float32Array(W1 * (nv + 1));
     cavityField(V, Hh, nu, nv, 1, D, 0, 2);
+    const Vc = V.slice();
     for (let j = 0; j <= nv; j++)
       for (let i = 0; i <= nu; i++) {
         const id = j * W1 + i;
@@ -1502,7 +1573,7 @@ function a5Scene(ctx, G, opt) {
         }
       }
     marchFace(FACE, { nu, nv, V, Hh, N: [0, 1, 0], tint: faceTint(Hh, sheath), pos: (i, j, o) => ((o[0] = i * HGRID), (o[1] = D), (o[2] = j * HGRID)) });
-    frontField = { nu, nv, V };
+    frontField = { nu, nv, V, Vc };
   }
   let topField = null;
   {
@@ -1511,6 +1582,7 @@ function a5Scene(ctx, G, opt) {
     const V = new Float32Array(W1 * (nv + 1)).fill(99);
     const Hh = new Float32Array(W1 * (nv + 1)).fill(99);
     cavityField(V, Hh, nu, nv, 2, HF, 0, 1);
+    const Vc = V.slice();
     const rTop = profR(HF - CZ);
     for (let j = 0; j <= nv; j++)
       for (let i = 0; i <= nu; i++) {
@@ -1520,7 +1592,7 @@ function a5Scene(ctx, G, opt) {
         if (v < Hh[id]) Hh[id] = v;
       }
     marchFace(FACE, { nu, nv, V, Hh, N: [0, 0, 1], tint: faceTint(Hh, null), pos: (i, j, o) => ((o[0] = i * HGRID), (o[1] = j * HGRID), (o[2] = HF)) });
-    topField = { nu, nv, V };
+    topField = { nu, nv, V, Vc };
   }
   // where the venule leaves through the right end
   let uEnd = NP - 1;
@@ -1542,6 +1614,7 @@ function a5Scene(ctx, G, opt) {
     const V = new Float32Array(W1 * (nv + 1)).fill(99);
     const Hh = new Float32Array(W1 * (nv + 1)).fill(99);
     cavityField(V, Hh, nu, nv, 0, L, 1, 2);
+    const Vc = V.slice();
     for (let j = 0; j <= nv; j++)
       for (let i = 0; i <= nu; i++) {
         const id = j * W1 + i;
@@ -1550,7 +1623,7 @@ function a5Scene(ctx, G, opt) {
         if (v < Hh[id]) Hh[id] = v;
       }
     marchFace(FACE, { nu, nv, V, Hh, N: [1, 0, 0], tint: faceTint(Hh, null), pos: (i, j, o) => ((o[0] = L), (o[1] = i * HGRID), (o[2] = j * HGRID)) });
-    endField = { nu, nv, V };
+    endField = { nu, nv, V, Vc };
   }
   {
     // the sac's own wall on the front face, on a polar grid: its rows fall on the sac's rim and on the capillary's two
@@ -1593,16 +1666,20 @@ function a5Scene(ctx, G, opt) {
     quad([[0, 0, 0], [0, D, 0], [0, D, HF], [0, 0, HF]], [-1, 0, 0]);
     quad([[0, 0, 0], [L, 0, 0], [L, 0, HF], [0, 0, HF]], [0, -1, 0]);
     quad([[0, 0, 0], [L, 0, 0], [L, D, 0], [0, D, 0]], [0, 0, -1]);
-    // and their inner sides, so that nothing could ever show the page through the block
+  }
+  // and their inner sides, so that nothing could ever show the page through the block. A mesh of their own, kept out of
+  // the occlusion pass: that pass does not see the hollows, and would draw these walls' corners through the openings.
+  const LINER = mk();
+  {
+    const quad = (pts, n) => {
+      const ids = pts.map((p) => vtx(LINER, p[0], p[1], p[2], n[0], n[1], n[2], C.deep));
+      LINER.idx.push(ids[0], ids[1], ids[2], ids[0], ids[2], ids[3]);
+    };
     const e = 0.3;
     quad([[e, 0, 0], [e, D, 0], [e, D, HF], [e, 0, HF]], [1, 0, 0]);
     quad([[0, e, 0], [L, e, 0], [L, e, HF], [0, e, HF]], [0, 1, 0]);
     quad([[0, 0, e], [L, 0, e], [L, D, e], [0, D, e]], [0, 0, 1]);
   }
-  const sampleField = (F, a, b) => {
-    const i = clamp(Math.round(a / HGRID), 0, F.nu), j = clamp(Math.round(b / HGRID), 0, F.nv);
-    return F.V[j * (F.nu + 1) + i];
-  };
 
   // ---------------------------------------------------------------- the sac's bowl and the duct (inside faces)
   const NLAM = coarse ? 36 : 56;
@@ -1761,7 +1838,7 @@ function a5Scene(ctx, G, opt) {
             return (1.0 - smoothstep(0.035 - w, 0.1 + w, e)) / (1.0 + 14.0 * w);
           }`,
         )
-        .replace("#include <color_fragment>", `#include <color_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, uWeb, ${night ? "0.3" : "0.42"} * a5web(vA5));`);
+        .replace("#include <color_fragment>", `#include <color_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, uWeb, ${night ? "0.24" : "0.42"} * a5web(vA5));`);
     };
   }
   // the bowl's lining: a pavement of thin flat cells, drawn once to a small canvas and laid on by longitude and latitude
@@ -1835,8 +1912,10 @@ function a5Scene(ctx, G, opt) {
     return m;
   };
   solid(finish(FACE), tissueMat);
+  ctx.ghost(solid(finish(LINER), tissueMat, false));
   // the hollows stay out of the occlusion pass (in the narrow wedge under an opening's rolled edge it reads as soot);
   // their depth is in their own tone, the key light's shadow and the net on their walls
+  hollowMat.shadowSide = T.DoubleSide; // a hollow's roof stops the light as well as its floor: light enters by the opening only
   const hollows = solid(finish(BW), hollowMat);
   ctx.ghost(hollows);
   hollows.castShadow = true;
@@ -1918,23 +1997,40 @@ function a5Scene(ctx, G, opt) {
   const scl = (v, s) => [v[0] * s, v[1] * s, v[2] * s];
   const bitMat = phys({ color: 0xffffff, roughness: 0.4, clearcoat: 0.5, clearcoatRoughness: 0.25 });
   {
-    // capillaries cut across in the walls of the three faces: a red cell in each (one in four darker, venous)
-    const caps = G.caps;
-    const total = (caps.front.length + caps.top.length + caps.end.length) / 3;
-    const beads = placed(total, bitMat, unitLow);
-    const each = (list, F, at, ex, ey, n) => {
-      for (let q = 0; q < list.length; q += 3) {
-        const [a, b] = at(list[q], list[q + 1]);
-        if (sampleField(F, a, b) < 2.2) continue;
-        const r = 2.45 + (((q / 3) * 7) % 5) * 0.12;
+    // capillaries cut across in the walls of the three faces: a red cell in each (one in four darker, venous), spaced
+    // along each wall's middle line (where the distance to the two hollows it parts is greatest), never two in one spot
+    const GAP = 15;
+    const spots = [];
+    const each = (F, ex, ey, n) => {
+      const W1 = F.nu + 1;
+      const found = [];
+      for (let j = 1; j < F.nv; j++)
+        for (let i = 1; i < F.nu; i++) {
+          const id = j * W1 + i;
+          const v = F.Vc[id];
+          if (v < 2.2 || v > 8 || F.V[id] < 2.2) continue;
+          const a = F.Vc[id - 1], b = F.Vc[id + 1], c = F.Vc[id - W1], d = F.Vc[id + W1];
+          if (!((v >= a && v >= b && a < 90 && b < 90) || (v >= c && v >= d && c < 90 && d < 90))) continue;
+          found.push([((id * 2654435761) >>> 0) / 4294967296, i * HGRID, j * HGRID]);
+        }
+      found.sort((p, q) => p[0] - q[0]);
+      const kept = [];
+      for (const f of found) {
+        if (kept.some((k) => Math.abs(k[1] - f[1]) < GAP && Math.abs(k[2] - f[2]) < GAP && Math.hypot(k[1] - f[1], k[2] - f[2]) < GAP)) continue;
+        kept.push(f);
         const o = [0, 0, 0];
-        for (let w = 0; w < 3; w++) o[w] = ex[w] * a + ey[w] * b + n[w] * (n[3] + 0.15);
-        beads.put(o, scl(ex, r), scl(ey, r), scl(n, r * 0.34), list[q + 2] ? PAL.capV : PAL.capA);
+        for (let w = 0; w < 3; w++) o[w] = ex[w] * f[1] + ey[w] * f[2] + n[w] * (n[3] + 0.1);
+        spots.push([o, ex, ey, n]);
       }
     };
-    each(caps.front, frontField, (sx, sy) => [sx - G.X0, G.YB - sy], [1, 0, 0], [0, 0, 1], [0, 1, 0, D]);
-    each(caps.top, topField, (x, v) => [x - G.X0, v], [1, 0, 0], [0, 1, 0], [0, 0, 1, HF]);
-    each(caps.end, endField, (u, sy) => [D - u, G.YB - sy], [0, 1, 0], [0, 0, 1], [1, 0, 0, L]);
+    each(frontField, [1, 0, 0], [0, 0, 1], [0, 1, 0, D]);
+    each(topField, [1, 0, 0], [0, 1, 0], [0, 0, 1, HF]);
+    each(endField, [0, 1, 0], [0, 0, 1], [1, 0, 0, L]);
+    const beads = placed(spots.length, bitMat, unitLow);
+    spots.forEach(([o, ex, ey, n], q) => {
+      const r = 1.95 + ((q * 7) % 5) * 0.09;
+      beads.put(o, scl(ex, r), scl(ey, r), scl(n, r * 0.36), q % 4 === 1 ? PAL.capV : PAL.capA);
+    });
     beads.done();
   }
   {
@@ -2117,7 +2213,14 @@ function a5Scene(ctx, G, opt) {
       tris += ((g.index ? g.index.count : g.attributes.position.count) / 3) * (o.isInstancedMesh ? o.instanceMatrix.count : 1);
       console.warn("a5", o.isInstancedMesh ? "inst" : "mesh", Math.round((g.index ? g.index.count : g.attributes.position.count) / 3), o.isInstancedMesh ? o.instanceMatrix.count : "");
     });
-    console.warn("a5 total", calls, "meshes", Math.round(tris), "triangles (instances at capacity)", cavities.length, "hollows");
+    const by = [1, 2, 4].map((bit) => cavities.filter((cv) => cv.cuts & bit).length);
+    const deep = cavities.filter((cv) => cv.cuts).map((cv) => {
+      let low = 1e9;
+      const axis = cv.cuts & 1 ? 1 : cv.cuts & 2 ? 2 : 0;
+      for (let q = axis; q < cv.pts.length; q += 3) low = Math.min(low, cv.pts[q]);
+      return (axis === 1 ? D : axis === 2 ? HF : L) - low;
+    });
+    console.warn("a5 total", calls, "meshes", Math.round(tris), "triangles (instances at capacity)", cavities.length, "hollows: front/top/end", by.join("/"), "depth", Math.round(Math.min(...deep)), "to", Math.round(Math.max(...deep)));
   }
   const centre = [L / 2, D / 2, HF / 2];
   const vT = new T.Vector3(), vA = new T.Vector3(), vB = new T.Vector3();
@@ -2197,7 +2300,7 @@ function a5Scene(ctx, G, opt) {
 // the chosen effort's transit time. Oxygen dots in the air are drawn into cells as they load,
 // carbon dioxide drifts out, the sac swells a little with each breath, and the monitor plots the
 // traced cell.
-const DATA = {"gl3":{"parts":[],"ground":-7,"bounds":[[0,0,0],[560,180,340]],"look":{"aoRadius":15,"contactHeight":40,"env":0.72,"exposure":1.08,"cast":1.5,"ao":0.55},"file":"optimal-gl3.js","v":"bf10947a"},"g3":{"L":560,"D":180,"HF":340,"X0":20,"YB":380,"YT":40,"C":[300,222],"R":108,"RING":16,"RHO":116,"TH0":160,"TH1":20,"sept":4.6,"seeds":[[-70,224.6,68.8],[77.4,163.4,185.7],[160.5,170.7,292.4],[501.7,7.4,109.6],[425.5,153.4,-44.1],[408.7,79.7,372.8],[576.2,150.3,239],[190.6,37.3,331.8],[162.6,-21.2,72.9],[-29,17.5,199.1],[286.2,64.9,22.6],[566.3,-52.4,105.4],[170.9,142.6,373.7],[290.4,-17,124.7],[128.5,46.6,133.5],[162.8,100.1,224.7],[587.7,57,270],[105.8,117.8,98.3],[544.3,-34.5,323.2],[-15.6,60.2,3.7],[372.7,-23.8,149.4],[345,-25.9,372.5],[549.2,215,354.9],[565.4,173.6,62.2],[-62.7,9.5,-33.5],[-68.9,127.4,41.1],[448.8,86.6,260],[96.6,212.3,42.9],[191.8,216.2,-13.2],[272.5,-69,368.2],[375.9,225.1,-59.9],[85.9,-3.1,200.9],[-33.4,176.2,266.3],[7.2,224.1,-7.2],[437.6,65.3,25.3],[148.2,245.4,407.2],[372.7,209.1,370.8],[69.7,136.5,-5],[592,84.3,19.8],[242.7,-16.8,248.1],[5.8,-42.8,-65.4],[353.5,232.6,22.2],[23.6,-5.3,254],[100.3,76,407.1],[207.8,63.3,-40.6],[91.1,188.4,397.7],[49.4,-45,60.9],[150.1,-68.7,-67],[490.7,141.8,204.6],[236.6,85.9,389.5],[446.7,235.7,307.8],[74.9,6.2,313.3],[574.6,-69.6,-6.7],[11.8,130.5,-62.4],[348.3,-37.9,-48.2],[433.8,-20.5,-9.9],[594.1,235.5,-42.9],[-16.1,13.8,381.6],[266.7,2.6,-43.6],[359.4,238.9,299.9],[438.6,137,137],[-68.9,197.4,347.3],[380,66.8,-54.1],[50.9,171.7,291.9],[510.2,-56.4,41.3],[498.3,130.7,339.7],[198.7,89.9,47.5],[329.8,-18.3,30.2],[38.4,-53,158.5],[536.9,149,-12.1],[595.7,28.1,-56.4],[28.8,173.3,77.4],[-42.9,244.6,158.8],[123.6,97.5,331],[619.5,73.3,194.8],[518.8,18.1,254.4],[256.1,-69.7,-11.3],[431.2,170.1,256.8],[611.2,166.6,379.5],[-46.4,106.5,375.2],[-61.4,57,130.3],[45.8,47.3,86.9],[379.7,147.1,320.3],[467.9,45.5,187.7],[514,53.7,365.1],[-65.6,-56.7,261.9],[518.4,43.1,-15.3],[9.2,90.4,144.4],[450.9,137.7,56.7],[395.1,76.2,169.9],[457.9,-34.8,324],[617.6,-5.3,54.4],[513.1,212.3,131.5],[495.6,246.2,221.9],[306.7,155.8,-24.7],[90.9,-68.2,393.7],[625.6,-8.8,145.3],[615.3,-34,226.5],[-51.3,4.9,48.6],[345.7,-13.5,230.7],[468.3,-45.9,222.9],[125.3,-66.3,318.3],[6,-58.3,344.5],[525.4,-21.1,407.8],[454.6,171.7,404.5],[2,97.8,234.9],[621.7,225.1,161],[500.4,-39.2,-51.1],[133.3,64.8,-8.1],[603.2,46.2,369.2],[440.1,245.5,19.6],[321.9,61.4,368.7],[-3.7,247.3,300.5],[292.5,11.1,304.7],[581,249.7,86.1],[223,-65.4,116.3],[275.9,224.5,-70],[624,-64.1,316.9],[176.2,-56.2,224.6],[78.4,-64.1,-14.7],[-69.7,140.7,-51],[118.3,235.5,-63.3],[297.9,77.4,-64.7],[629.1,130,138.1],[-17.5,46.3,302.2],[194.3,240.3,333.7],[375.2,119.6,34.8],[83.6,238.3,255.3],[163.9,-15.6,382.9],[531.7,233.7,11.7],[202.9,1.1,167.9],[-63.3,-63.5,131.6],[451.7,8.3,394.6],[5.3,249.5,381.3],[57.7,246.4,140],[629.2,218.2,27.9],[602.4,-61.3,409],[368,-67.1,295.2],[607.6,245.3,279.3],[224.9,109.3,291.9],[616.5,125.3,-67.3],[280.6,-66.8,190.4],[343.1,75.3,292],[-66,167.9,137.8],[111.2,246.2,337.9],[125.4,-48,138.4],[361,62.4,88.8],[142.2,-16.6,-6.8],[17.9,34.9,-66.1],[71.5,79,191.9],[534.6,91.1,96.2],[158,122.6,-55.4],[438,-33.8,68.9],[1.6,163.5,406.1],[273,-2.4,409.4],[273.3,232.3,11.7],[61.7,19.3,9.4],[407.3,15.9,290.9],[135.2,234.2,121.3],[422.4,228.7,108.6],[551.8,-3.4,182.7],[621.7,249.9,371.2],[506.7,196,-68.9],[160,160.1,48.7],[148.2,1.9,269.1],[-51.8,-67,403.2],[454.5,39.1,-67.3],[235.7,245.2,402.4],[233.4,145.2,-55.9],[25.2,113.4,342.3],[242.1,-7.9,61.2],[-70,107.8,295.5],[175.2,239.1,257.8],[487.4,247.4,404.7],[12.3,229,222.5],[421.4,235.4,199.9],[-67.4,234.4,-37.7],[-25.3,-67.1,4.3],[71,-69.2,242.6],[342.9,132.2,409.8],[441.6,59.6,108],[204.1,-67.1,317.3],[461.9,-69.1,394.6],[441.3,-66.4,151.9],[627.6,128.3,308.5],[450.3,250,-60.8]],"duct":{"x":300,"r":30,"sleeve":12,"knobs":[49,66,83,100,117],"topKnobs":[200,223,246,269,292,315,338]},"vessel":{"in":[26,16,40,32],"out":[16,26,32,42],"cap":13},"net":{"lats":[-70,-54,-38,-22,-6,10,26,42,58],"lons":[-80,-62,-44,-26,-8,10,28,46,64,82],"x0":161.25,"x1":354.09},"rimNuc":[205,248,292,318,344],"t2":{"th":232,"gran":[[-1.15,4.3],[1.14,6.16],[2.88,1.87],[-6.47,0.33],[-1.21,-5.93]]},"t2b":{"at":[24,-30],"gran":[[3.84,-1.88],[-0.51,-3.54],[1.51,-1.59],[3.4,-0.82],[3.97,0.03],[0.7,2.23]]},"mac":{"at":[-38,18],"body":[[17.6,0],[9.9,6.4],[5.2,11.4],[-2.5,17.4],[-8.1,9.3],[-10.5,3.1],[-16.8,-4.9],[-8.1,-9.4],[-1.8,-12.3],[7.3,-16],[10.5,-6.7]],"nuc":[[-4.5,-2],[-1,-4],[3.6,-2.7],[5,1],[1.8,3.2],[-1.8,1.4],[-4.5,2.7]]},"pores":[[6,40],[-20,-52]],"caps":{"front":[107,139.8,0,127,141.6,1,148.3,149.1,0,169.8,169.1,0,129.7,242.3,0,93.2,256.4,1,74.9,248.2,0,56.7,240,0,38.4,231.8,0,31.7,208.8,1,41.5,191.4,0,224,49.5,0,239.5,62.2,0,249.1,81.4,1,249,101.4,0,182.5,151,0,125.9,104.4,0,125.8,84.4,1,125.7,64.4,0,132.9,45.9,0,438.1,364.3,0,457.6,368.8,1,560.9,185.2,0,538.6,129.5,0,538.6,97.5,0,557.6,88.1,1,572.3,83.3,0,548.8,75.2,0,543.1,56,0,569.9,360.5,1,551.3,353.3,0,528.9,342.4,0,521,326.3,0,529.2,299.2,1,545.1,287.2,0,561.1,275.1,0,109.4,369.8,0,92,360,1,81.2,338.5,0,90.3,320.7,0,99.3,302.9,0,120,288.2,1,139.1,303.6,0,140.9,323.5,0,142.7,343.4,0,144.6,363.4,1,194.5,371.8,0,212.3,362.7,0,230.1,353.5,0,254,357.3,1,27,94.1,0,32.8,113.2,0,29.9,354.8,0,54.3,373.4,1,358.4,362.7,0,344.3,348.6,0,373.3,331.1,0,383.4,348.3,1,393.5,365.6,0,551.2,198.4,0,532,204.3,0,512.9,210.1,1,501.2,139.7,0,514.3,124.7,0,476.8,50.1,0,472.4,69.6,1,454.1,50.4,0,489.8,228.2,0,488.3,248.1,0,472.1,268.2,1,454.7,258.3,0,117.7,120.5,0,87.2,141.4,0,532.1,47.3,1,520.2,96,0,506.6,80.8,0,496.1,63.8,0,515.4,360.5,1,535,356.3,0,105.4,271.4,0,47.3,357.8,0,435,173.4,1,391.3,111.6,0,406.9,99,0,422.4,86.4,0,437.9,73.8,1,457,70.5,0,379.9,103.6,0,365.8,89.5,0,351.6,75.3,1,343.6,46.8,0,496,287.4,0,511.3,300.2,0,516,345.3,1,483.8,371.4,0,423.7,343.7,0,427.4,312.2,0,445,302.5,1,462.5,292.9,0,490.7,267.9,0,300.9,370.5,0,315.7,357,1,258.3,370.8,0,162.2,277.4,0,139.9,272.8,0,434.5,267.7,1,404.3,304.4,0,422.2,176,0],"top":[476.5,55.7,0,476.9,88.3,1,467,105.7,0,443.9,120,0,425.5,112.1,0,407.2,104.1,1,388.8,83.6,0,390.2,63.7,0,405.7,40.7,0,425.6,40.3,1,445.6,39.8,0,262.9,7.6,0,267.9,26.9,0,264.5,54.8,1,250,68.6,0,235.5,82.3,0,221.8,91.2,0,194.6,87,1,181.2,72.1,0,167.8,57.2,0,154.5,42.4,0,160.6,14.2,1,178.5,5.2,0,193.5,170.3,0,174.7,163.4,0,158.8,141.8,1,172.6,127.4,0,186.4,112.9,0,213.1,106,0,223.6,123,1,234.1,140.1,0,244.6,157.1,0,566.6,17.1,0,547.7,10.6,1,394.3,10,0,372.6,21.5,0,350.8,8.6,0,548.4,171.4,1,565.5,161.1,0,288.4,69.4,0,280.9,95.2,0,263,86.2,1,147.6,7.6,0,137,38.9,0,119.3,48.3,0,101.7,57.7,1,78.1,60,0,50.6,39.4,0,45.9,20.7,0,29.3,19.1,1,41.6,171,0,59.9,162.9,0,78.2,154.9,0,103.1,161.8,1,458.9,149.9,0,460.9,117.3,0,494.6,81.9,0,514.2,85.9,1,533.7,89.9,0,553.3,93.9,0,572.9,97.9,0,124.2,158.6,1,99.2,132.6,0,96,112.9,0,92.8,93.1,0,327.7,139.6,1,340.9,122.5,0,357.5,111.3,0,371.7,103.1,0,457,168.8,1,531.6,6,0,480.5,36.3,0,500.1,15.7,0,485.8,15.7,1,466,12.8,0,387.1,50.5,0,376.2,67.3,0,365.3,84,1,306.5,125.1,0,299.5,107,0,294,87.8,0,296.5,52.6,1,313.8,42.5,0,331.1,32.4,0,348.3,22.3,0,43.8,55.9,1,29.2,34.1,0,255.7,164,0,231.7,99.9,0,249.6,108.8,1,267.5,117.8,0,285.4,126.7,0,449.9,18.3,0,89.2,147.3,1,25.1,69.1,0,65.8,54.7,0,90,76.4,0],"end":[172.5,270.1,0,148.6,284,1,158.7,254.7,0,68.9,95,0,75.2,113.9,0,81.5,132.9,1,87.8,151.9,0,85,169.8,0,75.1,187.1,0,51.9,210.8,1,32.3,214.7,0,13,211.4,0,5.6,79.2,0,34.4,74.4,1,53.5,80.4,0,156.2,67.5,0,160.2,92,0,152.8,110.6,1,145.3,129.1,0,137.9,147.7,0,115.3,165.8,0,79.2,63.1,1,97.5,55.7,0,117.5,56.4,0,137.5,57.1,0,157.2,47.6,1,24.9,51.4,0,57.3,337.3,0,42.4,350.2,0,23.4,356.5,1,5.6,258.2,0,34.8,261.1,0,42.4,279.6,0,50,298.1,1,57.6,316.6,0,67.4,374,0,58.6,356,0,73.5,327.3,1,93.4,325.6,0,113.3,323.8,0,133.2,322,0,149.1,332.6,1,144.7,349.7,0,131.7,364.9,0,69.5,51.7,0,49.5,53.2,1,7.1,362.5,0,102.6,219.3,0,82.9,215.7,0,122.4,181.7,1,119.3,201.5,0,172.7,149.6,0,165.5,355.2,0,161.1,307.4,1,19.7,227.3,0,48.9,227,0,144.3,261.3,0,41.4,245.6,1,126,232.9,0,134.9,242.5,0,146.3,158.4,0]}},"P":{"origin":[94.65733261977758,325.1658044263062],"scale":0.7919956444821963,"azimuth":62,"elevation":24},"W":600,"H":720,"C":[300,222],"R":108,"path":[[-30,150],[-27.75,150.01],[-25.49,150.03],[-23.24,150.06],[-21.74,150.1],[-19.49,150.15],[-17.25,150.23],[-15.75,150.29],[-13.51,150.38],[-11.27,150.49],[-9.03,150.62],[-7.54,150.71],[-5.31,150.86],[-3.09,151.02],[-0.86,151.19],[0.62,151.32],[2.84,151.52],[5.05,151.73],[6.52,151.88],[8.73,152.11],[10.93,152.36],[13.13,152.63],[14.6,152.81],[16.79,153.09],[18.97,153.39],[21.15,153.7],[23.33,154.03],[24.77,154.25],[26.94,154.6],[29.1,154.96],[31.25,155.34],[32.68,155.59],[34.83,155.99],[36.96,156.4],[39.09,156.82],[41.22,157.26],[42.63,157.56],[44.74,158.01],[46.85,158.49],[48.94,158.97],[51.03,159.47],[53.12,159.98],[54.5,160.32],[56.57,160.85],[58.63,161.4],[60.68,161.95],[62.73,162.52],[64.76,163.1],[66.79,163.7],[68.81,164.31],[70.15,164.72],[72.15,165.35],[74.14,165.99],[76.13,166.64],[78.1,167.31],[80.06,167.98],[82.02,168.67],[83.96,169.38],[85.89,170.09],[87.81,170.82],[89.73,171.56],[91.63,172.31],[93.52,173.07],[95.39,173.85],[97.26,174.64],[99.11,175.44],[100.96,176.25],[102.79,177.07],[104.61,177.91],[106.41,178.76],[108.21,179.62],[109.99,180.49],[111.76,181.37],[113.52,182.27],[115.26,183.17],[116.99,184.09],[119.27,185.33],[120.97,186.28],[122.65,187.23],[124.32,188.2],[125.98,189.18],[127.62,190.17],[129.78,191.51],[131.39,192.53],[132.98,193.56],[134.56,194.6],[136.12,195.65],[138.18,197.07],[139.71,198.15],[141.21,199.23],[142.71,200.33],[144.67,201.82],[146.13,202.94],[147.57,204.08],[149.46,205.61],[150.86,206.77],[152.24,207.94],[154.06,209.52],[155.4,210.72],[157.16,212.33],[158.46,213.55],[159.74,214.79],[161.43,216.45],[162.66,217.7],[164.29,219.4],[165.48,220.68],[167.05,222.4],[168.2,223.71],[169.7,225.46],[170.81,226.79],[172.25,228.58],[173.31,229.94],[174.69,231.76],[175.7,233.13],[177.02,234.98],[178.3,236.85],[179.23,238.27],[180.44,240.17],[181.33,241.6],[182.47,243.53],[183.58,245.48],[184.39,246.95],[185.43,248.93],[186.42,250.92],[187.15,252.43],[188.07,254.46],[188.96,256.5],[189.6,258.04],[190.41,260.11],[191,261.67],[191.7,263.57],[192.45,265.45],[193.22,267.32],[194.03,269.18],[194.87,271.02],[195.74,272.85],[196.64,274.66],[197.58,276.46],[198.54,278.24],[199.54,280],[200.57,281.74],[201.63,283.47],[202.71,285.18],[203.83,286.87],[204.98,288.53],[206.15,290.18],[207.36,291.81],[208.59,293.42],[209.85,295],[211.14,296.56],[212.45,298.1],[213.8,299.62],[215.16,301.11],[216.56,302.58],[217.98,304.02],[219.42,305.44],[220.89,306.84],[222.38,308.2],[223.9,309.55],[225.44,310.86],[227,312.15],[228.58,313.41],[230.19,314.64],[231.82,315.85],[233.47,317.02],[235.13,318.17],[236.82,319.29],[238.53,320.37],[240.26,321.43],[242,322.46],[243.76,323.46],[245.54,324.42],[247.34,325.36],[249.15,326.26],[250.98,327.13],[252.82,327.97],[254.68,328.78],[256.55,329.55],[258.43,330.3],[260.33,331],[262.23,331.68],[264.15,332.32],[266.08,332.93],[268.03,333.51],[269.98,334.05],[271.94,334.55],[273.91,335.03],[275.88,335.47],[277.87,335.87],[279.86,336.24],[281.85,336.57],[283.86,336.87],[285.86,337.14],[287.87,337.36],[289.89,337.56],[291.91,337.72],[293.93,337.84],[295.95,337.93],[297.98,337.98],[300,338],[302.02,337.98],[304.05,337.93],[306.07,337.84],[308.09,337.72],[310.11,337.56],[312.13,337.36],[314.14,337.14],[316.14,336.87],[318.15,336.57],[320.14,336.24],[322.13,335.87],[324.12,335.47],[326.09,335.03],[328.06,334.55],[330.02,334.05],[331.97,333.51],[333.92,332.93],[335.85,332.32],[337.77,331.68],[339.67,331],[341.57,330.3],[343.45,329.55],[345.32,328.78],[347.18,327.97],[349.02,327.13],[350.85,326.26],[352.66,325.36],[354.46,324.42],[356.24,323.46],[358,322.46],[359.74,321.43],[361.47,320.37],[363.18,319.29],[364.87,318.17],[366.53,317.02],[368.18,315.85],[369.81,314.64],[371.42,313.41],[373,312.15],[374.56,310.86],[376.1,309.55],[377.62,308.2],[379.11,306.84],[380.58,305.44],[382.02,304.02],[383.44,302.58],[384.84,301.11],[386.2,299.62],[387.55,298.1],[388.86,296.56],[390.15,295],[391.41,293.42],[392.64,291.81],[393.85,290.18],[395.02,288.53],[396.17,286.87],[397.29,285.18],[398.37,283.47],[399.43,281.74],[400.46,280],[401.46,278.24],[402.42,276.46],[403.36,274.66],[404.26,272.85],[405.13,271.02],[405.97,269.18],[406.78,267.32],[407.55,265.45],[408.3,263.57],[409,261.67],[409.79,259.59],[410.61,257.52],[411.26,255.99],[412.15,253.95],[413.09,251.93],[413.82,250.42],[414.83,248.43],[415.88,246.46],[416.69,244.99],[417.81,243.05],[418.96,241.12],[419.86,239.69],[421.08,237.79],[422.02,236.38],[423.31,234.52],[424.63,232.67],[425.65,231.3],[427.04,229.48],[428.11,228.13],[429.56,226.35],[430.67,225.02],[432.18,223.27],[433.34,221.97],[434.91,220.25],[436.11,218.97],[437.75,217.28],[438.99,216.03],[440.68,214.37],[441.97,213.14],[443.28,211.93],[445.04,210.32],[446.39,209.12],[448.22,207.55],[449.6,206.38],[451.01,205.22],[452.91,203.7],[454.35,202.57],[455.81,201.44],[457.79,199.97],[459.29,198.87],[460.8,197.79],[462.33,196.71],[464.4,195.3],[465.96,194.25],[467.55,193.21],[469.14,192.19],[470.75,191.18],[472.93,189.84],[474.57,188.85],[476.23,187.88],[477.91,186.91],[479.59,185.96],[481.3,185.02],[483.59,183.78],[485.32,182.87],[487.07,181.97],[488.83,181.07],[490.6,180.2],[492.39,179.33],[494.19,178.47],[496,177.63],[497.82,176.8],[499.66,175.98],[501.5,175.17],[503.36,174.37],[505.23,173.59],[507.11,172.82],[509.01,172.06],[510.91,171.31],[512.82,170.58],[514.75,169.85],[516.69,169.14],[518.63,168.44],[520.59,167.76],[522.56,167.08],[524.53,166.42],[526.52,165.77],[528.52,165.14],[530.52,164.51],[531.86,164.1],[533.88,163.5],[535.91,162.91],[537.95,162.33],[540,161.77],[542.06,161.21],[544.12,160.67],[546.19,160.15],[547.58,159.8],[549.66,159.3],[551.75,158.81],[553.85,158.33],[555.96,157.86],[558.08,157.41],[559.49,157.11],[561.61,156.68],[563.75,156.26],[565.89,155.86],[568.03,155.47],[569.47,155.21],[571.62,154.84],[573.78,154.48],[575.95,154.14],[577.4,153.92],[579.58,153.6],[581.76,153.29],[583.94,153],[586.14,152.72],[587.6,152.54],[589.8,152.28],[592,152.03],[594.21,151.8],[595.69,151.66],[597.9,151.45],[600.12,151.26],[601.6,151.13],[603.83,150.96],[606.06,150.81],[608.29,150.66],[609.78,150.57],[612.02,150.45],[614.26,150.35],[616.5,150.26],[617.99,150.2],[620.24,150.13],[622.49,150.08],[623.99,150.05],[626.24,150.02],[628.5,150],[630,150]],"i0":129,"i1":269,"step":2.0245562356227524,"plot":{"x0":92,"x1":556,"tMax":0.8,"y0":672,"y1":574,"box":[20,520,560,196]},"lines":["Resting: each red cell spends about three-quarters of a second beside the air sacs, and is full within the first third of it.","Walking: blood flows twice as fast, but more capillaries open, so each cell still has time to spare.","Running: about a third of a second in the capillary, still longer than loading takes.","All out: cells arrive emptier and leave sooner. In healthy lungs they still fill before they go."],"a0x":190.99565598883464,"a1x":409.00434401116536,"top":[300,128],"duct":[[300,34],[300,38.3],[300,42.5],[300,46.8],[300,51],[300,55.3],[300,59.5],[300,63.8],[300,68],[300,72.3],[300,76.5],[300,80.8],[300,85],[300,89.3],[300,93.5],[300,97.8],[300,102],[300,106.3],[300,110.5],[300,114.8],[300,119],[300,123.3],[300,127.5],[300,131.8],[300,136]],"pivot":[300,255.5]};
+const DATA = {"gl3":{"parts":[],"ground":-7,"bounds":[[0,0,0],[560,180,340]],"look":{"aoRadius":15,"contactHeight":40,"env":0.72,"exposure":1.08,"cast":1.5,"ao":0.55},"file":"optimal-gl3.js","v":"2bc08c97"},"g3":{"L":560,"D":180,"HF":340,"X0":20,"YB":380,"YT":40,"C":[300,222],"R":108,"RING":16,"RHO":116,"TH0":160,"TH1":20,"duct":{"x":300,"r":30,"sleeve":12,"knobs":[49,66,83,100,117],"topKnobs":[200,223,246,269,292,315,338]},"vessel":{"in":[26,16,40,32],"out":[16,26,32,42],"cap":13},"net":{"lats":[-70,-54,-38,-22,-6,10,26,42,58],"lons":[-80,-62,-44,-26,-8,10,28,46,64,82],"x0":161.25,"x1":354.09},"rimNuc":[205,248,292,318,344],"t2":{"th":232,"gran":[[-1.15,4.3],[1.14,6.16],[2.88,1.87],[-6.47,0.33],[-1.21,-5.93]]},"t2b":{"at":[24,-30],"gran":[[3.84,-1.88],[-0.51,-3.54],[1.51,-1.59],[3.4,-0.82],[3.97,0.03],[0.7,2.23]]},"mac":{"at":[-38,18],"body":[[17.6,0],[9.9,6.4],[5.2,11.4],[-2.5,17.4],[-8.1,9.3],[-10.5,3.1],[-16.8,-4.9],[-8.1,-9.4],[-1.8,-12.3],[7.3,-16],[10.5,-6.7]],"nuc":[[-4.5,-2],[-1,-4],[3.6,-2.7],[5,1],[1.8,3.2],[-1.8,1.4],[-4.5,2.7]]},"pores":[[6,40],[-20,-52]]},"P":{"origin":[94.65733261977758,325.1658044263062],"scale":0.7919956444821963,"azimuth":62,"elevation":24},"W":600,"H":720,"C":[300,222],"R":108,"path":[[-30,150],[-27.75,150.01],[-25.49,150.03],[-23.24,150.06],[-21.74,150.1],[-19.49,150.15],[-17.25,150.23],[-15.75,150.29],[-13.51,150.38],[-11.27,150.49],[-9.03,150.62],[-7.54,150.71],[-5.31,150.86],[-3.09,151.02],[-0.86,151.19],[0.62,151.32],[2.84,151.52],[5.05,151.73],[6.52,151.88],[8.73,152.11],[10.93,152.36],[13.13,152.63],[14.6,152.81],[16.79,153.09],[18.97,153.39],[21.15,153.7],[23.33,154.03],[24.77,154.25],[26.94,154.6],[29.1,154.96],[31.25,155.34],[32.68,155.59],[34.83,155.99],[36.96,156.4],[39.09,156.82],[41.22,157.26],[42.63,157.56],[44.74,158.01],[46.85,158.49],[48.94,158.97],[51.03,159.47],[53.12,159.98],[54.5,160.32],[56.57,160.85],[58.63,161.4],[60.68,161.95],[62.73,162.52],[64.76,163.1],[66.79,163.7],[68.81,164.31],[70.15,164.72],[72.15,165.35],[74.14,165.99],[76.13,166.64],[78.1,167.31],[80.06,167.98],[82.02,168.67],[83.96,169.38],[85.89,170.09],[87.81,170.82],[89.73,171.56],[91.63,172.31],[93.52,173.07],[95.39,173.85],[97.26,174.64],[99.11,175.44],[100.96,176.25],[102.79,177.07],[104.61,177.91],[106.41,178.76],[108.21,179.62],[109.99,180.49],[111.76,181.37],[113.52,182.27],[115.26,183.17],[116.99,184.09],[119.27,185.33],[120.97,186.28],[122.65,187.23],[124.32,188.2],[125.98,189.18],[127.62,190.17],[129.78,191.51],[131.39,192.53],[132.98,193.56],[134.56,194.6],[136.12,195.65],[138.18,197.07],[139.71,198.15],[141.21,199.23],[142.71,200.33],[144.67,201.82],[146.13,202.94],[147.57,204.08],[149.46,205.61],[150.86,206.77],[152.24,207.94],[154.06,209.52],[155.4,210.72],[157.16,212.33],[158.46,213.55],[159.74,214.79],[161.43,216.45],[162.66,217.7],[164.29,219.4],[165.48,220.68],[167.05,222.4],[168.2,223.71],[169.7,225.46],[170.81,226.79],[172.25,228.58],[173.31,229.94],[174.69,231.76],[175.7,233.13],[177.02,234.98],[178.3,236.85],[179.23,238.27],[180.44,240.17],[181.33,241.6],[182.47,243.53],[183.58,245.48],[184.39,246.95],[185.43,248.93],[186.42,250.92],[187.15,252.43],[188.07,254.46],[188.96,256.5],[189.6,258.04],[190.41,260.11],[191,261.67],[191.7,263.57],[192.45,265.45],[193.22,267.32],[194.03,269.18],[194.87,271.02],[195.74,272.85],[196.64,274.66],[197.58,276.46],[198.54,278.24],[199.54,280],[200.57,281.74],[201.63,283.47],[202.71,285.18],[203.83,286.87],[204.98,288.53],[206.15,290.18],[207.36,291.81],[208.59,293.42],[209.85,295],[211.14,296.56],[212.45,298.1],[213.8,299.62],[215.16,301.11],[216.56,302.58],[217.98,304.02],[219.42,305.44],[220.89,306.84],[222.38,308.2],[223.9,309.55],[225.44,310.86],[227,312.15],[228.58,313.41],[230.19,314.64],[231.82,315.85],[233.47,317.02],[235.13,318.17],[236.82,319.29],[238.53,320.37],[240.26,321.43],[242,322.46],[243.76,323.46],[245.54,324.42],[247.34,325.36],[249.15,326.26],[250.98,327.13],[252.82,327.97],[254.68,328.78],[256.55,329.55],[258.43,330.3],[260.33,331],[262.23,331.68],[264.15,332.32],[266.08,332.93],[268.03,333.51],[269.98,334.05],[271.94,334.55],[273.91,335.03],[275.88,335.47],[277.87,335.87],[279.86,336.24],[281.85,336.57],[283.86,336.87],[285.86,337.14],[287.87,337.36],[289.89,337.56],[291.91,337.72],[293.93,337.84],[295.95,337.93],[297.98,337.98],[300,338],[302.02,337.98],[304.05,337.93],[306.07,337.84],[308.09,337.72],[310.11,337.56],[312.13,337.36],[314.14,337.14],[316.14,336.87],[318.15,336.57],[320.14,336.24],[322.13,335.87],[324.12,335.47],[326.09,335.03],[328.06,334.55],[330.02,334.05],[331.97,333.51],[333.92,332.93],[335.85,332.32],[337.77,331.68],[339.67,331],[341.57,330.3],[343.45,329.55],[345.32,328.78],[347.18,327.97],[349.02,327.13],[350.85,326.26],[352.66,325.36],[354.46,324.42],[356.24,323.46],[358,322.46],[359.74,321.43],[361.47,320.37],[363.18,319.29],[364.87,318.17],[366.53,317.02],[368.18,315.85],[369.81,314.64],[371.42,313.41],[373,312.15],[374.56,310.86],[376.1,309.55],[377.62,308.2],[379.11,306.84],[380.58,305.44],[382.02,304.02],[383.44,302.58],[384.84,301.11],[386.2,299.62],[387.55,298.1],[388.86,296.56],[390.15,295],[391.41,293.42],[392.64,291.81],[393.85,290.18],[395.02,288.53],[396.17,286.87],[397.29,285.18],[398.37,283.47],[399.43,281.74],[400.46,280],[401.46,278.24],[402.42,276.46],[403.36,274.66],[404.26,272.85],[405.13,271.02],[405.97,269.18],[406.78,267.32],[407.55,265.45],[408.3,263.57],[409,261.67],[409.79,259.59],[410.61,257.52],[411.26,255.99],[412.15,253.95],[413.09,251.93],[413.82,250.42],[414.83,248.43],[415.88,246.46],[416.69,244.99],[417.81,243.05],[418.96,241.12],[419.86,239.69],[421.08,237.79],[422.02,236.38],[423.31,234.52],[424.63,232.67],[425.65,231.3],[427.04,229.48],[428.11,228.13],[429.56,226.35],[430.67,225.02],[432.18,223.27],[433.34,221.97],[434.91,220.25],[436.11,218.97],[437.75,217.28],[438.99,216.03],[440.68,214.37],[441.97,213.14],[443.28,211.93],[445.04,210.32],[446.39,209.12],[448.22,207.55],[449.6,206.38],[451.01,205.22],[452.91,203.7],[454.35,202.57],[455.81,201.44],[457.79,199.97],[459.29,198.87],[460.8,197.79],[462.33,196.71],[464.4,195.3],[465.96,194.25],[467.55,193.21],[469.14,192.19],[470.75,191.18],[472.93,189.84],[474.57,188.85],[476.23,187.88],[477.91,186.91],[479.59,185.96],[481.3,185.02],[483.59,183.78],[485.32,182.87],[487.07,181.97],[488.83,181.07],[490.6,180.2],[492.39,179.33],[494.19,178.47],[496,177.63],[497.82,176.8],[499.66,175.98],[501.5,175.17],[503.36,174.37],[505.23,173.59],[507.11,172.82],[509.01,172.06],[510.91,171.31],[512.82,170.58],[514.75,169.85],[516.69,169.14],[518.63,168.44],[520.59,167.76],[522.56,167.08],[524.53,166.42],[526.52,165.77],[528.52,165.14],[530.52,164.51],[531.86,164.1],[533.88,163.5],[535.91,162.91],[537.95,162.33],[540,161.77],[542.06,161.21],[544.12,160.67],[546.19,160.15],[547.58,159.8],[549.66,159.3],[551.75,158.81],[553.85,158.33],[555.96,157.86],[558.08,157.41],[559.49,157.11],[561.61,156.68],[563.75,156.26],[565.89,155.86],[568.03,155.47],[569.47,155.21],[571.62,154.84],[573.78,154.48],[575.95,154.14],[577.4,153.92],[579.58,153.6],[581.76,153.29],[583.94,153],[586.14,152.72],[587.6,152.54],[589.8,152.28],[592,152.03],[594.21,151.8],[595.69,151.66],[597.9,151.45],[600.12,151.26],[601.6,151.13],[603.83,150.96],[606.06,150.81],[608.29,150.66],[609.78,150.57],[612.02,150.45],[614.26,150.35],[616.5,150.26],[617.99,150.2],[620.24,150.13],[622.49,150.08],[623.99,150.05],[626.24,150.02],[628.5,150],[630,150]],"i0":129,"i1":269,"step":2.0245562356227524,"plot":{"x0":92,"x1":556,"tMax":0.8,"y0":672,"y1":574,"box":[20,520,560,196]},"lines":["Resting: each red cell spends about three-quarters of a second beside the air sacs, and is full within the first third of it.","Walking: blood flows twice as fast, but more capillaries open, so each cell still has time to spare.","Running: about a third of a second in the capillary, still longer than loading takes.","All out: cells arrive emptier and leave sooner. In healthy lungs they still fill before they go."],"a0x":190.99565598883464,"a1x":409.00434401116536,"top":[300,128],"duct":[[300,34],[300,38.3],[300,42.5],[300,46.8],[300,51],[300,55.3],[300,59.5],[300,63.8],[300,68],[300,72.3],[300,76.5],[300,80.8],[300,85],[300,89.3],[300,93.5],[300,97.8],[300,102],[300,106.3],[300,110.5],[300,114.8],[300,119],[300,123.3],[300,127.5],[300,131.8],[300,136]],"pivot":[300,255.5]};
 
 function mount(fig) {
   const svg = fig.querySelector("svg");

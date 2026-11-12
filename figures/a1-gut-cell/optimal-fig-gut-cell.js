@@ -924,44 +924,74 @@ function a1Scene(ctx, DATA, pal) {
   };
   const K = {};
   for (const k of Object.keys(FALL)) K[k.replace(/^[ab]1-/, "").replace(/-/g, "_")] = ink(k);
-  // Rendered surfaces are lit, so the inks sit a little deeper than the flat fills (a lit cream reads as the drawing's cream).
-  const TONE = night ? 1.5 : 0.86;
-  const C = {
-    gel: gain(rich(K.cell, night ? 1 : 1.45), night ? 1.25 : 0.87),
-    gelDim: gain(rich(K.cell_dim, night ? 1 : 1.2), night ? 1.25 : 0.84),
-    wall: gain(blend(K.cell_2, K.lateral, 0.5), night ? 1.4 : 0.74),
-    wallDim: gain(blend(K.cell_dim, K.lateral, 0.6), night ? 1.3 : 0.72),
-    rim: gain(blend(K.membrane, K.cell, night ? 0.25 : 0.22), night ? 1.3 : 0.9),
-    rimDim: gain(blend(K.membrane, K.cell_dim, night ? 0.4 : 0.36), night ? 1.2 : 0.9),
-    lateral: gain(K.lateral, night ? 1.1 : 0.84),
-    junction: gain(blend(K.membrane, K.lateral, night ? 0.3 : 0.12), night ? 1.1 : 0.92),
-    top: gain(K.top, TONE),
-    topMain: gain(K.top_main, TONE),
-    web: gain(blend(K.cell_2, K.lateral, night ? 0.45 : 0.75), night ? 1.5 : 0.72),
-    webDim: gain(blend(K.cell_dim, K.lateral, night ? 0.5 : 0.7), night ? 1.35 : 0.72),
-    villusTip: gain(K.tip, night ? 1.7 : 0.86),
-    villus: gain(rich(K.v1, night ? 1 : 1.15), night ? 1.6 : 0.8),
-    villusRoot: gain(K.v2, night ? 1.5 : 0.72),
-    villusDim: gain(K.villus_dim, night ? 1.5 : 0.8),
-    nucleus: gain(rich(K.nucleus, night ? 1 : 1.3), night ? 1.5 : 0.68),
-    nucleolus: gain(K.nucleolus, night ? 1.5 : 0.5),
-    mito: gain(rich(blend(K.mito, K.nucleolus, night ? 0 : 0.55), night ? 1 : 1.35), night ? 1.55 : 0.68),
-    mitoBand: gain(blend(K.mito, K.membrane, 0.6), night ? 1.4 : 0.62),
-    ferritin: gain(K.ferritin, night ? 1.15 : 0.8),
-    tissue: gain(K.tissue, night ? 1.35 : 0.9),
-    lamina: gain(K.endo, night ? 1.3 : 0.86),
-    collagen: gain(blend(K.tissue, K.membrane, 0.5), night ? 1.3 : 0.9),
-    endo: gain(K.endo, night ? 1.4 : 0.9),
-    blood: gain(blend(K.blood, K.rbc, night ? 0.1 : 0.07), night ? 1.5 : 0.92),
-    iron: K.iron.clone(),
-    hep: K.hep.clone(),
-    fpn: K.fpn.clone(),
-    dmt1: K.dmt1.clone(),
-    tf: K.tf.clone(),
-    rbc: K.rbc.clone(),
-    rbcIn: K.rbc_in.clone(),
-    sheen: night ? new T.Color("#bfe0b4") : new T.Color("#fff1e2"),
-  };
+  // Rendered surfaces are lit, so the inks are re-toned per theme. Forest night: the dark fills lifted so light can
+  // model them. Cream: the gel is the mid tone of the block (the drawing's own deeper inks: top, lateral, membrane),
+  // so the block has a silhouette on the cream page and what floats in it is lit against something deeper, as it is
+  // in Forest night. Every colour is still one of the figure's inks, or a blend of two.
+  const C = night
+    ? {
+        gel: gain(K.cell, 1.25),
+        gelDim: gain(K.cell_dim, 1.25),
+        wall: gain(blend(K.cell_2, K.lateral, 0.5), 1.4),
+        wallDim: gain(blend(K.cell_dim, K.lateral, 0.6), 1.3),
+        rim: gain(blend(K.membrane, K.cell, 0.25), 1.3),
+        rimDim: gain(blend(K.membrane, K.cell_dim, 0.4), 1.2),
+        lateral: gain(K.lateral, 1.1),
+        junction: gain(blend(K.membrane, K.lateral, 0.3), 1.1),
+        top: gain(K.top, 1.5),
+        topMain: gain(K.top_main, 1.5),
+        web: gain(blend(K.cell_2, K.lateral, 0.45), 1.5),
+        webDim: gain(blend(K.cell_dim, K.lateral, 0.5), 1.35),
+        villusTip: gain(K.tip, 1.7),
+        villus: gain(K.v1, 1.6),
+        villusRoot: gain(K.v2, 1.5),
+        villusDim: gain(K.villus_dim, 1.5),
+        nucleus: gain(K.nucleus, 1.5),
+        nucleolus: gain(K.nucleolus, 1.5),
+        mito: gain(K.mito, 1.55),
+        mitoBand: gain(blend(K.mito, K.membrane, 0.6), 1.4),
+        ferritin: gain(K.ferritin, 1.15),
+        tissue: gain(K.tissue, 1.35),
+        lamina: gain(K.endo, 1.3),
+        collagen: gain(blend(K.tissue, K.membrane, 0.5), 1.3),
+        endo: gain(K.endo, 1.4),
+        blood: gain(blend(K.blood, K.rbc, 0.1), 1.5),
+        seat: gain(blend(K.membrane, K.cell, 0.45), 1.2),
+        iron: K.iron.clone(),
+        sheen: new T.Color("#bfe0b4"),
+      }
+    : {
+        gel: gain(rich(blend(K.cell, K.top_main, 0.72), 1.5), 0.95),
+        gelDim: gain(rich(blend(K.cell_dim, K.top, 0.6), 1.1), 0.93),
+        wall: gain(blend(K.top_main, K.membrane, 0.5), 0.7),
+        wallDim: gain(blend(K.lateral, K.membrane, 0.48), 0.72),
+        rim: gain(blend(K.membrane, K.top_main, 0.12), 0.8),
+        rimDim: gain(blend(K.membrane, K.lateral, 0.25), 0.82),
+        lateral: gain(K.lateral, 0.74),
+        junction: gain(K.membrane, 0.78),
+        top: gain(K.top, 0.6),
+        topMain: gain(rich(K.top_main, 1.15), 0.6),
+        web: gain(blend(K.top_main, K.membrane, 0.4), 0.76),
+        webDim: gain(blend(K.lateral, K.membrane, 0.35), 0.78),
+        villusTip: gain(rich(K.v0, 1.2), 0.98),
+        villus: gain(rich(K.v1, 2.1), 0.76),
+        villusRoot: gain(rich(K.v2, 1.9), 0.5),
+        villusDim: gain(rich(K.villus_dim, 1.1), 0.8),
+        nucleus: gain(rich(K.nucleus, 1.25), 0.98),
+        nucleolus: gain(rich(K.nucleolus, 1.3), 0.4),
+        mito: gain(rich(blend(K.mito, K.nucleolus, 0.6), 2.1), 0.84),
+        mitoBand: gain(rich(blend(K.nucleolus, K.membrane, 0.3), 1.6), 0.52),
+        ferritin: gain(K.ferritin, 0.62),
+        tissue: gain(blend(K.tissue, K.endo, 0.5), 0.84),
+        lamina: gain(blend(K.endo, K.membrane, 0.2), 0.72),
+        collagen: gain(blend(K.tissue, K.membrane, 0.6), 0.8),
+        endo: gain(K.endo, 0.78),
+        blood: gain(rich(blend(K.blood, K.rbc, 0.1), 1.15), 0.92),
+        seat: gain(blend(K.membrane, K.top_main, 0.3), 0.78),
+        iron: gain(K.iron, 0.9),
+        sheen: new T.Color("#fff1e2"),
+      };
+  Object.assign(C, { hep: K.hep.clone(), fpn: K.fpn.clone(), dmt1: K.dmt1.clone(), tf: K.tf.clone(), rbc: K.rbc.clone(), rbcIn: K.rbc_in.clone() });
 
   // ---------------------------------------------------------------- materials
   const mats = [];
@@ -977,10 +1007,20 @@ function a1Scene(ctx, DATA, pal) {
     kit: { value: new T.Matrix4() },
     view: { value: new T.Vector3(VD[0], VD[1], VD[2]) },
     cut: { value: new T.Vector4(D, L, ZB, ZT) },
+    // in view space (x screen right, y up, z to the viewer): the block's own up, and the side the key light is on
+    up: { value: new T.Vector3(0, Math.cos(EL), Math.sin(EL)) },
+    key: { value: new T.Vector3(-0.62, 0.4, 0.68).normalize() },
   };
+  // Cream only. The studio there is bright all round, so forms are flat: `under` darkens what faces down, `side` what
+  // faces away from the key (the drawing shades its microvilli the same way, light on the left). And the gel deepens
+  // where the line of sight runs far, toward the base, and on the end face (the drawing's shaded side).
+  const GEL_TONE = night ? "" : "a1g *= mix( 1.0, 0.86, step( a1sx, a1sy ) ) * mix( 1.0, 0.9, 1.0 - exp( - 0.008 * a1s ) );\n";
+  const GEL_RISE = night ? "0.86 + 0.2" : "0.8 + 0.27";
   let gelN = 0;
-  function gel(m, { sigma = 0, color = C.gel, max = 0.94, attr = false, clip = false, fog = true, edge = 0 } = {}) {
+  function gel(m, { sigma = 0, color = C.gel, max = 0.94, attr = false, clip = false, fog = true, edge = 0, under = 0, side = 0 } = {}) {
+    const form = under || side;
     const u = { uA1Kit: U.kit, uA1View: U.view, uA1Cut: U.cut, uA1Gel: { value: new T.Vector4(color.r, color.g, color.b, max) }, uA1Sigma: { value: sigma } };
+    if (form) Object.assign(u, { uA1Up: U.up, uA1Key: U.key });
     m.userData.gel = u;
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, u);
@@ -991,33 +1031,41 @@ function a1Scene(ctx, DATA, pal) {
           `#include <project_vertex>\n{ vec4 a1p = vec4( transformed, 1.0 );\n#ifdef USE_INSTANCING\na1p = instanceMatrix * a1p;\n#endif\nvA1Kit = ( uA1Kit * ( modelMatrix * a1p ) ).xyz; }\n${attr ? "vA1Fog = aFog;\n" : ""}`,
         );
       sh.fragmentShader = sh.fragmentShader
-        .replace("#include <common>", `#include <common>\nuniform vec3 uA1View;\nuniform vec4 uA1Cut;\nuniform vec4 uA1Gel;\nuniform float uA1Sigma;\nvarying vec3 vA1Kit;\n${attr ? "varying float vA1Fog;\n" : ""}`)
+        .replace("#include <common>", `#include <common>\nuniform vec3 uA1View;\nuniform vec4 uA1Cut;\nuniform vec4 uA1Gel;\nuniform float uA1Sigma;\nvarying vec3 vA1Kit;\n${attr ? "varying float vA1Fog;\n" : ""}${form ? "uniform vec3 uA1Up;\nuniform vec3 uA1Key;\n" : ""}`)
         .replace("#include <clipping_planes_fragment>", `${clip ? "if ( vA1Kit.x < 0.0 || vA1Kit.x > uA1Cut.y ) discard;\n" : ""}#include <clipping_planes_fragment>`)
         .replace(
           "#include <opaque_fragment>",
           `#include <opaque_fragment>\n${edge ? `gl_FragColor.rgb *= 1.0 - ${edge.toFixed(3)} * pow( 1.0 - saturate( dot( normal, normalize( vViewPosition ) ) ), 2.0 );\n` : ""}${
+            form
+              ? `gl_FragColor.rgb *= mix( ${(under || 1).toFixed(3)}, 1.0, smoothstep( -0.85, 0.45, dot( normal, uA1Up ) ) ) * mix( ${(side || 1).toFixed(3)}, 1.0, smoothstep( -0.35, 0.72, dot( normal, uA1Key ) ) );\n`
+              : ""
+          }${
             fog
-              ? `{ float a1s = max( min( ( uA1Cut.x - vA1Kit.y ) / uA1View.y, ( uA1Cut.y - vA1Kit.x ) / uA1View.x ), 0.0 );
+              ? `{ float a1sy = ( uA1Cut.x - vA1Kit.y ) / uA1View.y;
+float a1sx = ( uA1Cut.y - vA1Kit.x ) / uA1View.x;
+float a1s = max( min( a1sy, a1sx ), 0.0 );
 float a1in = step( uA1Cut.z, vA1Kit.z ) * step( vA1Kit.z, uA1Cut.w );
 float a1f = ( 1.0 - exp( - ${attr ? "vA1Fog" : "uA1Sigma"} * a1s ) ) * a1in * uA1Gel.a;
 vec3 a1e = vA1Kit + uA1View * a1s;
 float a1m = sin( a1e.x * 0.023 + a1e.y * 0.031 + 1.7 * sin( a1e.z * 0.017 ) ) * sin( a1e.z * 0.021 + 0.9 * sin( a1e.x * 0.019 + a1e.y * 0.013 ) );
-vec3 a1g = uA1Gel.rgb * ( 0.86 + 0.2 * smoothstep( uA1Cut.z, uA1Cut.w, a1e.z ) + 0.035 * a1m );
-gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
+vec3 a1g = uA1Gel.rgb * ( ${GEL_RISE} * smoothstep( uA1Cut.z, uA1Cut.w, a1e.z ) + 0.035 * a1m );
+${GEL_TONE}gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
               : ""
           }`,
         );
     };
-    const key = `a1gel${attr ? "a" : ""}${clip ? "c" : ""}${fog ? "f" : ""}${edge ? "e" : ""}${gelN++}`;
+    const key = `a1gel${attr ? "a" : ""}${clip ? "c" : ""}${fog ? "f" : ""}${edge ? "e" : ""}${form ? "s" : ""}${gelN++}`;
     m.customProgramCacheKey = () => key;
     return m;
   }
-  const SIG = night ? 0.0075 : 0.0068; // the traced cell: clear
-  const SIG_DIM = night ? 0.03 : 0.022; // its neighbours: milky
+  const SIG = night ? 0.0075 : 0.0058; // the traced cell: clear
+  const SIG_DIM = night ? 0.03 : 0.02; // its neighbours: milky
   // The cells' own inner walls veil faster than what floats in them, so a cut shows a body of gel with a soft edge
   // under the membrane, not the inside of an empty box.
-  const SIG_WALL = 0.024;
-  const SIG_WALL_DIM = 0.055;
+  const SIG_WALL = night ? 0.024 : 0.014;
+  const SIG_WALL_DIM = night ? 0.055 : 0.034;
+  /** Cream: form shading on a material that is not in the gel (night: the material as it is). */
+  const lit = (m, o) => (night ? m : gel(m, { fog: false, ...o }));
 
   // ---------------------------------------------------------------- geometry kit
   const SEG = coarse ? 0.6 : 1; // phones: about half the triangles
@@ -1490,7 +1538,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
     mesh.receiveShadow = false;
     scene.add(mesh);
   }
-  solid(soupTop.geometry(), flesh({ vertexColors: true, roughness: 0.62 }));
+  solid(soupTop.geometry(), flesh({ vertexColors: true, roughness: night ? 0.62 : 0.7 }));
   {
     const pos = [];
     const nor = [];
@@ -1539,7 +1587,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
   }
 
   // ---------------------------------------------------------------- inside the cells
-  const organelle = (sig = SIG, color = C.gel, o = {}) => gel(flesh({ vertexColors: true, roughness: 0.5, clearcoat: 0.3, ...o }), { sigma: sig, color, edge: 0.42 });
+  const organelle = (sig = SIG, color = C.gel, o = {}) => gel(flesh({ vertexColors: true, roughness: 0.5, clearcoat: night ? 0.3 : 0.4, ...o }), night ? { sigma: sig, color, edge: 0.42 } : { sigma: sig, color, edge: 0.5, under: 0.56, side: 0.86 });
   const matIn = organelle();
   const matInDim = organelle(SIG_DIM, C.gelDim);
   const withColor = (g, fn) => {
@@ -1638,7 +1686,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
     const q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), new T.Vector3(VD[0], VD[1], VD[2]));
     const turn = new T.Quaternion().setFromAxisAngle(new T.Vector3(VD[0], VD[1], VD[2]), 0.4);
     const RC = 14.6;
-    const cage = instanced(ballGeo(seg(12, 8), seg(8, 6)), gel(flesh({ color: C.ferritin, roughness: 0.5 }), { sigma: SIG, edge: 0.25 }), 24 * FCEN.length, { receive: false });
+    const cage = instanced(ballGeo(seg(12, 8), seg(8, 6)), gel(flesh({ color: C.ferritin, roughness: 0.5 }), night ? { sigma: SIG, edge: 0.25 } : { sigma: SIG * 0.8, edge: 0.3, under: 0.6 }), 24 * FCEN.length, { receive: false });
     const v3 = new T.Vector3();
     let k = 0;
     FCEN.forEach((c, j) => {
@@ -1666,20 +1714,22 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
   const VR = G.VILLI_R;
   {
     const HN = 44;
-    const prof = [[VR + 2.6, -2], [VR + 1.5, 0.3], [VR + 0.6, 2.2], [VR + 0.1, 5], [VR, 9], [VR, HN * 0.55], [VR, HN - VR]];
-    const nd = seg(5, 3);
+    // (Forest night keeps the mesh it shipped with; Cream's is a little lighter: it is drawn in every pass of the layer)
+    const prof = night ? [[VR + 2.6, -2], [VR + 1.5, 0.3], [VR + 0.6, 2.2], [VR + 0.1, 5], [VR, 9], [VR, HN * 0.55], [VR, HN - VR]] : [[VR + 2.6, -2], [VR + 1.2, 0.8], [VR + 0.2, 3.6], [VR, 9], [VR, HN * 0.55], [VR, HN - VR]];
+    const nd = seg(night ? 5 : 4, 3);
     for (let i = 1; i < nd; i++) prof.push([VR * Math.cos((i / nd) * (Math.PI / 2)), HN - VR + VR * Math.sin((i / nd) * (Math.PI / 2))]);
     prof.push([0, HN]);
-    const d = latheData(prof, seg(14, 8));
+    const d = latheData(prof, seg(night ? 14 : 12, 8));
     const g = withColor(smoothGeo(d.pos, d.idx), (x, y, z) => {
       const t = clamp(z / HN, 0, 1);
-      return t < 0.5 ? blend(C.villusRoot, C.villus, sstep(0, 0.5, t)) : blend(C.villus, C.villusTip, sstep(0.5, 1, t));
+      if (night) return t < 0.5 ? blend(C.villusRoot, C.villus, sstep(0, 0.5, t)) : blend(C.villus, C.villusTip, sstep(0.5, 1, t));
+      return t < 0.42 ? blend(C.villusRoot, C.villus, sstep(0, 0.42, t)) : blend(C.villus, C.villusTip, sstep(0.66, 1, t)); // Cream: a shaft of tone under a light tip
     });
     const list = [];
     for (const [x, h, main] of G.villiFront) list.push({ p: [x - X0, D - VR, ZT], h: h - 4, main, dmt: DATA.DMT1.some((q) => Math.abs(q[0] - x) < 0.5), q: QI });
     for (const [x, v, h, main, dmt] of G.forest) if (v < D - 14) list.push({ p: [x - X0, v, ZT], h: h + 6, main, dmt, q: new T.Quaternion().setFromEuler(new T.Euler((rnd() - 0.5) * 0.11, (rnd() - 0.5) * 0.11, 0)) });
-    const villi = instanced(g, flesh({ vertexColors: true, roughness: 0.52, clearcoat: 0.26, clearcoatRoughness: 0.36, sheen: 0.7 }), list.length);
-    const dimK = new T.Color(C.villusDim.r / C.villus.r, C.villusDim.g / C.villus.g, C.villusDim.b / C.villus.b).multiplyScalar(night ? 0.8 : 0.97);
+    const villi = instanced(g, lit(flesh({ vertexColors: true, roughness: night ? 0.52 : 0.46, clearcoat: night ? 0.26 : 0.34, clearcoatRoughness: 0.36, sheen: 0.7 }), { under: 0.55, side: 0.5, edge: 0.25 }), list.length);
+    const dimK = night ? new T.Color(C.villusDim.r / C.villus.r, C.villusDim.g / C.villus.g, C.villusDim.b / C.villus.b).multiplyScalar(0.8) : new T.Color(0.93, 0.925, 0.92);
     const white = new T.Color(1, 1, 1);
     list.forEach((v, i) => {
       put(villi, i, v.p, 1, 1, v.h / HN, v.q);
@@ -1772,7 +1822,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
   // ---------------------------------------------------------------- what the model moves
   // iron: one bead, drawn wherever the model has one (lumen, cell, blood), on transferrin and in the ferritin cores
   const IRON_MAX = 220;
-  const irons = instanced(ballGeo(seg(14, 8), seg(9, 6)), gel(phys({ color: C.iron, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.2, emissive: C.iron, emissiveIntensity: night ? 0.22 : 0.1 }), { sigma: SIG * 0.45, clip: true }), IRON_MAX, { dynamic: true, cast: false, receive: false, ghost: true });
+  const irons = instanced(ballGeo(seg(14, 8), seg(9, 6)), gel(phys({ color: C.iron, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.2, emissive: C.iron, emissiveIntensity: night ? 0.22 : 0.06 }), night ? { sigma: SIG * 0.45, clip: true } : { sigma: SIG * 0.35, clip: true, under: 0.72 }), IRON_MAX, { dynamic: true, cast: false, receive: false, ghost: true });
   // the blood: red cells (true biconcave discs) and transferrin, two lobes with an iron site each
   const RBC_R = 12.5;
   const rbcGeo = (() => {
@@ -1831,7 +1881,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
     return { pair, ves, vm };
   });
   // where a gate has been taken in: an empty seat in the membrane
-  const seats = instanced(ballGeo(seg(12, 8), seg(8, 6)), flesh({ color: gain(blend(K.membrane, K.cell, night ? 0.45 : 0.3), night ? 1.2 : 0.9), roughness: 0.6 }), DATA.FPN.length, { dynamic: true, cast: false, receive: false });
+  const seats = instanced(ballGeo(seg(12, 8), seg(8, 6)), flesh({ color: C.seat, roughness: 0.6 }), DATA.FPN.length, { dynamic: true, cast: false, receive: false });
 
   // ---------------------------------------------------------------- one frame, from the model's state
   const depth = new WeakMap();
@@ -1977,7 +2027,7 @@ gl_FragColor.rgb = mix( gl_FragColor.rgb, a1g, a1f ); }`
 }
 
 // A1 live code: iron in through DMT1, out through ferroportin; hepcidin docks and the cell pulls gates in.
-const DATA = {"W":600,"H":640,"APICAL":150,"BASAL":528,"CELL":{"x0":150,"x1":450},"FERRITIN":[[214,248],[388,236],[300,318]],"FPN":[192,246,300,354,408],"CAP":{"y0":560,"y1":616},"DMT1":[[168.5,116.98860651373397],[228.5,114.22925946115942],[288.5,118.47591712266599],[348.5,112.9265111302452],[408.5,119.53748495511658]],"SLOTS":5,"scenes":[{"key":"hungry","gate":0.9689922332763672,"line":"Low iron, low hepcidin: every gate open."},{"key":"pills","gate":0.5038644671440125,"line":"A week of daily pills: each dose raises hepcidin for about a day."},{"key":"full","gate":0.44996628165245056,"line":"Two weeks after an IV infusion: stores full, hepcidin up."}],"gl3":{"parts":[],"ground":0,"bounds":[[0,0,0],[560,210,640]],"look":{"exposure":0.94,"aoRadius":15,"contactHeight":64,"cast":1.15,"contact":1.05},"file":"optimal-gl3.js","v":"bf10947a"},"P":{"origin":[105.08623956157555,509.9600020803212],"scale":0.7785187969880039,"azimuth":62,"elevation":24},"VW":600,"VH":698,"G":{"X0":20,"L":560,"D":210,"HX":153,"HV":[117,64],"VILLI_R":6.5,"mito":[[196,380,22,9,1],[404,372,20,9,2],[250,196,18,8,3],[362,300,19,8,4]],"nucleus":[300,440,76,46],"nucleolus":[318,432,16,11],"web":[160,440,159,168],"villiFront":[[28.5,47.84,0],[48.5,44.67,0],[68.5,40.75,0],[88.5,40.48,0],[108.5,44.16,0],[128.5,47.66,0],[168.5,43.01,1],[188.5,40.08,1],[208.5,41.55,1],[228.5,45.77,1],[248.5,48,1],[268.5,45.74,1],[288.5,41.52,1],[308.5,40.09,1],[328.5,43.05,1],[348.5,47.07,1],[368.5,47.65,1],[388.5,44.13,1],[408.5,40.46,1],[428.5,40.77,1],[448.5,44.71,0],[468.5,47.85,0],[488.5,46.67,0],[508.5,42.49,0],[528.5,40.01,0],[548.5,42.01,0],[568.5,46.24,0]],"forest":[[40,22,40.17,0,0],[60,22,41.98,0,0],[30,38,40.89,0,0],[80,22,39.33,0,0],[50,38,43.88,0,0],[100,22,35.2,0,0],[70,38,42.48,0,0],[40,54,40.8,0,0],[120,22,34.22,0,0],[90,38,38.28,0,0],[60,54,40.82,0,0],[140,22,37.5,0,0],[110,38,35.98,0,0],[80,54,37.02,0,0],[50,70,40.1,0,0],[160,22,41.35,0,0],[130,38,38.17,0,0],[100,54,33.66,0,0],[70,70,37.15,0,0],[180,22,41.45,0,0],[150,38,42.39,0,0],[120,54,34.52,0,0],[90,70,33.12,0,0],[30,102,43.06,0,0],[200,22,37.69,0,0],[170,38,43.9,0,0],[140,54,38.63,0,0],[110,70,32.54,0,0],[50,102,42.67,0,0],[220,22,34.29,0,0],[190,38,41.01,0,0],[160,54,41.37,0,0],[130,70,36.07,0,0],[100,86,35.12,0,0],[40,118,40.27,0,0],[240,22,35.06,0,0],[210,38,36.95,0,0],[180,54,39.67,0,0],[150,70,39.73,0,0],[120,86,37.66,0,0],[60,118,37.03,0,0],[30,134,40.96,0,0],[260,22,39.15,0,0],[230,38,36.3,0,0],[200,54,35.44,0,0],[170,70,39.42,0,0],[140,86,41.82,0,0],[80,118,33.15,0,0],[50,134,38.83,0,0],[280,22,41.95,0,0],[250,38,39.77,0,0],[220,54,33.42,0,0],[190,70,35.49,0,0],[160,86,42.94,0,0],[100,118,32.98,0,0],[70,134,34.6,0,0],[40,150,42.78,0,0],[270,38,43.48,0,0],[240,54,35.89,0,0],[210,70,32.35,0,0],[180,86,39.76,0,0],[150,102,43.48,0,0],[90,134,33.03,0,0],[60,150,38.69,0,0],[30,166,42.17,0,0],[320,22,36.1,0,0],[260,54,40.07,0,0],[230,70,33.52,0,0],[110,134,35.88,0,0],[80,150,35.9,0,0],[50,166,38.69,0,0],[340,22,34.01,0,0],[280,54,41.27,0,0],[130,134,39.95,0,0],[100,150,37.54,0,0],[70,166,34.99,0,0],[40,182,37.52,0,0],[360,22,36.41,0,0],[330,38,36.15,0,0],[120,150,41.77,0,0],[90,166,35.23,0,0],[60,182,33.34,0,0],[30,198,40.74,0,0],[380,22,40.61,0,0],[350,38,37.25,0,0],[320,54,34.2,0,0],[230,102,38.32,1,1],[200,118,32.52,1,1],[170,134,37.23,1,0],[110,166,39.14,0,0],[80,182,32.16,0,0],[50,198,36.56,0,0],[400,22,41.88,0,0],[370,38,41.41,0,0],[340,54,33.87,0,0],[280,86,42.15,1,1],[250,102,42.42,1,0],[220,118,34.09,1,0],[190,134,33.49,1,0],[160,150,41.42,1,0],[130,166,42.33,0,0],[100,182,35.3,0,0],[70,198,34.09,0,0],[420,22,38.81,0,0],[390,38,43.96,0,0],[360,54,37.52,0,0],[300,86,38.1,1,0],[270,102,43.22,1,0],[240,118,38.31,1,0],[210,134,33.66,1,1],[180,150,37.23,1,1],[120,182,39.24,0,0],[90,198,36.1,0,0],[440,22,34.84,0,0],[410,38,42.04,0,0],[380,54,41.06,0,0],[320,86,35.19,1,0],[290,102,39.83,1,1],[260,118,40.46,1,1],[230,134,37.53,1,0],[200,150,35.97,1,0],[170,166,37.05,1,0],[110,198,40.33,0,0],[460,22,34.43,0,0],[430,38,37.8,0,0],[400,54,40.5,0,0],[370,70,39.07,0,0],[310,102,36.05,1,0],[280,118,38.11,1,0],[250,134,40.77,1,0],[220,150,39.06,1,0],[190,166,34.51,1,1],[160,182,35.89,1,1],[130,198,42.04,0,0],[480,22,38.04,0,0],[450,38,36.01,0,0],[420,54,36.48,0,0],[390,70,39.95,0,0],[330,102,36.13,1,0],[300,118,33.91,1,0],[270,134,39.74,1,1],[240,150,43.02,1,1],[210,166,36.45,1,0],[180,182,32.36,1,0],[500,22,41.62,0,0],[470,38,38.67,0,0],[440,54,33.51,0,0],[410,70,36.61,0,0],[350,102,39.98,1,1],[320,118,32.57,1,1],[290,134,35.59,1,0],[260,150,43.42,1,0],[230,166,40.69,1,0],[200,182,32.94,1,0],[170,198,35.19,1,1],[520,22,41.14,0,0],[490,38,42.8,0,0],[460,54,34.92,0,0],[430,70,32.8,0,0],[370,102,43.27,1,0],[340,118,35.6,1,0],[310,134,32.99,1,0],[280,150,39.8,1,0],[250,166,42.47,1,1],[220,182,36.96,1,1],[190,198,34.33,1,0],[540,22,37.15,0,0],[510,38,43.76,0,0],[480,54,39.14,0,0],[450,70,32.8,0,0],[420,86,36.62,0,0],[360,118,39.59,1,0],[330,134,34.85,1,1],[300,150,36.23,1,1],[270,166,39.79,1,0],[240,182,39.92,1,0],[210,198,37.68,1,0],[560,22,34.12,0,0],[530,38,40.47,0,0],[500,54,41.42,0,0],[470,70,36.61,0,0],[440,86,35.21,0,0],[380,118,40.07,1,1],[350,134,39.09,1,0],[320,150,36.72,1,0],[290,166,35.66,1,0],[260,182,38.49,1,0],[230,198,41.48,1,1],[550,38,36.63,0,0],[520,54,39.2,0,0],[490,70,39.95,0,0],[460,86,38.18,0,0],[400,118,36.49,1,0],[370,134,40.94,1,0],[340,150,40.72,1,0],[310,166,34.72,1,1],[280,182,34.28,1,1],[250,198,41.46,1,0],[570,38,36.55,0,0],[540,54,34.98,0,0],[510,70,39.07,0,0],[480,86,42.2,0,0],[450,102,37.31,0,0],[390,134,38.33,1,1],[360,150,43.73,1,1],[330,166,38.02,1,0],[300,182,32.01,1,0],[270,198,37.65,1,0],[560,54,33.49,0,0],[530,70,34.96,0,0],[500,86,42.75,0,0],[410,134,34.18,1,0],[380,150,42.38,1,0],[350,166,41.86,1,0],[320,182,34.24,1,0],[290,198,34.32,1,1],[550,70,32.23,0,0],[430,134,33.16,1,0],[400,150,38.18,1,0],[370,166,41.92,1,1],[340,182,38.45,1,1],[310,198,35.21,1,0],[420,150,35.84,1,1],[390,166,38.14,1,0],[360,182,39.93,1,0],[330,198,39.33,1,0],[500,118,39.06,0,0],[470,134,40.28,0,0],[440,150,38,1,0],[410,166,34.76,1,0],[380,182,37,1,0],[350,198,42.04,1,1],[550,102,35.66,0,0],[520,118,34.86,0,0],[490,134,40.43,0,0],[430,166,35.58,1,1],[400,182,32.96,1,1],[370,198,40.31,1,0],[570,102,38.86,0,0],[540,118,32.46,0,0],[510,134,36.68,0,0],[480,150,43.78,0,0],[420,182,32.35,1,0],[390,198,36.07,1,0],[560,118,34.55,0,0],[530,134,33.26,0,0],[500,150,40.91,0,0],[470,166,42.45,0,0],[440,182,35.84,1,0],[410,198,34.09,1,1],[550,134,33.99,0,0],[520,150,36.85,0,0],[490,166,40.79,0,0],[430,198,36.59,1,0],[570,134,38.07,0,0],[540,150,36.15,0,0],[510,166,36.56,0,0],[480,182,39.26,0,0],[560,150,39.6,0,0],[530,166,34.5,0,0],[500,182,35.35,0,0],[470,198,41.92,0,0],[550,166,36.94,0,0],[520,182,32.17,0,0],[490,198,38.77,0,0],[570,166,41.12,0,0],[540,182,33.31,0,0],[510,198,34.84,0,0],[560,182,37.48,0,0],[530,198,34.55,0,0],[550,198,38.22,0,0],[570,198,41.73,0,0]],"end":{"nuclei":[[51.00326797385621,446,44,40],[142.00653594771242,462,26,34]],"mito":[[36.7,300,16,7],[71.4,230,15,7]],"collagen":[[44,586.6,6.3,2.2,12.6,-1.9],[109.4,592.4,9.8,-1.3,19.5,-0.5],[79,608.5,8.7,0.5,17.3,-5.1],[176.3,581.4,7.3,1.4,14.6,-5],[138.8,595.5,7.9,-1.2,15.8,-0.3],[171.4,551,10.3,1.3,20.6,-5.2],[46.2,581.5,9.7,-2.4,19.4,6.2],[141.7,628.6,13.1,-2.9,26.2,-3.8],[158.8,616.3,7.8,-2,15.5,5.8],[171.9,627.7,13.8,1.8,27.5,5.2],[113,570.9,6.2,2.7,12.3,1.1],[177.1,578.8,5.7,1,11.5,3.5],[196.2,595.1,10,2.1,19.9,2.9],[113.4,626.1,8.7,1.9,17.3,7.3],[125.2,568.5,6,2,12,-4.5],[61.4,578.8,9,-0.2,18,0.7],[61,581.1,10.2,0.3,20.5,-5.4],[192,558.1,12.9,1.6,25.9,10.4],[134.4,580.3,10.7,0,21.4,6.4],[92.9,593.7,13.4,0.4,26.9,-5.3],[189.7,562.1,13.2,1.1,26.4,-7.4],[90.1,617.8,13,-0.1,25.9,-2.8],[125.4,569,11.8,2.2,23.5,-7.8],[86,612.1,12.8,-0.4,25.6,-3.3],[44.1,551.7,9.7,-1.2,19.5,-7.6],[173.3,576,13.8,0,27.7,3.1]],"fibro":[[96,590],[160,616],[70,628]]}}};
+const DATA = {"W":600,"H":640,"APICAL":150,"BASAL":528,"CELL":{"x0":150,"x1":450},"FERRITIN":[[214,248],[388,236],[300,318]],"FPN":[192,246,300,354,408],"CAP":{"y0":560,"y1":616},"DMT1":[[168.5,116.98860651373397],[228.5,114.22925946115942],[288.5,118.47591712266599],[348.5,112.9265111302452],[408.5,119.53748495511658]],"SLOTS":5,"scenes":[{"key":"hungry","gate":0.9689922332763672,"line":"Low iron, low hepcidin: every gate open."},{"key":"pills","gate":0.5038644671440125,"line":"A week of daily pills: each dose raises hepcidin for about a day."},{"key":"full","gate":0.44996628165245056,"line":"Two weeks after an IV infusion: stores full, hepcidin up."}],"gl3":{"parts":[],"ground":0,"bounds":[[0,0,0],[560,210,640]],"look":{"exposure":0.94,"aoRadius":15,"contactHeight":64,"cast":1.15,"contact":1.05},"lookCream":{"exposure":0.94,"aoRadius":15,"ao":1.2,"contactHeight":64,"cast":2.3,"contact":1.45},"file":"optimal-gl3.js","v":"2bc08c97"},"P":{"origin":[105.08623956157555,509.9600020803212],"scale":0.7785187969880039,"azimuth":62,"elevation":24},"VW":600,"VH":698,"G":{"X0":20,"L":560,"D":210,"HX":153,"HV":[117,64],"VILLI_R":6.5,"mito":[[196,380,22,9,1],[404,372,20,9,2],[250,196,18,8,3],[362,300,19,8,4]],"nucleus":[300,440,76,46],"nucleolus":[318,432,16,11],"web":[160,440,159,168],"villiFront":[[28.5,47.84,0],[48.5,44.67,0],[68.5,40.75,0],[88.5,40.48,0],[108.5,44.16,0],[128.5,47.66,0],[168.5,43.01,1],[188.5,40.08,1],[208.5,41.55,1],[228.5,45.77,1],[248.5,48,1],[268.5,45.74,1],[288.5,41.52,1],[308.5,40.09,1],[328.5,43.05,1],[348.5,47.07,1],[368.5,47.65,1],[388.5,44.13,1],[408.5,40.46,1],[428.5,40.77,1],[448.5,44.71,0],[468.5,47.85,0],[488.5,46.67,0],[508.5,42.49,0],[528.5,40.01,0],[548.5,42.01,0],[568.5,46.24,0]],"forest":[[40,22,40.17,0,0],[60,22,41.98,0,0],[30,38,40.89,0,0],[80,22,39.33,0,0],[50,38,43.88,0,0],[100,22,35.2,0,0],[70,38,42.48,0,0],[40,54,40.8,0,0],[120,22,34.22,0,0],[90,38,38.28,0,0],[60,54,40.82,0,0],[140,22,37.5,0,0],[110,38,35.98,0,0],[80,54,37.02,0,0],[50,70,40.1,0,0],[160,22,41.35,0,0],[130,38,38.17,0,0],[100,54,33.66,0,0],[70,70,37.15,0,0],[180,22,41.45,0,0],[150,38,42.39,0,0],[120,54,34.52,0,0],[90,70,33.12,0,0],[30,102,43.06,0,0],[200,22,37.69,0,0],[170,38,43.9,0,0],[140,54,38.63,0,0],[110,70,32.54,0,0],[50,102,42.67,0,0],[220,22,34.29,0,0],[190,38,41.01,0,0],[160,54,41.37,0,0],[130,70,36.07,0,0],[100,86,35.12,0,0],[40,118,40.27,0,0],[240,22,35.06,0,0],[210,38,36.95,0,0],[180,54,39.67,0,0],[150,70,39.73,0,0],[120,86,37.66,0,0],[60,118,37.03,0,0],[30,134,40.96,0,0],[260,22,39.15,0,0],[230,38,36.3,0,0],[200,54,35.44,0,0],[170,70,39.42,0,0],[140,86,41.82,0,0],[80,118,33.15,0,0],[50,134,38.83,0,0],[280,22,41.95,0,0],[250,38,39.77,0,0],[220,54,33.42,0,0],[190,70,35.49,0,0],[160,86,42.94,0,0],[100,118,32.98,0,0],[70,134,34.6,0,0],[40,150,42.78,0,0],[270,38,43.48,0,0],[240,54,35.89,0,0],[210,70,32.35,0,0],[180,86,39.76,0,0],[150,102,43.48,0,0],[90,134,33.03,0,0],[60,150,38.69,0,0],[30,166,42.17,0,0],[320,22,36.1,0,0],[260,54,40.07,0,0],[230,70,33.52,0,0],[110,134,35.88,0,0],[80,150,35.9,0,0],[50,166,38.69,0,0],[340,22,34.01,0,0],[280,54,41.27,0,0],[130,134,39.95,0,0],[100,150,37.54,0,0],[70,166,34.99,0,0],[40,182,37.52,0,0],[360,22,36.41,0,0],[330,38,36.15,0,0],[120,150,41.77,0,0],[90,166,35.23,0,0],[60,182,33.34,0,0],[30,198,40.74,0,0],[380,22,40.61,0,0],[350,38,37.25,0,0],[320,54,34.2,0,0],[230,102,38.32,1,1],[200,118,32.52,1,1],[170,134,37.23,1,0],[110,166,39.14,0,0],[80,182,32.16,0,0],[50,198,36.56,0,0],[400,22,41.88,0,0],[370,38,41.41,0,0],[340,54,33.87,0,0],[280,86,42.15,1,1],[250,102,42.42,1,0],[220,118,34.09,1,0],[190,134,33.49,1,0],[160,150,41.42,1,0],[130,166,42.33,0,0],[100,182,35.3,0,0],[70,198,34.09,0,0],[420,22,38.81,0,0],[390,38,43.96,0,0],[360,54,37.52,0,0],[300,86,38.1,1,0],[270,102,43.22,1,0],[240,118,38.31,1,0],[210,134,33.66,1,1],[180,150,37.23,1,1],[120,182,39.24,0,0],[90,198,36.1,0,0],[440,22,34.84,0,0],[410,38,42.04,0,0],[380,54,41.06,0,0],[320,86,35.19,1,0],[290,102,39.83,1,1],[260,118,40.46,1,1],[230,134,37.53,1,0],[200,150,35.97,1,0],[170,166,37.05,1,0],[110,198,40.33,0,0],[460,22,34.43,0,0],[430,38,37.8,0,0],[400,54,40.5,0,0],[370,70,39.07,0,0],[310,102,36.05,1,0],[280,118,38.11,1,0],[250,134,40.77,1,0],[220,150,39.06,1,0],[190,166,34.51,1,1],[160,182,35.89,1,1],[130,198,42.04,0,0],[480,22,38.04,0,0],[450,38,36.01,0,0],[420,54,36.48,0,0],[390,70,39.95,0,0],[330,102,36.13,1,0],[300,118,33.91,1,0],[270,134,39.74,1,1],[240,150,43.02,1,1],[210,166,36.45,1,0],[180,182,32.36,1,0],[500,22,41.62,0,0],[470,38,38.67,0,0],[440,54,33.51,0,0],[410,70,36.61,0,0],[350,102,39.98,1,1],[320,118,32.57,1,1],[290,134,35.59,1,0],[260,150,43.42,1,0],[230,166,40.69,1,0],[200,182,32.94,1,0],[170,198,35.19,1,1],[520,22,41.14,0,0],[490,38,42.8,0,0],[460,54,34.92,0,0],[430,70,32.8,0,0],[370,102,43.27,1,0],[340,118,35.6,1,0],[310,134,32.99,1,0],[280,150,39.8,1,0],[250,166,42.47,1,1],[220,182,36.96,1,1],[190,198,34.33,1,0],[540,22,37.15,0,0],[510,38,43.76,0,0],[480,54,39.14,0,0],[450,70,32.8,0,0],[420,86,36.62,0,0],[360,118,39.59,1,0],[330,134,34.85,1,1],[300,150,36.23,1,1],[270,166,39.79,1,0],[240,182,39.92,1,0],[210,198,37.68,1,0],[560,22,34.12,0,0],[530,38,40.47,0,0],[500,54,41.42,0,0],[470,70,36.61,0,0],[440,86,35.21,0,0],[380,118,40.07,1,1],[350,134,39.09,1,0],[320,150,36.72,1,0],[290,166,35.66,1,0],[260,182,38.49,1,0],[230,198,41.48,1,1],[550,38,36.63,0,0],[520,54,39.2,0,0],[490,70,39.95,0,0],[460,86,38.18,0,0],[400,118,36.49,1,0],[370,134,40.94,1,0],[340,150,40.72,1,0],[310,166,34.72,1,1],[280,182,34.28,1,1],[250,198,41.46,1,0],[570,38,36.55,0,0],[540,54,34.98,0,0],[510,70,39.07,0,0],[480,86,42.2,0,0],[450,102,37.31,0,0],[390,134,38.33,1,1],[360,150,43.73,1,1],[330,166,38.02,1,0],[300,182,32.01,1,0],[270,198,37.65,1,0],[560,54,33.49,0,0],[530,70,34.96,0,0],[500,86,42.75,0,0],[410,134,34.18,1,0],[380,150,42.38,1,0],[350,166,41.86,1,0],[320,182,34.24,1,0],[290,198,34.32,1,1],[550,70,32.23,0,0],[430,134,33.16,1,0],[400,150,38.18,1,0],[370,166,41.92,1,1],[340,182,38.45,1,1],[310,198,35.21,1,0],[420,150,35.84,1,1],[390,166,38.14,1,0],[360,182,39.93,1,0],[330,198,39.33,1,0],[500,118,39.06,0,0],[470,134,40.28,0,0],[440,150,38,1,0],[410,166,34.76,1,0],[380,182,37,1,0],[350,198,42.04,1,1],[550,102,35.66,0,0],[520,118,34.86,0,0],[490,134,40.43,0,0],[430,166,35.58,1,1],[400,182,32.96,1,1],[370,198,40.31,1,0],[570,102,38.86,0,0],[540,118,32.46,0,0],[510,134,36.68,0,0],[480,150,43.78,0,0],[420,182,32.35,1,0],[390,198,36.07,1,0],[560,118,34.55,0,0],[530,134,33.26,0,0],[500,150,40.91,0,0],[470,166,42.45,0,0],[440,182,35.84,1,0],[410,198,34.09,1,1],[550,134,33.99,0,0],[520,150,36.85,0,0],[490,166,40.79,0,0],[430,198,36.59,1,0],[570,134,38.07,0,0],[540,150,36.15,0,0],[510,166,36.56,0,0],[480,182,39.26,0,0],[560,150,39.6,0,0],[530,166,34.5,0,0],[500,182,35.35,0,0],[470,198,41.92,0,0],[550,166,36.94,0,0],[520,182,32.17,0,0],[490,198,38.77,0,0],[570,166,41.12,0,0],[540,182,33.31,0,0],[510,198,34.84,0,0],[560,182,37.48,0,0],[530,198,34.55,0,0],[550,198,38.22,0,0],[570,198,41.73,0,0]],"end":{"nuclei":[[51.00326797385621,446,44,40],[142.00653594771242,462,26,34]],"mito":[[36.7,300,16,7],[71.4,230,15,7]],"collagen":[[44,586.6,6.3,2.2,12.6,-1.9],[109.4,592.4,9.8,-1.3,19.5,-0.5],[79,608.5,8.7,0.5,17.3,-5.1],[176.3,581.4,7.3,1.4,14.6,-5],[138.8,595.5,7.9,-1.2,15.8,-0.3],[171.4,551,10.3,1.3,20.6,-5.2],[46.2,581.5,9.7,-2.4,19.4,6.2],[141.7,628.6,13.1,-2.9,26.2,-3.8],[158.8,616.3,7.8,-2,15.5,5.8],[171.9,627.7,13.8,1.8,27.5,5.2],[113,570.9,6.2,2.7,12.3,1.1],[177.1,578.8,5.7,1,11.5,3.5],[196.2,595.1,10,2.1,19.9,2.9],[113.4,626.1,8.7,1.9,17.3,7.3],[125.2,568.5,6,2,12,-4.5],[61.4,578.8,9,-0.2,18,0.7],[61,581.1,10.2,0.3,20.5,-5.4],[192,558.1,12.9,1.6,25.9,10.4],[134.4,580.3,10.7,0,21.4,6.4],[92.9,593.7,13.4,0.4,26.9,-5.3],[189.7,562.1,13.2,1.1,26.4,-7.4],[90.1,617.8,13,-0.1,25.9,-2.8],[125.4,569,11.8,2.2,23.5,-7.8],[86,612.1,12.8,-0.4,25.6,-3.3],[44.1,551.7,9.7,-1.2,19.5,-7.6],[173.3,576,13.8,0,27.7,3.1]],"fibro":[[96,590],[160,616],[70,628]]}}};
 const A1_INKS = ["a1-cell", "a1-cell-2", "a1-membrane", "a1-nucleus", "a1-nucleolus", "a1-mito", "a1-tissue", "a1-blood", "a1-endo", "a1-iron", "a1-hep", "a1-fpn", "a1-dmt1", "a1-tf", "a1-rbc", "a1-rbc-in", "a1-ferritin", "b1-lateral", "b1-cell-dim", "b1-villus-dim", "b1-top", "b1-top-main", "b1-v0", "b1-v1", "b1-v2", "b1-tip"];
 
 function mount(fig) {
@@ -1999,7 +2049,8 @@ function mount(fig) {
   // steps aside (data-gl3-hide) and is not redrawn.
   const inks = getComputedStyle(svg);
   const pal = Object.fromEntries(A1_INKS.map((k) => [k, inks.getPropertyValue(`--${k}`).trim()]));
-  const gl = gl3Attach(fig, { scene: DATA.gl3, P: DATA.P, W: DATA.VW, H: DATA.VH, file: DATA.gl3.file, v: DATA.gl3.v, island: false, redraw: () => draw(), build: (ctx) => a1Scene(ctx, DATA, pal) });
+  const cream = (svg.closest("[data-theme]") || fig).getAttribute("data-theme") === "light";
+  const gl = gl3Attach(fig, { scene: cream ? { ...DATA.gl3, look: DATA.gl3.lookCream } : DATA.gl3, P: DATA.P, W: DATA.VW, H: DATA.VH, file: DATA.gl3.file, v: DATA.gl3.v, island: false, redraw: () => draw(), build: (ctx) => a1Scene(ctx, DATA, pal) });
 
   // ---------------------------------------------------------------- state
   let sceneAt = 0;
