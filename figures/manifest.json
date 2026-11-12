@@ -1,8 +1,8 @@
 {
   "source": "Optimal-Research-Team/optimal-anatomy-figures",
-  "commit": "72ec909",
+  "commit": "f0e443d",
   "dirty": false,
-  "syncedAt": "2026-11-12T17:00:31.034Z",
+  "syncedAt": "2026-11-12T19:07:22.844Z",
   "patchedBy": "scripts/patch-figures.mjs",
   "patchRules": 29,
   "pinned": {},
@@ -11,25 +11,19 @@
       "folder": "01-menopause-thermostat",
       "element": "optimal-fig-menopause-thermostat",
       "script": "figures/01-menopause-thermostat/optimal-fig-menopause-thermostat.js",
-      "bytes": 463275,
-      "extra": [
-        "optimal-gl3.js"
-      ]
+      "bytes": 447674
     },
     {
       "folder": "02-inbody-580",
       "element": "optimal-fig-inbody-580",
       "script": "figures/02-inbody-580/optimal-fig-inbody-580.js",
-      "bytes": 375605,
-      "extra": [
-        "optimal-gl3.js"
-      ]
+      "bytes": 362843
     },
     {
       "folder": "03-iv-iron",
       "element": "optimal-fig-iv-iron",
       "script": "figures/03-iv-iron/optimal-fig-iv-iron.js",
-      "bytes": 340784,
+      "bytes": 350966,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -38,7 +32,7 @@
       "folder": "04-creator-600",
       "element": "optimal-fig-creator-600",
       "script": "figures/04-creator-600/optimal-fig-creator-600.js",
-      "bytes": 254642,
+      "bytes": 264716,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -47,7 +41,7 @@
       "folder": "05-vo2max",
       "element": "optimal-fig-vo2max",
       "script": "figures/05-vo2max/optimal-fig-vo2max.js",
-      "bytes": 418269,
+      "bytes": 428446,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -56,7 +50,7 @@
       "folder": "06-vo2max-treadmill",
       "element": "optimal-fig-vo2max-treadmill",
       "script": "figures/06-vo2max-treadmill/optimal-fig-vo2max-treadmill.js",
-      "bytes": 394522,
+      "bytes": 404699,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -65,7 +59,7 @@
       "folder": "a1-gut-cell",
       "element": "optimal-fig-gut-cell",
       "script": "figures/a1-gut-cell/optimal-fig-gut-cell.js",
-      "bytes": 246356,
+      "bytes": 256500,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -83,7 +77,7 @@
       "folder": "a3-finger-skin",
       "element": "optimal-fig-finger-skin",
       "script": "figures/a3-finger-skin/optimal-fig-finger-skin.js",
-      "bytes": 285018,
+      "bytes": 295162,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -98,7 +92,7 @@
       "folder": "a5-alveolus",
       "element": "optimal-fig-alveolus",
       "script": "figures/a5-alveolus/optimal-fig-alveolus.js",
-      "bytes": 297785,
+      "bytes": 307929,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -107,7 +101,7 @@
       "folder": "a6-red-cell-cycle",
       "element": "optimal-fig-red-cell-cycle",
       "script": "figures/a6-red-cell-cycle/optimal-fig-red-cell-cycle.js",
-      "bytes": 196122,
+      "bytes": 206266,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -116,7 +110,7 @@
       "folder": "a7-knee",
       "element": "optimal-fig-knee",
       "script": "figures/a7-knee/optimal-fig-knee.js",
-      "bytes": 187851,
+      "bytes": 197995,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -125,7 +119,7 @@
       "folder": "a8-muscle-water",
       "element": "optimal-fig-muscle-water",
       "script": "figures/a8-muscle-water/optimal-fig-muscle-water.js",
-      "bytes": 148188,
+      "bytes": 158332,
       "extra": [
         "optimal-gl3.js"
       ]
@@ -134,7 +128,7 @@
       "folder": "a9-bone-remodelling",
       "element": "optimal-fig-bone-remodelling",
       "script": "figures/a9-bone-remodelling/optimal-fig-bone-remodelling.js",
-      "bytes": 272257,
+      "bytes": 282401,
       "extra": [
         "optimal-gl3.js"
       ]
